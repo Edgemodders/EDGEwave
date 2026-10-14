@@ -33,7 +33,7 @@ EDGEwave is a clean-room implementation inspired by [Cyberpunk 2077 SoundDB](htt
 |---|---|
 | `src/` | The extension |
 | `docs/` | The documentation site |
-| `tools/brand/` | Makes the banner, social preview, icon and badges (`.	oolsrandender.ps1`) |
+| `tools/brand/` | Makes the banner, social preview, icon and badges (`.\tools\brand\render.ps1`) |
 
 ## Build
 
