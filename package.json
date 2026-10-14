@@ -1,0 +1,39 @@
+{
+  "name": "edgewave",
+  "displayName": "EDGEwave",
+  "description": "Sound tools for Cyberpunk 2077 modding: search, preview and use the game's audio. Part of the EDGE platform, beside REDcode.",
+  "publisher": "edgemodders",
+  "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Edgemodders/EDGEwave"
+  },
+  "engines": {
+    "vscode": "^1.80.0",
+    "node": ">=20"
+  },
+  "categories": ["Other"],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "edgewave.open",
+        "title": "Open sound browser",
+        "category": "EDGEwave"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "1.80.0",
+    "esbuild": "^0.28.2",
+    "typescript": "~5.9.3"
+  }
+}

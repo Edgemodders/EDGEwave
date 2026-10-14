@@ -1,0 +1,27 @@
+# build output
+dist/
+out/
+node_modules/
+*.vsix
+*.tsbuildinfo
+
+# never commit game files, or anything extracted or converted from the game:
+# archives, Wwise sound banks and media, Opus packs, decoded audio, indexes built from them
+*.archive
+*.archive.xl
+*.dll
+*.exe
+*.bnk
+*.wem
+*.opuspak
+*.opusinfo
+*.wav
+*.ogg
+*.opus
+*.mp3
+*.flac
+index/
+cache/
+
+# VS Code builds downloaded by a UI test
+.vscode-test/
