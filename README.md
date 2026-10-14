@@ -1,4 +1,14 @@
-# EDGEwave
+<p align="center">
+  <img src="docs/assets/brand/banner.png" alt="EDGEwave: search, hear and use Cyberpunk 2077's audio, from your own game, inside the editor. Search sounds, voice and radio; reads the game with REDbridge; works with REDcode and REDnode." width="100%">
+</p>
+
+<p align="center">
+  <a href="https://edgemodders.github.io/EDGEwave/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
+  <img src="docs/assets/brand/badges/status.svg" alt="status: design phase">
+  <a href="https://github.com/Edgemodders/REDcode"><img src="docs/assets/brand/badges/redcode.svg" alt="works with: REDcode"></a>
+  <a href="https://github.com/Edgemodders/REDbridge"><img src="docs/assets/brand/badges/redbridge.svg" alt="reads with: REDbridge"></a>
+  <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
+</p>
 
 Sound tools for Cyberpunk 2077 modding, as a VS Code extension. Part of the EDGE platform, beside [REDcode](https://github.com/Edgemodders/REDcode).
 
@@ -16,6 +26,14 @@ EDGEwave will index the game's audio from your own install, search it (sound eff
 | [REDnode](https://github.com/Edgemodders/REDnode) | Plays sounds in the running game (its Sound API is planned) |
 
 EDGEwave is a clean-room implementation inspired by [Cyberpunk 2077 SoundDB](https://gitlab.com/cp2077-sounddb/frontend) by Zhincore: it uses none of SoundDB's code or data, only what its public documentation describes. See the design for the rule.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/` | The extension |
+| `docs/` | The documentation site |
+| `tools/brand/` | Makes the banner, social preview, icon and badges (`.	oolsrandender.ps1`) |
 
 ## Build
 
