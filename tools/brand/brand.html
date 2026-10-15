@@ -69,26 +69,28 @@ h1 span { color: var(--yellow); }
 .social .panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 28px; font-size: 15px; }
 .social .panel .row { border-bottom: 0; flex-direction: column; gap: 4px; }
 
-/* A waveform under the title: bars of a sound, the yellow part already played. */
+/* A waveform under the title, as in the editor: the yellow part already played, a cyan playhead, a selected region. */
 .wave { display: flex; align-items: center; gap: 4px; height: 40px; margin-top: 16px; max-width: 560px; }
 .wave i { flex: 1; min-width: 4px; background: var(--line); }
 .wave i.on { background: var(--yellow); }
 .wave i.hi { background: var(--cyan); }
+.wave i.sel { background: rgba(25,243,255,.45); }
+.wave { background: linear-gradient(90deg, transparent 58%, rgba(25,243,255,.08) 58% 80%, transparent 80%); }
 .social .wave { height: 84px; max-width: 900px; gap: 5px; }
 </style>
 </head>
 <body>
 <div class="frame">
   <div>
-    <div class="eyebrow">// EDGE platform &middot; Sound tools for REDcode</div>
+    <div class="eyebrow">// EDGE platform &middot; Sound studio for REDcode</div>
     <h1>EDGE<span>wave</span></h1>
-    <p class="tag">Search, hear and use Cyberpunk 2077's audio, from your own game, inside the editor.</p>
+    <p class="tag">Edit, mix and re-voice Cyberpunk 2077's sounds, and put them into your mod, inside the editor.</p>
     <div class="wave" id="wave"></div>
   </div>
   <div class="panel">
-    <div class="row"><span>Search</span><b class="y">Sounds, voice, radio</b></div>
+    <div class="row"><span>Studio</span><b class="y">Edit, mix, re-voice</b></div>
     <div class="row"><span>Reads the game</span><b class="c">REDbridge</b></div>
-    <div class="row"><span>Works with</span><b class="g">REDcode, REDnode</b></div>
+    <div class="row"><span>Builds on</span><b class="g">REDcode</b></div>
   </div>
 </div>
 <script>
@@ -105,6 +107,7 @@ h1 span { color: var(--yellow); }
     bar.style.height = Math.round(h * 100) + "%";
     if (t < 0.38) bar.className = "on";
     if (Math.abs(t - 0.38) < 0.012) bar.className = "hi";
+    if (t >= 0.58 && t < 0.8) bar.className = "sel";
     wave.appendChild(bar);
   }
 </script>

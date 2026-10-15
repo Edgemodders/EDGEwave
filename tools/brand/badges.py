@@ -14,7 +14,7 @@ COLORS = {"yellow": "#fcee0a", "cyan": "#19f3ff", "green": "#5dffa1"}
 
 BADGES = [
     ('status', 'status', 'design phase', 'yellow'),
-    ('redcode', 'works with', 'REDcode', 'cyan'),
+    ('redcode', 'builds on', 'REDcode', 'cyan'),
     ('redbridge', 'reads with', 'REDbridge', 'cyan'),
     ('license', 'license', 'MIT', 'green'),
     ('docs', 'docs', 'read the docs', 'yellow'),

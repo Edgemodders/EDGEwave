@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/assets/brand/banner.png" alt="EDGEwave: search, hear and use Cyberpunk 2077's audio, from your own game, inside the editor. Search sounds, voice and radio; reads the game with REDbridge; works with REDcode and REDnode." width="100%">
+  <img src="docs/assets/brand/banner.png" alt="EDGEwave: edit, mix and re-voice Cyberpunk 2077's sounds, and put them into your mod, inside the editor. A sound studio that builds on REDcode and reads the game with REDbridge." width="100%">
 </p>
 
 <p align="center">
   <a href="https://edgemodders.github.io/EDGEwave/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
   <img src="docs/assets/brand/badges/status.svg" alt="status: design phase">
-  <a href="https://github.com/Edgemodders/REDcode"><img src="docs/assets/brand/badges/redcode.svg" alt="works with: REDcode"></a>
+  <a href="https://github.com/Edgemodders/REDcode"><img src="docs/assets/brand/badges/redcode.svg" alt="builds on: REDcode"></a>
   <a href="https://github.com/Edgemodders/REDbridge"><img src="docs/assets/brand/badges/redbridge.svg" alt="reads with: REDbridge"></a>
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
 </p>
