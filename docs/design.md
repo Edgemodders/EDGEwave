@@ -35,7 +35,7 @@ How they connect:
 | Direction | How | Built by |
 |---|---|---|
 | REDcode to EDGEwave | **Open in EDGEwave** in REDcode's sound browser and player runs the command `edgewave.openSound` with a reference to the sound (below). If EDGEwave is not installed, the button offers to install it. A command, so REDcode never imports EDGEwave's code | REDcode, by request |
-| EDGEwave to REDcode | EDGEwave lists `edgemodders.redcode` in `extensionDependencies` and uses an API that REDcode exports from `activate()`, as REDcode uses REDdeck's `REDdeckApi`: the bridge, the sound effect index, a sound as audio bytes, the open project, import and pack | REDcode, by request |
+| EDGEwave to REDcode | EDGEwave lists `edgemodders.redcode-cyberpunk` (REDcode's id since 0.8.2) in `extensionDependencies` and uses an API that REDcode exports from `activate()`, as REDcode uses REDdeck's `REDdeckApi`: the bridge, the sound effect index, a sound as audio bytes, the open project, import and pack | REDcode, by request |
 
 Both are changes in REDcode, so they go to REDcode as a request issue with the shape that would work, and REDcode's session builds them. The API's exact shape is agreed there.
 
@@ -96,7 +96,7 @@ An edit or a mix is saved as a sound document: JSON that names its sources and l
 |---|---|
 | Editor | A VS Code custom editor with a webview, like REDcode's player |
 | Audio | The browser's Web Audio API in the webview: playback of the mix as it is edited, and `OfflineAudioContext` to render. Filters, EQ, reverb (our own impulse responses) and distortion are built-in nodes |
-| Decoding | REDcode supplies each source as Ogg (Vorbis or Opus) or WAV. Vorbis and WAV decode in the webview with `decodeAudioData`. **Opus does not decode in VS Code's webview** by either browser path (spike below), so EDGEwave decodes Opus itself: a WebAssembly build of libopus (BSD) in the webview, or decoding in the extension host. Chosen in A1 |
+| Decoding | REDcode supplies each source as Ogg Vorbis or WAV, which the webview decodes with `decodeAudioData`. **Opus does not decode in VS Code's webview** by either browser path (spike below), so REDcode (since 0.8.0) decodes Opus in the extension with opus-decoder (MIT, libopus in WebAssembly) and sends 16-bit WAV. EDGEwave takes that WAV through REDcode's API and needs no decoder of its own |
 | Encoding | WAV only, written in plain TypeScript. Opus encoding is decided in A3. Candidates: WebCodecs' `AudioEncoder`, which encodes Opus in VS Code's webview (spike below; EDGEwave would write the Ogg pages), or `opusenc.exe` from opus-tools, which REDbridge already ships through WolvenKit's Modkit |
 | Pitch without speed | Changing pitch and speed apart needs a time-stretch algorithm beyond Web Audio's built-in nodes; to choose in A2 |
 
@@ -126,7 +126,7 @@ Run on 2026-10-15 with a game voice line (Ogg Vorbis, exported by REDbridge) and
 | WebCodecs `AudioEncoder`, Vorbis, FLAC, MP3 | Not supported | Not checked |
 | `MediaRecorder` | WebM Opus only | Not checked |
 
-So VS Code's build cannot decode Opus in a webview at all. REDcode's player, which tries `decodeAudioData` and then WebCodecs for Opus, will fail on the game's sound effects in this version.
+So VS Code's build cannot decode Opus in a webview at all. The owner's retest of REDcode's player found the same on 2026-10-15, and REDcode 0.8.0 decodes Opus in the extension instead (see "How it is built").
 
 ## Voice tools
 
@@ -197,7 +197,6 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | Before | Question | How to find out |
 |---|---|---|
 | A1 | The shape of REDcode's API and of Open in EDGEwave | A request issue on REDcode, agreed with its session |
-| A1 | WebAssembly libopus in the webview, or decoding Opus in the extension host | A spike with REDcode's sources |
 | A2 | A time-stretch algorithm (pitch without speed) with a clear license | Public libraries |
 | A3 | A route for voice lines: no tool here makes a `.wem` (Wwise's own authoring tool might; unverified), so REDmod's custom sounds, or another way | REDmod's documentation, a test in the game |
 | A3 | Whether a sound effect overridden through WolvenKit's `OpusTools` plays in the game | A test in the game |
