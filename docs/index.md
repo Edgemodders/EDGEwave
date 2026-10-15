@@ -1,10 +1,10 @@
 # EDGE<span class="y">wave</span> docs
 
-EDGEwave is a VS Code extension with sound tools for Cyberpunk 2077 modding, part of the EDGE platform. It searches, explains and plays the game's audio, and puts a sound into the mod you are making in [REDcode](https://github.com/Edgemodders/REDcode).
+EDGEwave is the sound studio of the EDGE platform: a VS Code extension where you edit, mix and re-voice Cyberpunk 2077's sounds and put them into the mod you are making in [REDcode](https://github.com/Edgemodders/REDcode). REDcode finds and plays a game sound; **Open in EDGEwave** takes it into the studio.
 
 | Document | What it covers |
 |---|---|
-| [Design](design.html) | The goals, the clean-room rule, how the game stores audio, the feature spec, the architecture and the phases |
+| [Design](design.html) | The goals, the split with REDcode, how the game stores audio, the studio, the voice tools, the index and its clean-room rule, and the phases |
 | [Dev setup](dev-setup.html) | The tools and steps to build EDGEwave |
 
 ## Roadmap status
@@ -13,11 +13,12 @@ As of 0.0.1 (2026-10-14).
 
 | Phase | Status |
 |---|---|
-| A0 Scaffold | The extension skeleton, this site and the design. The design awaits the owner's review |
-| A1 Index | Planned: REDbridge's `audio` methods, the index, the browser |
-| A2 Listen | Planned: preview playback and the details view |
-| A3 Voices and objects | Planned: subtitles and scenes, TweakDB objects and radios |
-| A4 Mod | Planned: export and override into the REDcode project |
-| A5 EDGE | Planned: agents, and the running game through REDnode |
+| A0 Scaffold | The extension skeleton, this site and the design (draft 2). The design awaits the owner's review |
+| A1 Edit | Planned: Open in EDGEwave from REDcode, the sound editor, render to WAV |
+| A2 Mix | Planned: tracks, effects and presets |
+| A3 Into the game | Planned: override and add sounds, packed by REDcode |
+| A4 Index | Planned: the game's sound banks, the full search |
+| A5 Voices and objects | Planned: subtitles and scenes, TweakDB objects and radios |
+| A6 EDGE | Planned: agents, and the running game through REDnode |
 
 Source code, releases and issues: [github.com/Edgemodders/EDGEwave](https://github.com/Edgemodders/EDGEwave)

@@ -10,22 +10,22 @@
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
 </p>
 
-Sound tools for Cyberpunk 2077 modding, as a VS Code extension. Part of the EDGE platform, beside [REDcode](https://github.com/Edgemodders/REDcode).
+The sound studio for Cyberpunk 2077 modding, as a VS Code extension. Part of the EDGE platform, beside [REDcode](https://github.com/Edgemodders/REDcode).
 
 **[Read the docs](https://edgemodders.github.io/EDGEwave/)** &middot; [Design](https://edgemodders.github.io/EDGEwave/design.html)
 
 > [!NOTE]
 > **Status: design phase (A0).** The repository holds the extension skeleton and the design. Nothing else is built yet.
 
-EDGEwave will index the game's audio from your own install, search it (sound effects, voice-over with its subtitles, music, radio), show what plays each sound and why, play it, and put a sound into the mod you are making in REDcode, to add or override a game sound.
+REDcode finds and plays a game sound; **Open in EDGEwave** takes it into the studio. There you will edit it, layer and mix it with effects, and put the result into the mod you are making in REDcode, to add or override a game sound. Voice lines get **Translate** and **Re-Voice**, through AI services. Later, EDGEwave will index all of the game's audio from your own install and search it: sound effects, voice-over with its subtitles, music and radio, with what plays each sound and why.
 
 | Part of EDGE | Role for EDGEwave |
 |---|---|
 | [REDbridge](https://github.com/Edgemodders/REDbridge) | Reads the game's archives, sound banks and Opus packs, and converts audio |
-| [REDcode](https://github.com/Edgemodders/REDcode) | Owns the mod project that sounds go into |
+| [REDcode](https://github.com/Edgemodders/REDcode) | Owns the mod project that sounds go into; finds and plays game sounds and opens them in EDGEwave |
 | [REDnode](https://github.com/Edgemodders/REDnode) | Plays sounds in the running game (its Sound API is planned) |
 
-EDGEwave is a clean-room implementation inspired by [Cyberpunk 2077 SoundDB](https://gitlab.com/cp2077-sounddb/frontend) by Zhincore: it uses none of SoundDB's code or data, only what its public documentation describes. See the design for the rule.
+EDGEwave's search is a clean-room implementation inspired by [Cyberpunk 2077 SoundDB](https://gitlab.com/cp2077-sounddb/frontend) by Zhincore: it uses none of SoundDB's code or data, only what its public documentation describes. See the design for the rule.
 
 ## Repository layout
 

@@ -1,7 +1,7 @@
 {
   "name": "edgewave",
   "displayName": "EDGEwave",
-  "description": "Sound tools for Cyberpunk 2077 modding: search, preview and use the game's audio. Part of the EDGE platform, beside REDcode.",
+  "description": "The sound studio for Cyberpunk 2077 modding: edit, mix and re-voice the game's sounds and put them into your mod. Part of the EDGE platform, beside REDcode.",
   "publisher": "edgemodders",
   "version": "0.0.1",
   "license": "MIT",
