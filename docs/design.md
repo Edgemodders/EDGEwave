@@ -28,7 +28,7 @@ Decided by the owner on 2026-10-14 (option A): EDGEwave builds on REDcode and do
 | Find a sound | **Browse Game Sounds**: the sound effects by event, filter by name, tag or hash | Quick search to add a clip; the full index later (A4) |
 | Listen | The player for one sound (waveform, seek, loop, Save) | Playback in the editor, with the edits and the mix |
 | Change a sound | Nothing: **Open in EDGEwave** | Edit, mix, effects, voice tools, render |
-| Into the mod | Import (`.wav` to `.wem` through WolvenKit's Modkit), pack, install | Writes the render into the project and calls REDcode's import and pack |
+| Into the mod | Pack, install | Writes the render into the project in the layout the game loads (see "Into the game"), then calls REDcode's pack |
 
 How they connect:
 
@@ -72,7 +72,7 @@ An edit or a mix is saved as a sound document: JSON that names its sources and l
 |---|---|
 | File | `<name>.edgewave`, a VS Code custom editor (the extension's name is a proposal) |
 | Sources | Sound references as above, plus files the modder adds |
-| Where, for an override | Beside the render in `source/raw`, at the game file's own path: `source/raw/<path>.edgewave` renders `source/raw/<path>.wav`, which REDcode's import turns into `source/archive/<path>.wem`. Unverified for audio: the round trip is tested in A3 |
+| Where, for an override | Beside the render in `source/raw`, named after what it replaces. How the render becomes a game file depends on the kind of sound; see "Into the game" |
 | Where, for a new sound | Any folder in the project |
 
 ### Features
@@ -96,9 +96,37 @@ An edit or a mix is saved as a sound document: JSON that names its sources and l
 |---|---|
 | Editor | A VS Code custom editor with a webview, like REDcode's player |
 | Audio | The browser's Web Audio API in the webview: playback of the mix as it is edited, and `OfflineAudioContext` to render. Filters, EQ, reverb (our own impulse responses) and distortion are built-in nodes |
-| Decoding | REDcode supplies each source as Ogg (Vorbis or Opus) or WAV; the webview decodes it. Unverified: that `decodeAudioData` in VS Code's webview decodes Ogg Opus and Vorbis (the `<audio>` element plays both) |
-| Encoding | WAV only, written in plain TypeScript. Opus or Vorbis encoding is decided in A3: a WebAssembly encoder in EDGEwave, or a REDbridge method |
+| Decoding | REDcode supplies each source as Ogg (Vorbis or Opus) or WAV. Vorbis and WAV decode in the webview with `decodeAudioData`. **Opus does not decode in VS Code's webview** by either browser path (spike below), so EDGEwave decodes Opus itself: a WebAssembly build of libopus (BSD) in the webview, or decoding in the extension host. Chosen in A1 |
+| Encoding | WAV only, written in plain TypeScript. Opus encoding is decided in A3. Candidates: WebCodecs' `AudioEncoder`, which encodes Opus in VS Code's webview (spike below; EDGEwave would write the Ogg pages), or `opusenc.exe` from opus-tools, which REDbridge already ships through WolvenKit's Modkit |
 | Pitch without speed | Changing pitch and speed apart needs a time-stretch algorithm beyond Web Audio's built-in nodes; to choose in A2 |
+
+### Into the game
+
+Found on 2026-10-15 in WolvenKit's source (REDbridge's `external/WolvenKit`):
+
+| Kind | How a modded sound gets in | Status |
+|---|---|---|
+| Sound effect, in an `.opuspak` | A WAV named after the sound's hash. WolvenKit's app encodes it with `opusenc.exe`, writes it into a copy of the pack and writes a new `sfx_container.opusinfo`, both in the mod (`OpusTools.ImportWavs`, in WolvenKit.Modkit). REDbridge's build already ships `opus-tools/opusenc.exe`. Modkit's own import of `.wav` is a stub ("Use WolvenKit to import opus"), so REDbridge needs a method that calls `OpusTools` directly, agreed with its session | Path known; untested in the game |
+| Voice line or music, a `.wem` | No tool here makes a `.wem`: WolvenKit only turns a `.wem` into Ogg. Wwise's own authoring tool might (unverified) | Open: research in A3 |
+| A new sound | REDmod custom sounds, or REDnode's Sound API once it exists | Research in A3 |
+
+So REDcode's import of a `.wav` (it lists `.wav` as importable) does nothing today.
+
+### Spike: decoding and encoding in VS Code's webview
+
+Run on 2026-10-15 with a game voice line (Ogg Vorbis, exported by REDbridge) and a game sound effect (Ogg Opus, from `sfx_container_1829.opuspak`), in a webview of VS Code 1.142.0 (Electron 43.7.7, Chromium 150), with headless Chrome 154 as the control. No game data was kept.
+
+| Check | VS Code 1.142 | Chrome 154 |
+|---|---|---|
+| `decodeAudioData`, Ogg Vorbis | Decodes | Decodes |
+| `decodeAudioData`, Ogg Opus | `EncodingError` | Decodes |
+| WebCodecs `AudioDecoder`, the game's Opus | `isConfigSupported` says yes, then `configure` fails: "Unsupported configuration" | Decodes |
+| WebCodecs, Opus encoded in the same page and decoded back | `configure` fails the same way | Decodes |
+| WebCodecs `AudioEncoder`, Opus | Encodes (one second of tone: 51 packets) | Not checked |
+| WebCodecs `AudioEncoder`, Vorbis, FLAC, MP3 | Not supported | Not checked |
+| `MediaRecorder` | WebM Opus only | Not checked |
+
+So VS Code's build cannot decode Opus in a webview at all. REDcode's player, which tries `decodeAudioData` and then WebCodecs for Opus, will fail on the game's sound effects in this version.
 
 ## Voice tools
 
@@ -159,7 +187,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | **A0 Scaffold** | The repository: extension skeleton, docs site, this design | Done when this design is agreed |
 | **A1 Edit** | The REDcode request (Open in EDGEwave, REDcode's API); `edgewave.openSound`; the sound document and its editor with the edit features; render to WAV; the Translate and Re-Voice stub buttons | A game voice line opened from REDcode's browser, trimmed and faded, renders to a WAV in the project |
 | **A2 Mix** | Tracks, effects and presets; quick search to add game sounds as clips | Two game sounds layered with the radio preset render to one WAV |
-| **A3 Into the game** | Overriding a voice `.wem` through REDcode's import; overriding a sound effect in an `.opuspak` (research); REDmod custom sounds; Opus or Vorbis encoding decided and built | An edited sound plays in the game after REDcode packs the mod |
+| **A3 Into the game** | Overriding a sound effect in its `.opuspak` (a REDbridge method over WolvenKit's `OpusTools`); a route for voice lines (research); REDmod custom sounds; Opus encoding decided and built | An edited sound plays in the game after REDcode packs the mod |
 | **A4 Index** | REDbridge bank methods; the index; the query language; search with fields, filters and paging; details with links | A search for an event name finds its sounds, switches and parameters |
 | **A5 Voices and objects** | Subtitles and scenes; TweakDB objects and radios; V's gender filter | A line of dialogue is found by its text and opened in the studio |
 | **A6 EDGE** | MCP tools for agents; play an event in the running game through REDnode; a REDnode package's own sounds once its Sound API exists | An agent finds and edits a sound; an event plays in the running game from EDGEwave |
@@ -169,10 +197,10 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | Before | Question | How to find out |
 |---|---|---|
 | A1 | The shape of REDcode's API and of Open in EDGEwave | A request issue on REDcode, agreed with its session |
-| A1 | Does `decodeAudioData` in VS Code's webview decode Ogg Opus and Vorbis? | A spike |
-| A1 | Does REDcode's `.wav` import make a `.wem` the game plays, and does WolvenKit need Wwise installed for it? | REDbridge and WolvenKit code, then a test |
+| A1 | WebAssembly libopus in the webview, or decoding Opus in the extension host | A spike with REDcode's sources |
 | A2 | A time-stretch algorithm (pitch without speed) with a clear license | Public libraries |
-| A3 | How a mod overrides a sound effect in an `.opuspak` (rebuild the pack and its `.opusinfo`?), and REDmod's custom sounds | WolvenKit's Opus tooling and REDmod's documentation |
-| A3 | Opus or Vorbis encoding: a WebAssembly encoder or a REDbridge method; the licenses | Their repositories |
+| A3 | A route for voice lines: no tool here makes a `.wem` (Wwise's own authoring tool might; unverified), so REDmod's custom sounds, or another way | REDmod's documentation, a test in the game |
+| A3 | Whether a sound effect overridden through WolvenKit's `OpusTools` plays in the game | A test in the game |
+| A3 | Opus encoding: WebCodecs in the webview or `opusenc.exe` through REDbridge | Compare the output in the game |
 | A4 | How events, sounds and switches are laid out in banks; whether WolvenKit reads banks; wwiser's license | Wwise's public documentation, Zhincore's thesis, WolvenKit's code, the data through REDbridge |
 | A4 | The search engine | A spike with the real index size |
