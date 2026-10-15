@@ -24,5 +24,7 @@ nav:
     url: /
   - title: Design
     url: /design.html
+  - title: A1 Edit
+    url: /a1-edit.html
   - title: Dev setup
     url: /dev-setup.html

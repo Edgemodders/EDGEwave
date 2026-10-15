@@ -1,6 +1,6 @@
 # EDGEwave design
 
-Status: **draft 2, 2026-10-14.** Phase A0 (the scaffold and this design). Nothing past the scaffold is built.
+Status: **draft 2, 2026-10-14.** A1 Edit is built (2026-10-15), hand test pending: see [A1 Edit](a1-edit.html).
 
 EDGEwave is the sound studio of the EDGE platform: a VS Code extension where a Cyberpunk 2077 modder edits, mixes and re-voices sounds and puts them into a mod. It works beside [REDcode](https://github.com/Edgemodders/REDcode), which owns the mod project and the quick lookup of game sounds, and reads the game through REDbridge.
 
@@ -184,7 +184,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 
 | Phase | Builds | Test proves |
 |---|---|---|
-| **A0 Scaffold** | The repository: extension skeleton, docs site, this design | Done when this design is agreed |
+| **A0 Scaffold** | The repository: extension skeleton, docs site, this design | Done |
 | **A1 Edit** | The REDcode request (Open in EDGEwave, REDcode's API); `edgewave.openSound`; the sound document and its editor with the edit features; render to WAV; the Translate and Re-Voice stub buttons | A game voice line opened from REDcode's browser, trimmed and faded, renders to a WAV in the project |
 | **A2 Mix** | Tracks, effects and presets; quick search to add game sounds as clips | Two game sounds layered with the radio preset render to one WAV |
 | **A3 Into the game** | Overriding a sound effect in its `.opuspak` (a REDbridge method over WolvenKit's `OpusTools`); a route for voice lines (research); REDmod custom sounds; Opus encoding decided and built | An edited sound plays in the game after REDcode packs the mod |
@@ -196,7 +196,6 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 
 | Before | Question | How to find out |
 |---|---|---|
-| A1 | The shape of REDcode's API and of Open in EDGEwave | A request issue on REDcode, agreed with its session |
 | A2 | A time-stretch algorithm (pitch without speed) with a clear license | Public libraries |
 | A3 | A route for voice lines: no tool here makes a `.wem` (Wwise's own authoring tool might; unverified), so REDmod's custom sounds, or another way | REDmod's documentation, a test in the game |
 | A3 | Whether a sound effect overridden through WolvenKit's `OpusTools` plays in the game | A test in the game |
