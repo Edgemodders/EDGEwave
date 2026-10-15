@@ -18,7 +18,7 @@ npm run build       # bundles src/ to dist/extension.js
 npm run typecheck
 ```
 
-Press **F5** with the repository open in VS Code to run the extension in an Extension Development Host (add a launch configuration of type `extensionHost` the first time).
+Press **F5** with the repository open in VS Code to run the extension in an Extension Development Host: **Run EDGEwave** in `.vscode/launch.json` builds first. The **Check** workflow typechecks and builds every push to `main`.
 
 ## Git identity
 
