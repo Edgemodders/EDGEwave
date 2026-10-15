@@ -8,6 +8,19 @@
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "preLaunchTask": "build edgewave"
+    },
+    {
+      // REDcode's main branch beside EDGEwave, until a REDcode release has the API (0.9.0).
+      // Build REDcode first: npm run build in ../REDcode/extensions/redcode.
+      "name": "Run EDGEwave with REDcode main",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionDevelopmentPath=${workspaceFolder}/../REDcode/extensions/redcode"
+      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js", "${workspaceFolder}/../REDcode/extensions/redcode/dist/**/*.js"],
+      "preLaunchTask": "build edgewave"
     }
   ]
 }

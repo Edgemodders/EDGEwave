@@ -1,4 +1,4 @@
-# Typechecks and builds the extension on every push to main and every pull request.
+# Typechecks, builds and unit-tests the extension on every push to main and every pull request.
 
 name: Check
 
@@ -24,3 +24,4 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+      - run: npm test

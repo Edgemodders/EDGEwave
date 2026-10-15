@@ -16,27 +16,73 @@
   "categories": [
     "Other"
   ],
+  "icon": "docs/assets/brand/icon.png",
   "main": "./dist/extension.js",
   "activationEvents": [],
+  "extensionDependencies": [
+    "edgemodders.redcode-cyberpunk"
+  ],
   "contributes": {
     "commands": [
       {
         "command": "edgewave.open",
-        "title": "Open sound browser",
+        "title": "Open Sound in EDGEwave…",
         "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.openSound",
+        "title": "Open Sound Reference",
+        "category": "EDGEwave"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "edgewave.openSound",
+          "when": "false"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "edgewave.open",
+          "when": "resourceExtname =~ /^\\.(wav|ogg|mp3|flac|opus|wem)$/i",
+          "group": "navigation@90"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "edgewave.sound",
+        "displayName": "EDGEwave Sound Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.edgewave"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "languages": [
+      {
+        "id": "json",
+        "extensions": [
+          ".edgewave"
+        ]
       }
     ]
   },
   "scripts": {
     "build": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p webview/tsconfig.json --noEmit",
+    "test": "node esbuild.mjs --tests && node --test \"dist-test/*.test.cjs\"",
+    "smoke": "node tools/smoke/smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/vscode": "1.80.0",
+    "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.28.2",
     "typescript": "~5.9.3"
-  },
-  "icon": "docs/assets/brand/icon.png"
+  }
 }
