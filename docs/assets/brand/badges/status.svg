@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="123" height="22" viewBox="0 0 123 22" role="img" aria-label="status: A1 edit">
-  <title>status: A1 edit</title>
-  <path d="M0,0 H118 L123,5 V22 H5 L0,17 Z" fill="#10131b" stroke="#262c3d"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="116" height="22" viewBox="0 0 116 22" role="img" aria-label="status: A2 mix">
+  <title>status: A2 mix</title>
+  <path d="M0,0 H111 L116,5 V22 H5 L0,17 Z" fill="#10131b" stroke="#262c3d"/>
   <path d="M58,0.5 V21.5" stroke="#262c3d"/>
   <path d="M5,21 H58" stroke="#fcee0a" stroke-width="2"/>
   <g font-family="Consolas, 'DejaVu Sans Mono', Menlo, monospace" font-size="11" text-anchor="middle">
     <text x="29.0" y="15" fill="#8a93a8" textLength="42.0" lengthAdjust="spacingAndGlyphs">STATUS</text>
-    <text x="90.5" y="15" fill="#fcee0a" textLength="49.0" lengthAdjust="spacingAndGlyphs">A1 EDIT</text>
+    <text x="87.0" y="15" fill="#fcee0a" textLength="42.0" lengthAdjust="spacingAndGlyphs">A2 MIX</text>
   </g>
 </svg>

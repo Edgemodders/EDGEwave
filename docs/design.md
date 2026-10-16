@@ -1,6 +1,6 @@
 # EDGEwave design
 
-Status: **draft 2, 2026-10-14.** A1 Edit is built (2026-10-15), hand test nearly done: see [A1 Edit](a1-edit.html). A2 Mix and A3 Into the game are built (2026-10-16), hand tests pending: see [A2 Mix](a2-mix.html) and [A3 Into the game](a3-game.html).
+Status: **draft 2, 2026-10-14.** A1 Edit is done (2026-10-16): see [A1 Edit](a1-edit.html). A2 Mix and A3 Into the game are built (2026-10-16), hand tests pending: see [A2 Mix](a2-mix.html) and [A3 Into the game](a3-game.html).
 
 EDGEwave is the sound studio of the EDGE platform: a VS Code extension where a Cyberpunk 2077 modder edits, mixes and re-voices sounds and puts them into a mod. It works beside [REDcode](https://github.com/Edgemodders/REDcode), which owns the mod project and the quick lookup of game sounds, and reads the game through REDbridge.
 

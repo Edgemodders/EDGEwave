@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://edgemodders.github.io/EDGEwave/"><img src="docs/assets/brand/badges/docs.svg" alt="docs: read the docs"></a>
-  <img src="docs/assets/brand/badges/status.svg" alt="status: A1 edit">
+  <img src="docs/assets/brand/badges/status.svg" alt="status: A2 mix">
   <a href="https://github.com/Edgemodders/REDcode"><img src="docs/assets/brand/badges/redcode.svg" alt="builds on: REDcode"></a>
   <a href="https://github.com/Edgemodders/REDbridge"><img src="docs/assets/brand/badges/redbridge.svg" alt="reads with: REDbridge"></a>
   <a href="LICENSE"><img src="docs/assets/brand/badges/license.svg" alt="license: MIT"></a>
@@ -15,7 +15,7 @@ The sound studio for Cyberpunk 2077 modding, as a VS Code extension. Part of the
 **[Read the docs](https://edgemodders.github.io/EDGEwave/)** &middot; [Design](https://edgemodders.github.io/EDGEwave/design.html)
 
 > [!NOTE]
-> **Status: A1 Edit built, hand test pending.** Open a sound from REDcode, trim, fade, gain and render it to WAV. A2 Mix (tracks, effects and presets) and A3 Into the game (override a sound effect, or a REDmod custom sound) are built, hand tests pending.
+> **Status: A1 Edit done.** Open a sound from REDcode, trim, fade, gain and render it to WAV. A2 Mix (tracks, effects and presets) and A3 Into the game (override a sound effect, or a REDmod custom sound) are built, hand tests pending.
 
 REDcode finds and plays a game sound; **Open in EDGEwave** takes it into the studio. There you will edit it, layer and mix it with effects, and put the result into the mod you are making in REDcode, to add or override a game sound. Voice lines get **Translate** and **Re-Voice**, through AI services. Later, EDGEwave will index all of the game's audio from your own install and search it: sound effects, voice-over with its subtitles, music and radio, with what plays each sound and why.
 

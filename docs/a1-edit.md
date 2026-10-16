@@ -1,6 +1,6 @@
 # A1 Edit
 
-Status: **built 2026-10-15, hand test pending.** The single-sound editor: open a sound from REDcode, edit it, render it to WAV.
+Status: **done 2026-10-16** (built 2026-10-15; hand test passed). The single-sound editor: open a sound from REDcode, edit it, render it to WAV.
 
 ## What is built
 
@@ -34,7 +34,7 @@ Opening the same sound again opens its document. The render is a WAV in the proj
 
 ## Hand test
 
-First round (2026-10-15) found: the page grew past the bottom of the editor on a scaled display (the canvas sized itself from its own height), it did not use REDcode's HUD colours, and EDGEwave had no activity bar icon. All three are fixed; steps 9 and 10 cover them. Second round (2026-10-16): steps 9 and 10 pass. Third round (2026-10-16): steps 1 to 8 pass, with two findings, both fixed: Cut did not keep what it cut for Paste (a paste now names the sound it was copied from, so a cut range can be pasted after the cut, and a copy survives later edits), and Open Sound in EDGEwave… was missing from REDcode's Project view (it was only in VS Code's Explorer). To retest: step 5's Cut then Paste, and step 11.
+First round (2026-10-15) found: the page grew past the bottom of the editor on a scaled display (the canvas sized itself from its own height), it did not use REDcode's HUD colours, and EDGEwave had no activity bar icon. All three are fixed; steps 9 and 10 cover them. Second round (2026-10-16): steps 9 and 10 pass. Third round (2026-10-16): steps 1 to 8 pass, with two findings, both fixed: Cut did not keep what it cut for Paste (a paste now names the sound it was copied from, so a cut range can be pasted after the cut, and a copy survives later edits), and Open Sound in EDGEwave… was missing from REDcode's Project view (it was only in VS Code's Explorer). Fourth round (2026-10-16): the retests of step 5's Cut then Paste and of step 11 pass. **A1 is done.**
 
 Needs REDcode's main branch (the API ships in REDcode 0.9.0) and REDbridge running.
 

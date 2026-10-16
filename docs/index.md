@@ -17,7 +17,7 @@ As of 2026-10-16.
 | Phase | Status |
 |---|---|
 | A0 Scaffold | Done: the extension skeleton, this site and the design (draft 2) |
-| A1 Edit | Built, hand test pending: Open in EDGEwave from REDcode, the sound editor, render to WAV |
+| A1 Edit | Done: Open in EDGEwave from REDcode, the sound editor, render to WAV |
 | A2 Mix | Built, hand test pending: tracks, effects and presets, Add Sound, a mixed render |
 | A3 Into the game | Built, hand test pending: override a sound effect, or a REDmod custom sound for an event |
 | A4 Index | Planned: the game's sound banks, the full search |
