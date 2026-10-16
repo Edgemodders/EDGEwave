@@ -26,19 +26,30 @@
     "commands": [
       {
         "command": "edgewave.open",
-        "title": "Open Sound in EDGEwave…",
-        "category": "EDGEwave"
+        "title": "Open Sound in EDGEwave\u2026",
+        "category": "EDGEwave",
+        "icon": "$(add)"
       },
       {
         "command": "edgewave.openSound",
         "title": "Open Sound Reference",
         "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.refreshSounds",
+        "title": "Refresh",
+        "category": "EDGEwave",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
       "commandPalette": [
         {
           "command": "edgewave.openSound",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.refreshSounds",
           "when": "false"
         }
       ],
@@ -47,6 +58,18 @@
           "command": "edgewave.open",
           "when": "resourceExtname =~ /^\\.(wav|ogg|mp3|flac|opus|wem)$/i",
           "group": "navigation@90"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "edgewave.open",
+          "when": "view == edgewave.sounds",
+          "group": "navigation@1"
+        },
+        {
+          "command": "edgewave.refreshSounds",
+          "when": "view == edgewave.sounds",
+          "group": "navigation@2"
         }
       ]
     },
@@ -68,6 +91,29 @@
         "extensions": [
           ".edgewave"
         ]
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "edgewave",
+          "title": "EDGEwave",
+          "icon": "images/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "edgewave": [
+        {
+          "id": "edgewave.sounds",
+          "name": "Sounds"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "edgewave.sounds",
+        "contents": "No sound documents in this workspace yet.\nOpen a game sound from REDcode's sound list with Open in EDGEwave, or open a sound file.\n[Browse Game Sounds](command:redcode.browseSounds)\n[Open Sound\u2026](command:edgewave.open)"
       }
     ]
   },

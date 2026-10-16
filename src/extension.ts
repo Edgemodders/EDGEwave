@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { SoundEditorProvider } from "./editor";
 import { openFile, openSound, ViewType } from "./openSound";
 import type { SoundRef } from "./redcode";
+import { SoundsView } from "./soundsView";
 
 export function activate(context: vscode.ExtensionContext): void {
   const log = vscode.window.createOutputChannel("EDGEwave");
@@ -19,6 +20,11 @@ export function activate(context: vscode.ExtensionContext): void {
       return openSound(ref);
     }),
     vscode.commands.registerCommand("edgewave.open", (uri?: vscode.Uri) => openFile(uri)),
+  );
+  const sounds = new SoundsView(context);
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("edgewave.sounds", sounds),
+    vscode.commands.registerCommand("edgewave.refreshSounds", () => sounds.refresh()),
   );
 }
 

@@ -27,7 +27,7 @@ const log = (...a) => console.log("[smoke]", ...a);
 const exe = await downloadAndUnzipVSCode({ version: "stable", cachePath: path.join(T, "vsc") });
 const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
 const code = spawn(exe, ["--new-window", "--user-data-dir", path.join(T, "ud"), "--extensions-dir", path.join(T, "ex"), "--disable-extensions",
-  "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339",
+  "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339", "--force-device-scale-factor=1.5",
   "--skip-welcome", "--skip-release-notes", "--disable-workspace-trust", path.join(T, "proj")], { env, stdio: "ignore" });
 const finish = (ok, msg) => { log(ok ? "PASS" : "FAIL", msg); code.kill(); process.exit(ok ? 0 : 1); };
 setTimeout(() => finish(false, "timed out"), 120000);
@@ -81,6 +81,16 @@ for (let i = 0; i < 30; i++) { if (await run("return document.getElementById('no
 const loaded = await run("return [document.getElementById('note').hidden, document.getElementById('title').textContent, document.getElementById('meta').textContent, document.getElementById('time').textContent]");
 log("loaded", JSON.stringify(loaded));
 if (!loaded[0]) finish(false, "the sound did not load: " + (await run("return document.getElementById('note').textContent")));
+
+// The page fits the editor at 150% scaling: the waveform keeps its height and Render stays in view.
+const h1 = await run("return document.getElementById('canvas').clientHeight");
+await sleep(1500);
+const fits = await run("const c = document.getElementById('canvas').clientHeight, r = document.getElementById('render').getBoundingClientRect(); return { canvas: c, renderBottom: Math.round(r.bottom), height: innerHeight }");
+log("layout", JSON.stringify({ before: h1, ...fits }));
+if (fits.canvas !== h1 || fits.renderBottom > fits.height) finish(false, "the page does not fit the editor");
+const shot = await cdp("Page.captureScreenshot", { format: "png" });
+fs.writeFileSync(path.join(T, "editor.png"), Buffer.from(shot.data, "base64"));
+log("screenshot", path.join(T, "editor.png"));
 
 const docFile = path.join(T, "proj", "source", "raw", "sfx", "smoke_event", "42.edgewave");
 if (!fs.existsSync(docFile)) finish(false, "no document at " + docFile);

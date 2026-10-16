@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+  <!-- HUD brackets, as REDcode's icon, around waveform bars: the EDGEwave activity bar icon. Monochrome, uses currentColor. -->
+  <path d="M3 8V3h5"/>
+  <path d="M21 16v5h-5"/>
+  <path d="M6 11v2M9 8v8M12 6v12M15 9v6M18 11v2"/>
+</svg>

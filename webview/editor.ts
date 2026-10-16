@@ -181,11 +181,11 @@ function draw() {
   const g = canvas.getContext("2d")!;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
-  const fg = css("--vscode-editor-foreground", "#ccc");
+  // REDcode's player colours: a cyan waveform, yellow for what has played, the cursor and the selection.
+  const wave = css("--cyan", "#19f3ff");
   const accent = css("--accent", "#fcee0a");
-  const sel = css("--vscode-editor-selectionBackground", "rgba(38,79,120,.6)");
-  const dim = css("--vscode-descriptionForeground", "#888");
-  const line = css("--vscode-panel-border", "#444");
+  const dim = css("--dim", "#8a93a8");
+  const line = css("--line", "#262c3d");
   const x = (t: number) => (t - viewStart) / secPerPx;
 
   // ruler
@@ -215,22 +215,25 @@ function draw() {
   }
   // loop points
   if (doc?.loop) {
-    g.fillStyle = "rgba(25, 243, 255, 0.10)";
+    g.globalAlpha = 0.1;
+    g.fillStyle = wave;
     g.fillRect(x(doc.loop.start), Ruler + 1, x(doc.loop.end) - x(doc.loop.start), h);
-    g.fillStyle = "rgb(25, 243, 255)";
+    g.globalAlpha = 1;
     g.fillRect(x(doc.loop.start), Ruler + 1, 1, h);
     g.fillRect(x(doc.loop.end) - 1, Ruler + 1, 1, h);
   }
   // selection
   if (selection) {
-    g.fillStyle = sel;
+    g.globalAlpha = 0.16;
+    g.fillStyle = accent;
     g.fillRect(x(selection.start), Ruler + 1, Math.max(1, x(selection.end) - x(selection.start)), h);
+    g.globalAlpha = 1;
   }
   // waveform, one lane per channel
   const ch = edited.channels.length;
   const lane = (h - Ruler - 1) / ch;
   const rate = edited.sampleRate;
-  g.fillStyle = fg;
+  const played = playPosition();
   for (let c = 0; c < ch; c++) {
     const mid = Ruler + 1 + lane * c + lane / 2;
     const amp = lane / 2 - 2;
@@ -238,21 +241,20 @@ function draw() {
       const t0 = viewStart + px * secPerPx;
       const [lo, hi] = span(c, Math.floor(t0 * rate), Math.floor((t0 + secPerPx) * rate));
       const top = mid - hi * amp;
+      g.fillStyle = played !== null && t0 < played ? accent : wave;
       g.fillRect(px, top, 1, Math.max(1, mid - lo * amp - top));
     }
     if (c > 0) {
       g.fillStyle = line;
       g.fillRect(0, Ruler + lane * c, w, 1);
-      g.fillStyle = fg;
     }
   }
   // cursor and playhead
   g.fillStyle = accent;
   g.fillRect(Math.round(x(cursor)), Ruler + 1, 1, h);
-  const p = playPosition();
-  if (p !== null) {
-    g.fillStyle = "rgb(25, 243, 255)";
-    g.fillRect(Math.round(x(p)), 0, 2, h);
+  if (played !== null) {
+    g.fillStyle = accent;
+    g.fillRect(Math.round(x(played)), 0, 2, h);
   }
 }
 

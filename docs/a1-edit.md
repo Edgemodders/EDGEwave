@@ -11,6 +11,7 @@ Status: **built 2026-10-15, hand test pending.** The single-sound editor: open a
 | The sound document (`.edgewave`) | `src/doc.ts` |
 | The edits and the WAV writer, pure TypeScript with unit tests | `src/audio/`, `test/` |
 | The editor: a custom editor over the document's text, so save, undo and redo are VS Code's own | `src/editor.ts`, `webview/editor.ts`, `media/editor.css` |
+| The EDGEwave activity bar icon and its **Sounds** view: the workspace's sound documents, with Open Sound… and REDcode's Browse Game Sounds when there are none | `src/soundsView.ts`, `images/activity.svg` |
 | The smoke test: VS Code with a stand-in REDcode, driven over DevTools | `tools/smoke/` |
 
 Where a sound's document goes, under the open project's `source/raw` (or a folder you pick when no project is open):
@@ -28,10 +29,12 @@ Opening the same sound again opens its document. The render is a WAV in the proj
 | Check | Result |
 |---|---|
 | `npm test`: 17 unit tests of the edits, the WAV writer and the document | Pass |
-| `npm run smoke`: VS Code 1.142 with EDGEwave and a stand-in REDcode serving a 2 s tone; open by sound hash, select, trim, fade out, 44.1 kHz, voice line, render | Pass: document saved with the edits, a 1 s 44.1 kHz stereo WAV that fades to silence |
+| `npm run smoke`: VS Code 1.142 at 150% scaling with EDGEwave and a stand-in REDcode serving a 2 s tone; the page fits the editor; open by sound hash, select, trim, fade out, 44.1 kHz, voice line, render | Pass: the waveform keeps its height and Render stays in view; document saved with the edits, a 1 s 44.1 kHz stereo WAV that fades to silence |
 | With the real REDcode and the game | **Your hand test, below** |
 
 ## Hand test
+
+First round (2026-10-15) found: the page grew past the bottom of the editor on a scaled display (the canvas sized itself from its own height), it did not use REDcode's HUD colours, and EDGEwave had no activity bar icon. All three are fixed; steps 9 and 10 cover them.
 
 Needs REDcode's main branch (the API ships in REDcode 0.9.0) and REDbridge running.
 
@@ -43,6 +46,8 @@ Needs REDcode's main branch (the API ships in REDcode 0.9.0) and REDbridge runni
 6. **Undo and redo.** Ctrl+Z and Ctrl+Y (or Edit > Undo) step through the edits; the tab shows unsaved changes; Ctrl+S saves.
 7. **Render.** Pick a sample rate and click **Render WAV**. Expect: the document is saved, and the WAV beside it plays as edited (open it in REDcode's player).
 8. **Reopen.** Close the editor and click **Open in EDGEwave** on the same sound again. Expect: the same document, with its edits.
-9. **A file.** Right-click a `.wav` or `.ogg` in the Explorer > **Open Sound in EDGEwave…**. Expect: a document beside it, rendering `<name>.edit.wav` for a `.wav`.
+9. **The Sounds view.** Click the EDGEwave icon in the activity bar. Expect: the documents from the steps above, each opening in the editor; with none, the Browse Game Sounds and Open Sound… buttons.
+10. **Fit.** Make the editor short (drag the panel up) and narrow. Expect: the waveform shrinks, the Edits and Render panes scroll, nothing runs off the bottom.
+11. **A file.** Right-click a `.wav` or `.ogg` in the Explorer > **Open Sound in EDGEwave…**. Expect: a document beside it, rendering `<name>.edit.wav` for a `.wav`.
 
 Report anything that differs, with the step number.
