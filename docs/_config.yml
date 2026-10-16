@@ -28,5 +28,7 @@ nav:
     url: /a1-edit.html
   - title: A2 Mix
     url: /a2-mix.html
+  - title: A3 Into the game
+    url: /a3-game.html
   - title: Dev setup
     url: /dev-setup.html

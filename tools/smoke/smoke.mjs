@@ -158,16 +158,54 @@ for (let i = 0; i < 20 && !fs.existsSync(wav); i++) await sleep(500);
 if (!fs.existsSync(wav)) finish(false, "no render at " + wav);
 await sleep(500);
 const doc = JSON.parse(fs.readFileSync(docFile, "utf8"));
+// The A2 render, read now: Into the Game's override writes the same file at 48 kHz.
+const renderedWav = fs.readFileSync(wav);
 log("document", JSON.stringify(doc));
+// A3: Into the Game, both routes, through the real quick picks.
+const pickFirst = async (filter) => {
+  await sleep(1200);
+  if (filter) await cdp("Input.insertText", { text: filter });
+  await sleep(600);
+  await key("Enter", "Enter", 13);
+};
+await run("document.getElementById('intoGame').click()");
+await pickFirst(""); // Override this variation
+const imported = path.join(T, "imported.json");
+for (let i = 0; i < 20 && !fs.existsSync(imported); i++) await sleep(500);
+const override = fs.existsSync(imported) ? JSON.parse(fs.readFileSync(imported, "utf8")).file : null;
+log("override imported", override);
+await sleep(800);
+await key("Escape", "Escape", 27); // the notification
+await run("document.getElementById('intoGame').click()");
+await pickFirst("Replace"); // Replace the event with REDmod
+await pickFirst(""); // 2D
+const info = path.join(T, "proj", "source", "resources", "info.json");
+const custom = path.join(T, "proj", "source", "customSounds", "smoke_event.wav");
+for (let i = 0; i < 20 && !fs.existsSync(info); i++) await sleep(500);
+await sleep(800);
+const infoJson = fs.existsSync(info) ? JSON.parse(fs.readFileSync(info, "utf8")) : null;
+log("REDmod info.json", JSON.stringify(infoJson));
+const wavFormat = (f) => { const x = fs.readFileSync(f); return { rate: x.readUInt32LE(24), ch: x.readUInt16LE(22) }; };
+const overrideFormat = override && fs.existsSync(override) ? wavFormat(override) : null;
+const customFormat = fs.existsSync(custom) ? wavFormat(custom) : null;
+log("formats", JSON.stringify({ overrideFormat, customFormat }));
+const game = JSON.parse(fs.readFileSync(docFile, "utf8")).game;
+log("document game", JSON.stringify(game));
+const a3 =
+  !!override && path.basename(override) === "42.wav" && overrideFormat?.rate === 48000 && overrideFormat?.ch === 2 &&
+  customFormat?.rate === 48000 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
+  game?.route === "redmod" && game.type === "mod_sfx_2d";
+if (!a3) finish(false, "Into the Game did not write what it should");
+
 const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
 if (!t2 || t2.source.soundHash !== 43 || t2.source.eventName !== "smoke_second" || t2.effects.length !== 5 || t2.offset !== 0.25) finish(false, "the saved document does not hold track 2");
-const b = fs.readFileSync(wav);
+const b = renderedWav;
 const rate = b.readUInt32LE(24), ch = b.readUInt16LE(22), n = b.readUInt32LE(40) / (2 * ch);
 const peakAt = (sec) => Math.max(...Array.from({ length: 400 }, (_, i) => Math.abs(b.readInt16LE(44 + (Math.floor(sec * rate) + i) * ch * 2))));
 const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits, and A2: Add Sound, preset, start, a two-track render" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod" : "render or mix checks failed");

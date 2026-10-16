@@ -79,6 +79,15 @@ export interface Render {
   sampleRate?: number;
 }
 
+/** How Into the Game put this sound in the mod last time, offered first next time. */
+export type IntoGame =
+  /** Replace one sound effect variation in its .opuspak (REDbridge's sound.importWavs, through REDcode's Import). */
+  | { route: "override" }
+  /** A REDmod custom sound: the game plays the render for this event (all its variations), as type. */
+  | { route: "redmod"; event: string; type: string; gain: number; pitch: number }
+  /** A REDmod custom sound that silences this event. */
+  | { route: "skip"; event: string };
+
 export interface SoundDoc {
   edgewave: 2;
   tracks: Track[];
@@ -87,6 +96,8 @@ export interface SoundDoc {
   /** Loop points, seconds on the mix. */
   loop?: { start: number; end: number } | null;
   render: Render;
+  /** The last Into the Game choice. */
+  game?: IntoGame;
 }
 
 /** Version 1, as A1 wrote it. */

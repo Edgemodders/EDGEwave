@@ -25,7 +25,12 @@ exports.activate = () => {
       if (!s) throw new Error("no such sound");
       return { data: tone(s[0], 48000, s[1], s[2]), mime: "audio/wav", codec: "PCM", channels: s[1], sampleRate: 48000, name: `${ref.soundHash}.wav` };
     },
-    importFile: async () => ({ ok: false, written: [] }), pack: async () => ({ packedDir: "", archiveFiles: 0 }),
+    // Records what EDGEwave imports (Into the Game's override), as REDcode's Import would take it.
+    importFile: async (file) => {
+      require("fs").writeFileSync(path.join(T, "imported.json"), JSON.stringify({ file }));
+      return { ok: true, written: [path.join(p, "source", "archive", "base", "sound", "soundbanks", "sfx_container_1.opuspak")] };
+    },
+    pack: async () => ({ packedDir: path.join(p, "packed"), archiveFiles: 0 }),
   };
   setTimeout(() => vscode.commands.executeCommand("edgewave.openSound", { soundHash: 42, eventHash: 7 }), 3000);
   return api;

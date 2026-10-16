@@ -89,6 +89,15 @@ window.addEventListener("message", async (e) => {
   } else if (m.type === "audioError") {
     failed.set(m.key, `The sound could not be loaded: ${m.text}`);
     refresh();
+  } else if (m.type === "renderFor") {
+    // Into the Game: the mix at the format its route needs.
+    try {
+      const first = doc ? sources.get(sourceKey(doc.tracks[0].source))?.audio : undefined;
+      const channels = m.channels === "source" ? Math.min(2, first?.channels.length ?? 2) : m.channels;
+      send({ type: "renderedFor", id: m.id, wav: await renderMix(m.rate, channels) });
+    } catch (err) {
+      send({ type: "renderedFor", id: m.id, error: (err as Error).message });
+    }
   }
 });
 
@@ -832,6 +841,19 @@ function renderFormat() {
   return { rate, channels: stereo ? 2 : 1, seconds };
 }
 
+/** The mix as a 16-bit WAV at a rate and channel count. */
+async function renderMix(rate: number, channels: number): Promise<Uint8Array> {
+  if (!doc) throw new Error("No document");
+  const f = renderFormat();
+  if (!f || f.seconds <= 0) throw new Error("The mix is empty");
+  const off = new OfflineAudioContext(channels, Math.max(1, Math.ceil(f.seconds * rate)), rate);
+  buildMix(off, doc, (x) => clipOf(x)?.audio, 0, off.destination);
+  const r = await off.startRendering();
+  return encodeWav({ sampleRate: rate, channels: Array.from({ length: r.numberOfChannels }, (_, c) => r.getChannelData(c).slice()) });
+}
+
+on("intoGame", () => send({ type: "intoGame" }));
+
 on("render", async () => {
   if (!doc) return;
   const f = renderFormat();
@@ -839,11 +861,7 @@ on("render", async () => {
   const btn = $<HTMLButtonElement>("render");
   btn.disabled = true;
   try {
-    const off = new OfflineAudioContext(f.channels, Math.max(1, Math.ceil(f.seconds * f.rate)), f.rate);
-    buildMix(off, doc, (x) => clipOf(x)?.audio, 0, off.destination);
-    const r = await off.startRendering();
-    const out: Audio = { sampleRate: f.rate, channels: Array.from({ length: r.numberOfChannels }, (_, c) => r.getChannelData(c).slice()) };
-    send({ type: "render", wav: encodeWav(out) });
+    send({ type: "render", wav: await renderMix(f.rate, f.channels) });
   } catch (err) {
     send({ type: "error", text: `Render failed: ${(err as Error).message}` });
   } finally {

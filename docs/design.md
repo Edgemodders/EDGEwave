@@ -1,6 +1,6 @@
 # EDGEwave design
 
-Status: **draft 2, 2026-10-14.** A1 Edit is built (2026-10-15), hand test nearly done: see [A1 Edit](a1-edit.html). A2 Mix is built (2026-10-16), hand test pending: see [A2 Mix](a2-mix.html).
+Status: **draft 2, 2026-10-14.** A1 Edit is built (2026-10-15), hand test nearly done: see [A1 Edit](a1-edit.html). A2 Mix and A3 Into the game are built (2026-10-16), hand tests pending: see [A2 Mix](a2-mix.html) and [A3 Into the game](a3-game.html).
 
 EDGEwave is the sound studio of the EDGE platform: a VS Code extension where a Cyberpunk 2077 modder edits, mixes and re-voices sounds and puts them into a mod. It works beside [REDcode](https://github.com/Edgemodders/REDcode), which owns the mod project and the quick lookup of game sounds, and reads the game through REDbridge.
 
@@ -106,11 +106,11 @@ Found on 2026-10-15 in WolvenKit's source (REDbridge's `external/WolvenKit`):
 
 | Kind | How a modded sound gets in | Status |
 |---|---|---|
-| Sound effect, in an `.opuspak` | A WAV named after the sound's hash. WolvenKit's app encodes it with `opusenc.exe`, writes it into a copy of the pack and writes a new `sfx_container.opusinfo`, both in the mod (`OpusTools.ImportWavs`, in WolvenKit.Modkit). REDbridge's build already ships `opus-tools/opusenc.exe`. Modkit's own import of `.wav` is a stub ("Use WolvenKit to import opus"), so REDbridge needs a method that calls `OpusTools` directly, agreed with its session | Path known; untested in the game |
-| Voice line or music, a `.wem` | No tool here makes a `.wem`: WolvenKit only turns a `.wem` into Ogg. Wwise's own authoring tool might (unverified) | Open: research in A3 |
-| A new sound | REDmod custom sounds, or REDnode's Sound API once it exists | Research in A3 |
+| Sound effect, in an `.opuspak` | A WAV named after the sound's hash, encoded with `opusenc.exe` into a copy of the pack and a new `sfx_container.opusinfo` in the mod. REDbridge 0.9.0's `sound.importWavs` does it (over WolvenKit's `OpusTools`, REDbridge #6), and REDcode's Import calls it. Mods made this way do not combine: each carries the one shared index | Built in A3; untested in the game |
+| An audio event, by name | REDmod custom sounds: the WAV in the mod's `customSounds` folder and an entry in its `info.json`, which the game plays for the event (or skips). Works beside other mods; drops the event's own Wwise logic | Built in A3; REDcode's pack must carry it (REDcode #8) |
+| Voice line or music, a `.wem` | Modders re-encode with Wwise (unverified details); nothing here makes a `.wem` | No route yet |
 
-So REDcode's import of a `.wav` (it lists `.wav` as importable) does nothing today.
+Updated on 2026-10-16; the routes, the research and its sources are on [A3 Into the game](a3-game.html).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -187,7 +187,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | **A0 Scaffold** | The repository: extension skeleton, docs site, this design | Done |
 | **A1 Edit** | The REDcode request (Open in EDGEwave, REDcode's API); `edgewave.openSound`; the sound document and its editor with the edit features; render to WAV; the Translate and Re-Voice stub buttons | A game voice line opened from REDcode's browser, trimmed and faded, renders to a WAV in the project |
 | **A2 Mix** | Tracks, effects and presets; quick search to add game sounds as clips | Two game sounds layered with the radio preset render to one WAV |
-| **A3 Into the game** | Overriding a sound effect in its `.opuspak` (a REDbridge method over WolvenKit's `OpusTools`); a route for voice lines (research); REDmod custom sounds; Opus encoding decided and built | An edited sound plays in the game after REDcode packs the mod |
+| **A3 Into the game** | Into the Game: overriding a sound effect in its `.opuspak` (REDbridge 0.9.0 `sound.importWavs` through REDcode's Import); REDmod custom sounds for an event, or a silence; voice lines researched, no route yet. No Opus encoder of EDGEwave's own was needed: REDbridge encodes | An edited sound plays in the game after REDcode packs the mod |
 | **A4 Index** | REDbridge bank methods; the index; the query language; search with fields, filters and paging; details with links | A search for an event name finds its sounds, switches and parameters |
 | **A5 Voices and objects** | Subtitles and scenes; TweakDB objects and radios; V's gender filter | A line of dialogue is found by its text and opened in the studio |
 | **A6 EDGE** | MCP tools for agents; play an event in the running game through REDnode; a REDnode package's own sounds once its Sound API exists | An agent finds and edits a sound; an event plays in the running game from EDGEwave |
@@ -197,8 +197,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | Before | Question | How to find out |
 |---|---|---|
 | Later | A time-stretch algorithm (pitch without speed) with a clear license: Signalsmith Stretch (MIT, unverified) is a candidate. Deferred from A2 by the owner on 2026-10-16; A2's Rate changes pitch and speed together | Public libraries |
-| A3 | A route for voice lines: no tool here makes a `.wem` (Wwise's own authoring tool might; unverified), so REDmod's custom sounds, or another way | REDmod's documentation, a test in the game |
-| A3 | Whether a sound effect overridden through WolvenKit's `OpusTools` plays in the game | A test in the game |
-| A3 | Opus encoding: WebCodecs in the webview or `opusenc.exe` through REDbridge | Compare the output in the game |
+| A3 test | Whether the game plays an override, and which WAV formats REDmod's deploy accepts (EDGEwave writes 48 kHz, 16-bit) | The A3 hand test |
+| Later | Voice lines: a `.wem` through the modder's own Wwise install (its command line), or REDnode's Sound API | Wwise's documentation; REDnode's S1 |
 | A4 | How events, sounds and switches are laid out in banks; whether WolvenKit reads banks; wwiser's license | Wwise's public documentation, Zhincore's thesis, WolvenKit's code, the data through REDbridge |
 | A4 | The search engine | A spike with the real index size |

@@ -7,6 +7,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { formatDoc, looksLikeVoice, newTrack, nextTrackId, parseDoc, type SoundDoc, type Source } from "./doc";
+import { intoGame } from "./intoGame";
 import { redcode } from "./redcode";
 
 /** Formats the page decodes itself, read straight from disk. */
@@ -46,6 +47,8 @@ type FromPage =
   | { type: "ready" }
   | { type: "need"; key: string; source: Source }
   | { type: "addSound" }
+  | { type: "intoGame" }
+  | { type: "renderedFor"; id: number; wav?: Uint8Array; error?: string }
   | { type: "edit"; doc: SoundDoc }
   | { type: "render"; wav: Uint8Array }
   | { type: "stub"; tool: "translate" | "revoice" }
@@ -116,6 +119,16 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 
     const post = (m: unknown) => void webview.postMessage(m);
 
+    // Renders the page makes for Into the Game, at the format a route needs.
+    let nextRender = 1;
+    const renders = new Map<number, { resolve: (wav: Uint8Array) => void; reject: (e: Error) => void }>();
+    const renderFor = (rate: number, channels: "source" | 1 | 2) =>
+      new Promise<Uint8Array>((resolve, reject) => {
+        const id = nextRender++;
+        renders.set(id, { resolve, reject });
+        post({ type: "renderFor", id, rate, channels });
+      });
+
     /** Sends the document; the page asks for the sources it has not got. */
     const sendDoc = () => {
       try {
@@ -148,6 +161,21 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
           return sendSource(m.key, m.source);
         case "addSound":
           return this.addSound(document);
+        case "intoGame":
+          try {
+            await intoGame(document, renderFor, this.log);
+          } catch (e) {
+            void vscode.window.showErrorMessage(`EDGEwave, Into the Game: ${(e as Error).message}`);
+          }
+          return;
+        case "renderedFor": {
+          const r = renders.get(m.id);
+          renders.delete(m.id);
+          if (!r) return;
+          if (m.error || !m.wav) r.reject(new Error(m.error ?? "The page rendered nothing"));
+          else r.resolve(bytes(m.wav));
+          return;
+        }
         case "edit": {
           const text = formatDoc(m.doc);
           if (text === document.getText()) return;
@@ -234,6 +262,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
   <span class="spacer"></span>
   <span id="mixTime" class="mono"></span>
   <button id="render" class="primary" title="Write the mix as a 16-bit WAV, reverb tails included (settings in Master)">Render WAV</button>
+  <button id="intoGame" class="primary" title="Put the mix into the REDcode project for the game: override this sound effect, or a REDmod custom sound for an event">Into the Game…</button>
 </div>
 <div class="lanes"><canvas id="mix"></canvas></div>
 <div class="toolbar track">

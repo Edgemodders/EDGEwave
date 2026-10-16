@@ -6,6 +6,7 @@ import { applyEdits, duration, frames, peak, type Audio } from "../src/audio/edi
 import { decodeWav, encodeWav } from "../src/audio/wav";
 import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail } from "../src/audio/mix";
 import { formatDoc, looksLikeVoice, newDoc, newTrack, nextTrackId, parseDoc } from "../src/doc";
+import { RedmodTypes, soundFileFor, upsertCustomSound } from "../src/redmod";
 
 /** A ramp 0, 1, 2 ... scaled small, at 10 Hz, so frames and seconds are easy to read. */
 function ramp(n: number, ch = 1, rate = 10): Audio {
@@ -189,4 +190,34 @@ test("voice lines are found by their localization folder", () => {
   assert.ok(looksLikeVoice("base\\localization\\en-us\\vo\\judy_q000.wem"));
   assert.ok(looksLikeVoice("ep1\\localization\\common\\vo\\civ_mid.wem"));
   assert.ok(!looksLikeVoice("base\\sound\\music\\track.wem"));
+});
+
+test("REDmod: a custom sound is added to info.json, keeping its other fields", () => {
+  const text = upsertCustomSound(JSON.stringify({ name: "MyMod", version: "1.0", customSounds: [{ name: "other_event", type: "mod_skip" }] }), {
+    name: "w_gun_pistol_fire",
+    type: "mod_sfx_2d",
+    file: soundFileFor("w_gun_pistol_fire"),
+  });
+  const info = JSON.parse(text);
+  assert.equal(info.name, "MyMod");
+  assert.deepEqual(info.customSounds, [
+    { name: "other_event", type: "mod_skip" },
+    { name: "w_gun_pistol_fire", type: "mod_sfx_2d", file: "w_gun_pistol_fire.wav", gain: 1, pitch: 0 },
+  ]);
+});
+
+test("REDmod: the same event again replaces its entry; a skip has no file; gain and pitch stay 0 to 1", () => {
+  let text = upsertCustomSound(undefined, { name: "Ev", type: "mod_sfx_room", file: "Ev.wav", gain: 3, pitch: -1 });
+  assert.deepEqual(JSON.parse(text).customSounds, [{ name: "Ev", type: "mod_sfx_room", file: "Ev.wav", gain: 1, pitch: 0 }]);
+  text = upsertCustomSound(text, { name: "ev", type: "mod_skip", file: "ignored.wav" });
+  assert.deepEqual(JSON.parse(text).customSounds, [{ name: "ev", type: "mod_skip" }]);
+  assert.throws(() => upsertCustomSound("not json", { name: "x", type: "mod_skip" }), /not valid JSON/);
+  assert.equal(soundFileFor('a:b/c'), "a_b_c.wav");
+});
+
+test("REDmod: every type but mod_skip is offered, once", () => {
+  const types = RedmodTypes.map((t) => t.type);
+  assert.equal(new Set(types).size, types.length);
+  assert.ok(!types.includes("mod_skip" as never));
+  assert.ok(types.includes("mod_sfx_2d") && types.includes("mod_sfx_occlusion"));
 });
