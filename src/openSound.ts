@@ -8,7 +8,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { Extension, formatDoc, looksLikeVoice, type SoundDoc, type Source } from "./doc";
+import { Extension, formatDoc, looksLikeVoice, newDoc, type SoundDoc, type Source } from "./doc";
 import { redcode, type SoundRef } from "./redcode";
 
 export const ViewType = "edgewave.sound";
@@ -46,7 +46,7 @@ async function plan(ref: SoundRef): Promise<Planned | undefined> {
     const root = await soundsRoot();
     if (!root) return undefined;
     const folder = path.join(root, "sfx", safe(event?.name ?? String(event?.hash ?? ref.eventHash ?? "unknown event")));
-    return { file: path.join(folder, `${soundHash}${Extension}`), doc: { edgewave: 1, source, edits: [], render: { file: `${soundHash}.wav` } } };
+    return { file: path.join(folder, `${soundHash}${Extension}`), doc: newDoc(source, `${soundHash}.wav`) };
   }
   if (ref.path) {
     const gamePath = ref.path.replace(/\//g, "\\");
@@ -54,7 +54,7 @@ async function plan(ref: SoundRef): Promise<Planned | undefined> {
     if (!root) return undefined;
     const base = path.join(root, ...gamePath.split("\\").filter(Boolean)).replace(/\.[^.\\/]+$/, "");
     const name = path.basename(base);
-    return { file: base + Extension, doc: { edgewave: 1, source: { kind: "game", path: gamePath }, voice: looksLikeVoice(gamePath) || undefined, edits: [], render: { file: `${name}.wav` } } };
+    return { file: base + Extension, doc: newDoc({ kind: "game", path: gamePath }, `${name}.wav`, looksLikeVoice(gamePath)) };
   }
   if (ref.uri) {
     const uri = vscode.Uri.parse(ref.uri);
@@ -65,7 +65,7 @@ async function plan(ref: SoundRef): Promise<Planned | undefined> {
     const name = path.basename(base);
     return {
       file: base + Extension,
-      doc: { edgewave: 1, source: { kind: "file", file: path.basename(file) }, voice: looksLikeVoice(file) || undefined, edits: [], render: { file: ext === ".wav" ? `${name}.edit.wav` : `${name}.wav` } },
+      doc: newDoc({ kind: "file", file: path.basename(file) }, ext === ".wav" ? `${name}.edit.wav` : `${name}.wav`, looksLikeVoice(file)),
     };
   }
   throw new Error("A sound reference needs path, soundHash or uri");

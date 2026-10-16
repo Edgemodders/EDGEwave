@@ -4,7 +4,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { Extension, parseDoc, sourceLabel } from "./doc";
+import { docLabel, Extension, parseDoc } from "./doc";
 import { ViewType } from "./openSound";
 
 interface SoundItem {
@@ -13,6 +13,7 @@ interface SoundItem {
   label: string;
   voice: boolean;
   edits: number;
+  tracks?: number;
   error?: string;
 }
 
@@ -37,7 +38,7 @@ export class SoundsView implements vscode.TreeDataProvider<SoundItem> {
       .map((uri): SoundItem => {
         try {
           const doc = parseDoc(fs.readFileSync(uri.fsPath, "utf8"));
-          return { uri, label: sourceLabel(doc.source), voice: !!doc.voice, edits: doc.edits.length };
+          return { uri, label: docLabel(doc), voice: doc.tracks.some((t) => t.voice), edits: doc.tracks.reduce((n, t) => n + t.edits.length, 0), tracks: doc.tracks.length };
         } catch (e) {
           return { uri, label: path.basename(uri.fsPath), voice: false, edits: 0, error: (e as Error).message };
         }
@@ -48,7 +49,8 @@ export class SoundsView implements vscode.TreeDataProvider<SoundItem> {
   getTreeItem(s: SoundItem): vscode.TreeItem {
     const item = new vscode.TreeItem(path.basename(s.uri.fsPath, Extension), vscode.TreeItemCollapsibleState.None);
     const folder = vscode.workspace.asRelativePath(path.dirname(s.uri.fsPath), false);
-    item.description = s.error ? "cannot be read" : `${s.edits} edit${s.edits === 1 ? "" : "s"} · ${folder}`;
+    const tracks = s.tracks && s.tracks > 1 ? `${s.tracks} tracks · ` : "";
+    item.description = s.error ? "cannot be read" : `${tracks}${s.edits} edit${s.edits === 1 ? "" : "s"} · ${folder}`;
     item.tooltip = s.error ? `${s.uri.fsPath}\n${s.error}` : `${s.label}\n${s.uri.fsPath}`;
     item.iconPath = new vscode.ThemeIcon(s.error ? "warning" : s.voice ? "comment" : "pulse");
     item.resourceUri = s.uri;

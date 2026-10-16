@@ -1,6 +1,6 @@
 # EDGEwave design
 
-Status: **draft 2, 2026-10-14.** A1 Edit is built (2026-10-15), hand test pending: see [A1 Edit](a1-edit.html).
+Status: **draft 2, 2026-10-14.** A1 Edit is built (2026-10-15), hand test nearly done: see [A1 Edit](a1-edit.html). A2 Mix is built (2026-10-16), hand test pending: see [A2 Mix](a2-mix.html).
 
 EDGEwave is the sound studio of the EDGE platform: a VS Code extension where a Cyberpunk 2077 modder edits, mixes and re-voices sounds and puts them into a mod. It works beside [REDcode](https://github.com/Edgemodders/REDcode), which owns the mod project and the quick lookup of game sounds, and reads the game through REDbridge.
 
@@ -196,7 +196,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 
 | Before | Question | How to find out |
 |---|---|---|
-| A2 | A time-stretch algorithm (pitch without speed) with a clear license | Public libraries |
+| Later | A time-stretch algorithm (pitch without speed) with a clear license: Signalsmith Stretch (MIT, unverified) is a candidate. Deferred from A2 by the owner on 2026-10-16; A2's Rate changes pitch and speed together | Public libraries |
 | A3 | A route for voice lines: no tool here makes a `.wem` (Wwise's own authoring tool might; unverified), so REDmod's custom sounds, or another way | REDmod's documentation, a test in the game |
 | A3 | Whether a sound effect overridden through WolvenKit's `OpusTools` plays in the game | A test in the game |
 | A3 | Opus encoding: WebCodecs in the webview or `opusenc.exe` through REDbridge | Compare the output in the game |

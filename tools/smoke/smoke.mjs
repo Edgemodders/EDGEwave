@@ -85,9 +85,9 @@ if (!loaded[0]) finish(false, "the sound did not load: " + (await run("return do
 // The page fits the editor at 150% scaling: the waveform keeps its height and Render stays in view.
 const h1 = await run("return document.getElementById('canvas').clientHeight");
 await sleep(1500);
-const fits = await run("const c = document.getElementById('canvas').clientHeight, r = document.getElementById('render').getBoundingClientRect(); return { canvas: c, renderBottom: Math.round(r.bottom), height: innerHeight }");
+const fits = await run("const c = document.getElementById('canvas').clientHeight, r = document.getElementById('render').getBoundingClientRect(); return { canvas: c, renderBottom: Math.round(r.bottom), height: innerHeight, page: document.documentElement.scrollHeight }");
 log("layout", JSON.stringify({ before: h1, ...fits }));
-if (fits.canvas !== h1 || fits.renderBottom > fits.height) finish(false, "the page does not fit the editor");
+if (fits.canvas !== h1 || fits.renderBottom > fits.height || fits.page > fits.height) finish(false, "the page does not fit the editor");
 const shot = await cdp("Page.captureScreenshot", { format: "png" });
 fs.writeFileSync(path.join(T, "editor.png"), Buffer.from(shot.data, "base64"));
 log("screenshot", path.join(T, "editor.png"));
@@ -125,6 +125,33 @@ await run("const v = document.getElementById('voice'); v.checked = true; v.dispa
 const voiceShown = !(await run("return document.getElementById('translate').hidden"));
 log("voice stubs: hidden before", voiceHidden, "shown after", voiceShown);
 
+// A2: Add Sound through VS Code's quick pick (typed over DevTools), the radio preset, a start of 0.25 s.
+const key = async (k, code, vk) => {
+  await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: k, code, windowsVirtualKeyCode: vk });
+  await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: k, code, windowsVirtualKeyCode: vk });
+};
+await run("document.getElementById('addSound').click()");
+await sleep(1500);
+await cdp("Input.insertText", { text: "smoke_second" });
+await sleep(800);
+await key("Enter", "Enter", 13);
+await sleep(1000);
+await key("Enter", "Enter", 13); // variation 1: sound 43
+for (let i = 0; i < 20; i++) { if ((await run("return document.getElementById('trackName').textContent")).startsWith("2")) break; await sleep(500); }
+const second = await run("return document.getElementById('trackName').textContent");
+log("added", second);
+if (!second.startsWith("2")) finish(false, "Add Sound did not add a track");
+await sleep(500);
+await run("const s = document.getElementById('trackPreset'); s.value = 'radio'; s.dispatchEvent(new Event('change'))");
+await sleep(300);
+await run("const s = document.getElementById('trackOffset'); s.value = '0.25'; s.dispatchEvent(new Event('change'))");
+await sleep(800);
+const fx = await run("return document.getElementById('trackEffects').children.length");
+log("track 2 effects", fx, "render", await run("return document.getElementById('renderInfo').textContent"));
+const shot2 = await cdp("Page.captureScreenshot", { format: "png" });
+fs.writeFileSync(path.join(T, "mix.png"), Buffer.from(shot2.data, "base64"));
+log("screenshot", path.join(T, "mix.png"));
+
 await run("document.getElementById('render').click()");
 const wav = path.join(T, "proj", "source", "raw", "sfx", "smoke_event", "42.wav");
 for (let i = 0; i < 20 && !fs.existsSync(wav); i++) await sleep(500);
@@ -132,11 +159,15 @@ if (!fs.existsSync(wav)) finish(false, "no render at " + wav);
 await sleep(500);
 const doc = JSON.parse(fs.readFileSync(docFile, "utf8"));
 log("document", JSON.stringify(doc));
-const ops = doc.edits.map((e) => e.op).join(",");
-if (ops !== "trim,fade,cut,paste" || doc.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || doc.voice !== true) finish(false, "the saved document does not hold the edits");
+const t1 = doc.tracks[0], t2 = doc.tracks[1];
+const ops = t1.edits.map((e) => e.op).join(",");
+if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
+if (!t2 || t2.source.soundHash !== 43 || t2.source.eventName !== "smoke_second" || t2.effects.length !== 5 || t2.offset !== 0.25) finish(false, "the saved document does not hold track 2");
 const b = fs.readFileSync(wav);
 const rate = b.readUInt32LE(24), ch = b.readUInt16LE(22), n = b.readUInt32LE(40) / (2 * ch);
-const last = Math.abs(b.readInt16LE(44 + (n - 1) * ch * 2)), mid = Math.max(...Array.from({ length: 200 }, (_, i) => Math.abs(b.readInt16LE(44 + (Math.floor(n / 4) + i) * ch * 2))));
-log("render", JSON.stringify({ rate, ch, seconds: n / rate, lastSample: last, peakNearQuarter: mid }));
-const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1) < 0.001 && last < 200 && mid > 5000 && voiceHidden && voiceShown;
-finish(ok, ok ? "open, trim, fade, cut and paste, rate and render work" : "render or voice checks failed");
+const peakAt = (sec) => Math.max(...Array.from({ length: 400 }, (_, i) => Math.abs(b.readInt16LE(44 + (Math.floor(sec * rate) + i) * ch * 2))));
+const early = peakAt(0.1), late = peakAt(1.5);
+log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
+// The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
+const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
+finish(ok, ok ? "A1 edits, and A2: Add Sound, preset, start, a two-track render" : "render or mix checks failed");

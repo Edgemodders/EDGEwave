@@ -4,7 +4,8 @@ import { test } from "node:test";
 import * as assert from "node:assert/strict";
 import { applyEdits, duration, frames, peak, type Audio } from "../src/audio/edits";
 import { decodeWav, encodeWav } from "../src/audio/wav";
-import { formatDoc, looksLikeVoice, parseDoc, type SoundDoc } from "../src/doc";
+import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail } from "../src/audio/mix";
+import { formatDoc, looksLikeVoice, newDoc, newTrack, nextTrackId, parseDoc } from "../src/doc";
 
 /** A ramp 0, 1, 2 ... scaled small, at 10 Hz, so frames and seconds are easy to read. */
 function ramp(n: number, ch = 1, rate = 10): Audio {
@@ -122,11 +123,66 @@ test("WAV clips samples past full scale", () => {
 });
 
 test("documents round trip and reject what they are not", () => {
-  const doc: SoundDoc = { edgewave: 1, source: { kind: "sfx", soundHash: 42 }, edits: [{ op: "gain", db: 1 }], render: { file: "42.wav" } };
+  const doc = newDoc({ kind: "sfx", soundHash: 42 }, "42.wav");
+  doc.tracks[0].edits.push({ op: "gain", db: 1 });
+  doc.tracks.push({ ...newTrack(nextTrackId(doc), { kind: "game", path: "base\a.wem" }, true), offset: 0.5, effects: presetEffects("radio") });
   assert.deepEqual(parseDoc(formatDoc(doc)), doc);
+  assert.equal(doc.tracks[1].id, "t2");
   assert.throws(() => parseDoc("{}"), /Not an EDGEwave/);
-  assert.throws(() => parseDoc('{"edgewave":1,"source":{"kind":"game"},"edits":[],"render":{"file":"x"}}'), /source/);
+  assert.throws(() => parseDoc('{"edgewave":2,"tracks":[],"render":{"file":"x"}}'), /no tracks/);
+  assert.throws(() => parseDoc('{"edgewave":2,"tracks":[{"id":"t1","source":{"kind":"game"},"edits":[]}],"render":{"file":"x"}}'), /source/);
   assert.throws(() => parseDoc("nope"), /JSON/);
+});
+
+test("an A1 document (version 1) opens as one track", () => {
+  const v1 = { edgewave: 1, source: { kind: "game", path: "base\vo.wem" }, voice: true, edits: [{ op: "trim", start: 0, end: 1 }], loop: { start: 0, end: 0.5 }, render: { file: "vo.wav", sampleRate: 44100 } };
+  const doc = parseDoc(JSON.stringify(v1));
+  assert.equal(doc.edgewave, 2);
+  assert.equal(doc.tracks.length, 1);
+  assert.deepEqual(doc.tracks[0].source, v1.source);
+  assert.deepEqual(doc.tracks[0].edits, v1.edits);
+  assert.equal(doc.tracks[0].voice, true);
+  assert.deepEqual(doc.loop, v1.loop);
+  assert.deepEqual(doc.render, v1.render);
+  assert.deepEqual(doc.master, { gain: 0, effects: [] });
+});
+
+test("mix: mute and solo choose the tracks heard", () => {
+  const doc = newDoc({ kind: "sfx", soundHash: 1 }, "x.wav");
+  doc.tracks.push(newTrack("t2", { kind: "sfx", soundHash: 2 }), newTrack("t3", { kind: "sfx", soundHash: 3 }));
+  assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t1", "t2", "t3"]);
+  doc.tracks[1].mute = true;
+  assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t1", "t3"]);
+  doc.tracks[2].solo = true;
+  assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t3"]);
+  // A muted solo does not count.
+  doc.tracks[2].mute = true;
+  assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t1"]);
+});
+
+test("mix: the end is the latest track's end, at its rate; reverbs add their tail", () => {
+  const doc = newDoc({ kind: "sfx", soundHash: 1 }, "x.wav");
+  doc.tracks.push({ ...newTrack("t2", { kind: "sfx", soundHash: 2 }), offset: 1.5, rate: 2 });
+  const lengths = new Map([["t1", 2], ["t2", 2]]);
+  assert.equal(mixEnd(doc, lengths), 2.5);
+  assert.equal(onMix(doc.tracks[1], 2), 1);
+  assert.equal(tail(doc), 0);
+  doc.tracks[1].effects = presetEffects("pa");
+  assert.equal(tail(doc), 1.4);
+  doc.tracks[1].effects[3] = { ...doc.tracks[1].effects[3], bypass: true };
+  assert.equal(tail(doc), 0);
+});
+
+test("presets are fresh copies, with every effect's parameters known", () => {
+  const a = presetEffects("holocall");
+  a[0] = { type: "lowpass", hz: 1, q: 1 };
+  assert.notDeepEqual(presetEffects("holocall")[0], a[0]);
+  for (const name of Object.keys(Presets)) {
+    for (const e of presetEffects(name)) {
+      for (const p of Effects[e.type].params) assert.equal(typeof (e as unknown as Record<string, number>)[p.key], "number", `${name}: ${e.type}.${p.key}`);
+    }
+  }
+  for (const [type, spec] of Object.entries(Effects)) assert.equal(spec.make().type, type);
 });
 
 test("voice lines are found by their localization folder", () => {

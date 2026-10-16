@@ -1,7 +1,9 @@
-// The sound document: a .edgewave file, JSON that names a source and lists the edits, never the
-// audio. No VS Code or Node imports, so the editor page uses it too.
+// The sound document: a .edgewave file, JSON that names the sources and lists the edits, never the
+// audio. Version 2 (A2 Mix) holds tracks, each a source with its own edits, placement and effects,
+// mixed into one sound; version 1 (A1, one source) opens as one track. No VS Code or Node imports,
+// so the editor page uses it too.
 
-/** Where the sound comes from. Fetched again (through REDcode for the game) each time the document opens. */
+/** Where a sound comes from. Fetched again (through REDcode for the game) each time the document opens. */
 export type Source =
   /** A game file, such as a voice line .wem, by its path in the archives. */
   | { kind: "game"; path: string }
@@ -10,7 +12,7 @@ export type Source =
   /** A file, relative to the document's folder (or absolute). */
   | { kind: "file"; file: string };
 
-/** Times are seconds on the sound as it is after the edits before this one. */
+/** Times are seconds on the clip as it is after the edits before this one. */
 export type Edit =
   /** Keep only start to end. */
   | { op: "trim"; start: number; end: number }
@@ -35,27 +37,100 @@ export type Edit =
 
 export type Curve = "linear" | "exponential" | "smooth";
 
-export interface Render {
-  /** The WAV the render writes, relative to the document's folder. */
-  file: string;
-  /** Hz; the source's rate when absent. */
-  sampleRate?: number;
-}
+/** An effect in a track's chain or the master's, in order. Played and rendered by the browser's audio engine. */
+export type Effect =
+  /** Three bands in dB: a low shelf at 250 Hz, a peak at 1.5 kHz, a high shelf at 4 kHz. */
+  | { type: "eq"; low: number; mid: number; high: number; bypass?: boolean }
+  /** A filter at hz, with resonance q. */
+  | { type: "lowpass" | "highpass" | "bandpass"; hz: number; q: number; bypass?: boolean }
+  /** A room: a decay of seconds, mixed in at mix (0 to 1). */
+  | { type: "reverb"; seconds: number; mix: number; bypass?: boolean }
+  /** Soft clipping, amount 0 to 1. */
+  | { type: "distortion"; amount: number; bypass?: boolean }
+  /** Levels above threshold dB are reduced by ratio. */
+  | { type: "compressor"; threshold: number; ratio: number; bypass?: boolean };
 
-export interface SoundDoc {
-  edgewave: 1;
+export type EffectType = Effect["type"];
+
+export interface Track {
+  /** Stable within the document. */
+  id: string;
   source: Source;
   /** A voice line: shows Translate and Re-Voice. */
   voice?: boolean;
   edits: Edit[];
-  /** Loop points for playback, seconds on the edited sound. */
+  /** Where the clip starts on the mix, in seconds. */
+  offset: number;
+  /** dB. */
+  gain: number;
+  /** -1 (left) to 1 (right). */
+  pan: number;
+  /** Playback rate: pitch and speed together. 1 when absent. */
+  rate?: number;
+  mute?: boolean;
+  solo?: boolean;
+  effects: Effect[];
+}
+
+export interface Render {
+  /** The WAV the render writes, relative to the document's folder. */
+  file: string;
+  /** Hz; the first track's rate when absent. */
+  sampleRate?: number;
+}
+
+export interface SoundDoc {
+  edgewave: 2;
+  tracks: Track[];
+  /** After the tracks are mixed. */
+  master: { gain: number; effects: Effect[] };
+  /** Loop points, seconds on the mix. */
+  loop?: { start: number; end: number } | null;
+  render: Render;
+}
+
+/** Version 1, as A1 wrote it. */
+interface DocV1 {
+  edgewave: 1;
+  source: Source;
+  voice?: boolean;
+  edits: Edit[];
   loop?: { start: number; end: number } | null;
   render: Render;
 }
 
 export const Extension = ".edgewave";
 
-/** A document from its text; throws with a readable message when it is not one. */
+function isSource(s: unknown): s is Source {
+  const x = s as Partial<Record<string, unknown>> | undefined;
+  return (
+    !!x &&
+    ((x.kind === "game" && typeof x.path === "string") ||
+      (x.kind === "sfx" && typeof x.soundHash === "number") ||
+      (x.kind === "file" && typeof x.file === "string"))
+  );
+}
+
+/** A new track for a source, at the start of the mix, with no edits or effects. */
+export function newTrack(id: string, source: Source, voice?: boolean): Track {
+  const t: Track = { id, source, edits: [], offset: 0, gain: 0, pan: 0, effects: [] };
+  if (voice) t.voice = true;
+  return t;
+}
+
+/** A new document with one track. */
+export function newDoc(source: Source, renderFile: string, voice?: boolean): SoundDoc {
+  return { edgewave: 2, tracks: [newTrack("t1", source, voice)], master: { gain: 0, effects: [] }, render: { file: renderFile } };
+}
+
+/** An id no track in the document has yet. */
+export function nextTrackId(doc: SoundDoc): string {
+  let n = doc.tracks.length + 1;
+  while (doc.tracks.some((t) => t.id === `t${n}`)) n++;
+  return `t${n}`;
+}
+
+/** A document from its text, version 1 opened as one track; throws with a readable message when it is not one. */
 export function parseDoc(text: string): SoundDoc {
   let d: unknown;
   try {
@@ -63,16 +138,32 @@ export function parseDoc(text: string): SoundDoc {
   } catch (e) {
     throw new Error(`Not valid JSON: ${(e as Error).message}`);
   }
-  const doc = d as Partial<SoundDoc>;
-  if (!doc || typeof doc !== "object" || doc.edgewave !== 1) throw new Error('Not an EDGEwave sound document ("edgewave": 1 is missing)');
-  const s = doc.source as Partial<Source> | undefined;
-  const ok =
-    s &&
-    ((s.kind === "game" && typeof (s as { path?: unknown }).path === "string") ||
-      (s.kind === "sfx" && typeof (s as { soundHash?: unknown }).soundHash === "number") ||
-      (s.kind === "file" && typeof (s as { file?: unknown }).file === "string"));
-  if (!ok) throw new Error("The document's source is missing or not one of game, sfx or file");
-  if (!Array.isArray(doc.edits)) throw new Error("The document's edits are missing");
+  const raw = d as { edgewave?: unknown } | null;
+  if (!raw || typeof raw !== "object" || (raw.edgewave !== 1 && raw.edgewave !== 2)) throw new Error('Not an EDGEwave sound document ("edgewave": 1 or 2 is missing)');
+  if (raw.edgewave === 1) {
+    const v1 = raw as Partial<DocV1>;
+    if (!isSource(v1.source)) throw new Error("The document's source is missing or not one of game, sfx or file");
+    if (!Array.isArray(v1.edits)) throw new Error("The document's edits are missing");
+    if (!v1.render || typeof v1.render.file !== "string") throw new Error("The document's render file is missing");
+    const doc = newDoc(v1.source, v1.render.file, v1.voice);
+    doc.tracks[0].edits = v1.edits;
+    doc.render = v1.render;
+    if (v1.loop !== undefined) doc.loop = v1.loop;
+    return doc;
+  }
+  const doc = raw as Partial<SoundDoc>;
+  if (!Array.isArray(doc.tracks) || doc.tracks.length === 0) throw new Error("The document has no tracks");
+  doc.tracks.forEach((t, i) => {
+    if (!t || typeof t.id !== "string") throw new Error(`Track ${i + 1} has no id`);
+    if (!isSource(t.source)) throw new Error(`Track ${i + 1}'s source is missing or not one of game, sfx or file`);
+    if (!Array.isArray(t.edits)) throw new Error(`Track ${i + 1}'s edits are missing`);
+    t.offset ??= 0;
+    t.gain ??= 0;
+    t.pan ??= 0;
+    t.effects ??= [];
+  });
+  doc.master ??= { gain: 0, effects: [] };
+  doc.master.effects ??= [];
   if (!doc.render || typeof doc.render.file !== "string") throw new Error("The document's render file is missing");
   return doc as SoundDoc;
 }
@@ -82,7 +173,12 @@ export function formatDoc(doc: SoundDoc): string {
   return JSON.stringify(doc, null, 2) + "\n";
 }
 
-/** A short name for the source, for titles. */
+/** A stable key for a source, for caching its audio. */
+export function sourceKey(s: Source): string {
+  return s.kind === "game" ? `game:${s.path.toLowerCase()}` : s.kind === "sfx" ? `sfx:${s.soundHash}` : `file:${s.file}`;
+}
+
+/** A short name for a source, for titles. */
 export function sourceLabel(s: Source): string {
   switch (s.kind) {
     case "game":
@@ -92,6 +188,12 @@ export function sourceLabel(s: Source): string {
     case "file":
       return s.file.split(/[\\/]/).pop() ?? s.file;
   }
+}
+
+/** A short name for a document: its first track's source, and how many more there are. */
+export function docLabel(doc: SoundDoc): string {
+  const first = sourceLabel(doc.tracks[0].source);
+  return doc.tracks.length > 1 ? `${first} + ${doc.tracks.length - 1} more` : first;
 }
 
 /** Voice lines live under localization\<language>\vo (and ep1's). */
