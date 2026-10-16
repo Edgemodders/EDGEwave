@@ -16,8 +16,12 @@ export type Edit =
   | { op: "trim"; start: number; end: number }
   /** Remove start to end. */
   | { op: "cut"; start: number; end: number }
-  /** Insert a copy of from.start to from.end at at. */
-  | { op: "paste"; at: number; from: { start: number; end: number } }
+  /**
+   * Insert a copy of from.start to from.end at at. from.after says which sound the copy was taken
+   * from: the sound after that many edits (so a Cut's range can still be pasted after the cut).
+   * Absent, it is the sound just before this paste.
+   */
+  | { op: "paste"; at: number; from: { start: number; end: number; after?: number } }
   /** Insert silence of length seconds at at. */
   | { op: "silence"; at: number; length: number }
   /** A gain ramp from silence (in) or to silence (out) over start to end. */

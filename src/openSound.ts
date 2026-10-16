@@ -86,9 +86,19 @@ export async function openSound(ref: SoundRef): Promise<void> {
   }
 }
 
-/** edgewave.open: a sound file from the Explorer's menu or a file picker. */
-export async function openFile(uri?: vscode.Uri): Promise<void> {
-  if (!(uri instanceof vscode.Uri)) {
+const SoundFile = /\.(wav|ogg|mp3|flac|opus|wem)$/i;
+
+/**
+ * edgewave.open: a sound file from the Explorer's menu, REDcode's Project view (its node, with the
+ * file in `file`), or a file picker.
+ */
+export async function openFile(arg?: vscode.Uri | { file?: string; resourceUri?: vscode.Uri }): Promise<void> {
+  let uri = arg instanceof vscode.Uri ? arg : arg?.resourceUri ?? (typeof arg?.file === "string" ? vscode.Uri.file(arg.file) : undefined);
+  if (uri && !SoundFile.test(uri.fsPath) && !uri.fsPath.toLowerCase().endsWith(Extension)) {
+    void vscode.window.showInformationMessage(`EDGEwave opens sounds (.wav, .ogg, .mp3, .flac, .opus, .wem); ${path.basename(uri.fsPath)} is not one.`);
+    return;
+  }
+  if (!uri) {
     const pick = await vscode.window.showOpenDialog({
       canSelectMany: false,
       filters: { Sounds: ["wav", "ogg", "mp3", "flac", "opus", "wem"], "EDGEwave documents": ["edgewave"] },

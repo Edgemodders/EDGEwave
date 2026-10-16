@@ -105,6 +105,19 @@ log("selection", await run("return document.getElementById('time').textContent")
 await run("document.getElementById('trim').click()");
 await sleep(300);
 await run("document.getElementById('fadeOut').click()");
+await sleep(300);
+// Cut 0.1 s to 0.3 s of the trimmed 1 s sound with Ctrl+X, click at 0.4 s, paste with Ctrl+V.
+await run(`
+  const c = document.getElementById('canvas'), r = c.getBoundingClientRect();
+  const x = (t) => r.left + t * r.width, y = r.top + r.height / 2;
+  const ev = (type, t) => c.dispatchEvent(new PointerEvent(type, { clientX: x(t), clientY: y, pointerId: 1, bubbles: true }));
+  const key = (k) => document.dispatchEvent(new KeyboardEvent('keydown', { key: k, ctrlKey: true, bubbles: true }));
+  ev('pointerdown', 0.1); ev('pointermove', 0.2); ev('pointermove', 0.3); ev('pointerup', 0.3);
+  key('x');
+  await new Promise((r) => setTimeout(r, 200));
+  ev('pointerdown', 0.4); ev('pointerup', 0.4);
+  key('v');`);
+await sleep(300);
 await run("const s = document.getElementById('rate'); s.value = '44100'; s.dispatchEvent(new Event('change'))");
 await sleep(500);
 const voiceHidden = await run("return document.getElementById('translate').hidden");
@@ -119,10 +132,11 @@ if (!fs.existsSync(wav)) finish(false, "no render at " + wav);
 await sleep(500);
 const doc = JSON.parse(fs.readFileSync(docFile, "utf8"));
 log("document", JSON.stringify(doc));
-if (doc.edits.length !== 2 || doc.edits[0].op !== "trim" || doc.edits[1].op !== "fade" || doc.render.sampleRate !== 44100 || doc.voice !== true) finish(false, "the saved document does not hold the edits");
+const ops = doc.edits.map((e) => e.op).join(",");
+if (ops !== "trim,fade,cut,paste" || doc.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || doc.voice !== true) finish(false, "the saved document does not hold the edits");
 const b = fs.readFileSync(wav);
 const rate = b.readUInt32LE(24), ch = b.readUInt16LE(22), n = b.readUInt32LE(40) / (2 * ch);
 const last = Math.abs(b.readInt16LE(44 + (n - 1) * ch * 2)), mid = Math.max(...Array.from({ length: 200 }, (_, i) => Math.abs(b.readInt16LE(44 + (Math.floor(n / 4) + i) * ch * 2))));
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, lastSample: last, peakNearQuarter: mid }));
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1) < 0.001 && last < 200 && mid > 5000 && voiceHidden && voiceShown;
-finish(ok, ok ? "open, trim, fade, rate and render work" : "render or voice checks failed");
+finish(ok, ok ? "open, trim, fade, cut and paste, rate and render work" : "render or voice checks failed");

@@ -64,7 +64,11 @@ export function peak(a: Audio, s = 0, e = frames(a)): number {
   return p;
 }
 
-export function applyEdit(a: Audio, edit: Edit): Audio {
+/**
+ * One edit. earlier holds the sounds a paste may copy from (the sound after n edits, by n); without
+ * it, or when it lacks the one asked for, a paste copies from a.
+ */
+export function applyEdit(a: Audio, edit: Edit, earlier?: ReadonlyMap<number, Audio>): Audio {
   switch (edit.op) {
     case "trim": {
       const [s, e] = range(a, edit.start, edit.end);
@@ -75,9 +79,11 @@ export function applyEdit(a: Audio, edit: Edit): Audio {
       return map(a, (c) => joined([c.subarray(0, s), c.subarray(e)]));
     }
     case "paste": {
-      const [s, e] = range(a, edit.from.start, edit.from.end);
+      const from = (edit.from.after !== undefined && earlier?.get(edit.from.after)) || a;
+      const [s, e] = range(from, edit.from.start, edit.from.end);
       const p = at(a, edit.at);
-      return map(a, (c) => joined([c.subarray(0, p), c.subarray(s, e), c.subarray(p)]));
+      // A channels edit may lie between the copy and the paste: take the nearest channel.
+      return { sampleRate: a.sampleRate, channels: a.channels.map((c, i) => joined([c.subarray(0, p), from.channels[Math.min(i, from.channels.length - 1)].subarray(s, e), c.subarray(p)])) };
     }
     case "silence": {
       const p = at(a, edit.at);
@@ -132,5 +138,16 @@ export function applyEdit(a: Audio, edit: Edit): Audio {
 
 /** The sound after all the edits, in order. The input is not changed. */
 export function applyEdits(a: Audio, edits: readonly Edit[]): Audio {
-  return edits.reduce(applyEdit, a);
+  // Keep only the earlier sounds a paste copies from.
+  const wanted = new Set<number>();
+  edits.forEach((e, i) => {
+    if (e.op === "paste" && e.from.after !== undefined && e.from.after < i) wanted.add(e.from.after);
+  });
+  const earlier = new Map<number, Audio>();
+  let out = a;
+  edits.forEach((e, i) => {
+    if (wanted.has(i)) earlier.set(i, out);
+    out = applyEdit(out, e, earlier);
+  });
+  return out;
 }

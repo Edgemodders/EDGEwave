@@ -24,8 +24,11 @@ let viewStart = 0;
 let secPerPx = 0.01;
 let cursor = 0;
 let selection: { start: number; end: number } | null = null;
-/** A copied range, in the current sound's times; dropped when an edit changes the length. */
-let clipboard: { start: number; end: number } | null = null;
+/**
+ * A copied or cut range, in the times of the sound after `after` edits. A paste names that sound, so
+ * the copy stays good through later edits; dropped when undo goes back past it.
+ */
+let clipboard: { start: number; end: number; after: number } | null = null;
 
 let ctx: AudioContext | null = null;
 let player: { node: AudioBufferSourceNode; startedAt: number; offset: number; loop: { start: number; end: number } | null; end: number } | null = null;
@@ -81,10 +84,9 @@ async function loadAudio(data: Uint8Array | Record<string, number>, codec: strin
 function recompute() {
   if (!source || !doc) return;
   stop();
-  const before = edited ? frames(edited) : -1;
   edited = applyEdits(source, doc.edits);
   peaks = makePeaks(edited);
-  if (frames(edited) !== before) clipboard = null;
+  if (clipboard && clipboard.after > doc.edits.length) clipboard = null;
   const len = duration(edited);
   cursor = Math.min(cursor, len);
   if (selection) selection = { start: Math.min(selection.start, len), end: Math.min(selection.end, len) };
@@ -466,23 +468,27 @@ on("trim", () => {
   fit();
 });
 const cut = () => {
-  if (!selection) return;
+  if (!selection || !doc) return;
   const s = selection;
+  // What was cut can be pasted: it stays in the sound before this cut.
+  clipboard = { start: s.start, end: s.end, after: doc.edits.length };
   selection = null;
   cursor = s.start;
   addEdit({ op: "cut", start: round(s.start), end: round(s.end) });
 };
 on("cut", cut);
 const copy = () => {
-  if (selection) clipboard = { ...selection };
+  if (selection && doc) clipboard = { start: selection.start, end: selection.end, after: doc.edits.length };
   refreshPanels();
 };
 on("copy", copy);
 const paste = () => {
-  if (!clipboard) return;
+  if (!clipboard || !doc) return;
   const from = clipboard;
   const at = cursor;
-  addEdit({ op: "paste", at: round(at), from: { start: round(from.start), end: round(from.end) } });
+  // Name the sound the copy came from only when edits came after it.
+  const range = { start: round(from.start), end: round(from.end) };
+  addEdit({ op: "paste", at: round(at), from: from.after === doc.edits.length ? range : { ...range, after: from.after } });
   selection = { start: at, end: at + (from.end - from.start) };
   draw();
 };
@@ -573,6 +579,9 @@ document.addEventListener("keydown", (ev) => {
   } else if ((ev.key === "Delete" || ev.key === "Backspace") && selection) {
     ev.preventDefault();
     cut();
+  } else if (mod && ev.key.toLowerCase() === "x" && selection) {
+    ev.preventDefault();
+    cut();
   } else if (mod && ev.key.toLowerCase() === "c" && selection) {
     ev.preventDefault();
     copy();
@@ -607,7 +616,7 @@ function describe(e: Edit): string {
     case "cut":
       return `Cut ${r(e.start, e.end)}`;
     case "paste":
-      return `Paste ${r(e.from.start, e.from.end)} at ${fmt(e.at)}`;
+      return `Paste ${r(e.from.start, e.from.end)}${e.from.after !== undefined ? ` (as before edit ${e.from.after + 1})` : ""} at ${fmt(e.at)}`;
     case "silence":
       return `Silence of ${e.length.toFixed(3)} s at ${fmt(e.at)}`;
     case "fade":

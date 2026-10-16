@@ -71,6 +71,13 @@
           "when": "view == edgewave.sounds",
           "group": "navigation@2"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "edgewave.open",
+          "when": "view == redcode.project && viewItem =~ /^projectFile/",
+          "group": "edgewave@1"
+        }
       ]
     },
     "customEditors": [

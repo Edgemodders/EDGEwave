@@ -24,6 +24,30 @@ test("paste inserts a copy", () => {
   assert.deepEqual(values(applyEdits(ramp(5), [{ op: "paste", at: 0.5, from: { start: 0, end: 0.2 } }])), [0, 1, 2, 3, 4, 0, 1]);
 });
 
+test("paste from before a cut: cut then paste moves the range", () => {
+  // Cut 0.2 to 0.4 (frames 2, 3), then paste what was cut (from the sound after 0 edits) at the end.
+  const a = applyEdits(ramp(6), [
+    { op: "cut", start: 0.2, end: 0.4 },
+    { op: "paste", at: 0.4, from: { start: 0.2, end: 0.4, after: 0 } },
+  ]);
+  assert.deepEqual(values(a), [0, 1, 4, 5, 2, 3]);
+});
+
+test("paste from an earlier sound survives edits in between", () => {
+  const a = applyEdits(ramp(4), [
+    { op: "gain", db: 0 },
+    { op: "trim", start: 0, end: 0.2 },
+    { op: "paste", at: 0.2, from: { start: 0.2, end: 0.4, after: 1 } },
+  ]);
+  assert.deepEqual(values(a), [0, 1, 2, 3]);
+});
+
+test("paste from an earlier stereo sound into mono takes a channel", () => {
+  const a = applyEdits(ramp(2, 2), [{ op: "channels", to: 1 }, { op: "paste", at: 0, from: { start: 0, end: 0.1, after: 0 } }]);
+  assert.equal(a.channels.length, 1);
+  assert.deepEqual(values(a), [0, 50, 51]);
+});
+
 test("silence inserts zeros", () => {
   assert.deepEqual(values(applyEdits(ramp(3), [{ op: "silence", at: 0.1, length: 0.2 }])), [0, 0, 0, 1, 2]);
 });

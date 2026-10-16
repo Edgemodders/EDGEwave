@@ -163,7 +163,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 <div class="wave" id="wave"><canvas id="canvas"></canvas><div class="note" id="note">Loading the sound…</div></div>
 <div class="toolbar">
   <button id="trim" title="Keep only the selection">Trim</button>
-  <button id="cut" title="Remove the selection (Delete)">Cut</button>
+  <button id="cut" title="Remove the selection and keep it for Paste (Ctrl+X, Delete)">Cut</button>
   <button id="copy" title="Copy the selection (Ctrl+C)">Copy</button>
   <button id="paste" title="Insert the copy at the cursor (Ctrl+V)">Paste</button>
   <button id="silence" title="Insert silence at the cursor, as long as the selection or half a second">Silence</button>
