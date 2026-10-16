@@ -10,12 +10,12 @@ EDGEwave is the sound studio of the EDGE platform: a VS Code extension where you
 
 ## Roadmap status
 
-As of 2026-10-15.
+As of 2026-10-16.
 
 | Phase | Status |
 |---|---|
 | A0 Scaffold | Done: the extension skeleton, this site and the design (draft 2) |
-| A1 Edit | Built, hand test pending: Open in EDGEwave from REDcode, the sound editor, render to WAV |
+| A1 Edit | Done (hand-tested 2026-10-16): Open in EDGEwave from REDcode, the sound editor, render to WAV |
 | A2 Mix | Planned: tracks, effects and presets |
 | A3 Into the game | Planned: override and add sounds, packed by REDcode |
 | A4 Index | Planned: the game's sound banks, the full search |
