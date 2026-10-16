@@ -1,6 +1,6 @@
 # A1 Edit
 
-Status: **done: built 2026-10-15, hand-tested by the owner on 2026-10-16.** The single-sound editor: open a sound from REDcode, edit it, render it to WAV.
+Status: **built 2026-10-15, hand test pending.** The single-sound editor: open a sound from REDcode, edit it, render it to WAV.
 
 ## What is built
 
@@ -30,11 +30,11 @@ Opening the same sound again opens its document. The render is a WAV in the proj
 |---|---|
 | `npm test`: 17 unit tests of the edits, the WAV writer and the document | Pass |
 | `npm run smoke`: VS Code 1.142 at 150% scaling with EDGEwave and a stand-in REDcode serving a 2 s tone; the page fits the editor; open by sound hash, select, trim, fade out, 44.1 kHz, voice line, render | Pass: the waveform keeps its height and Render stays in view; document saved with the edits, a 1 s 44.1 kHz stereo WAV that fades to silence |
-| With the real REDcode and the game | The owner's hand test, below: all steps pass (2026-10-16, second round) |
+| With the real REDcode and the game | **Your hand test, below** |
 
 ## Hand test
 
-First round (2026-10-15) found: the page grew past the bottom of the editor on a scaled display (the canvas sized itself from its own height), it did not use REDcode's HUD colours, and EDGEwave had no activity bar icon. All three are fixed; steps 9 and 10 cover them. Second round (2026-10-16): every step passes.
+First round (2026-10-15) found: the page grew past the bottom of the editor on a scaled display (the canvas sized itself from its own height), it did not use REDcode's HUD colours, and EDGEwave had no activity bar icon. All three are fixed; steps 9 and 10 cover them. Second round (2026-10-16): steps 9 and 10 pass; the other steps are still to do.
 
 Needs REDcode's main branch (the API ships in REDcode 0.9.0) and REDbridge running.
 
