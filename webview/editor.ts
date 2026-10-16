@@ -29,7 +29,6 @@ const failed = new Map<string, string>();
 /** Each track's clip after its edits, kept while its source and edits are unchanged. */
 const clips = new Map<string, { key: string; audio: Audio; peaks: Peaks }>();
 let selId = "";
-const seenTracks = new Set<string>();
 
 /** The clip editor's view: the time at the left edge and seconds per pixel, in the clip's seconds. */
 let viewStart = 0;
@@ -67,11 +66,12 @@ window.addEventListener("message", async (e) => {
   const m = e.data;
   if (m.type === "doc") {
     const same = doc && JSON.stringify(doc) === JSON.stringify(m.doc);
+    const before = doc ? new Set(doc.tracks.map((t) => t.id)) : null;
     doc = m.doc as SoundDoc;
     // A track that appeared since the last document (Add Sound) becomes the selected one.
-    const fresh = doc.tracks.filter((t) => !seenTracks.has(t.id));
-    doc.tracks.forEach((t) => seenTracks.add(t.id));
-    if (fresh.length && seenTracks.size > fresh.length) selectTrack(fresh[fresh.length - 1].id);
+    // A track that was not in the last document (Add Sound, or undo of a Remove) becomes the selected one.
+    const fresh = before ? doc.tracks.filter((t) => !before.has(t.id)) : [];
+    if (fresh.length) selectTrack(fresh[fresh.length - 1].id);
     if (!doc.tracks.some((t) => t.id === selId)) selId = doc.tracks[0].id;
     requestSources();
     $("title").textContent = docLabel(doc);
@@ -488,7 +488,8 @@ const capture = (c: HTMLCanvasElement, id: number) => {
 };
 
 canvas.addEventListener("pointerdown", (ev) => {
-  if (!clip()) return;
+  // Only the left button selects; the right one opens the clip's menu and leaves the selection.
+  if (!clip() || ev.button !== 0) return;
   capture(canvas, ev.pointerId);
   const t = timeAt(ev);
   if (ev.shiftKey) {
@@ -511,7 +512,8 @@ canvas.addEventListener("pointermove", (ev) => {
   draw();
 });
 canvas.addEventListener("pointerup", () => {
-  if (drag && !drag.moved) {
+  if (!drag) return;
+  if (!drag.moved) {
     selection = null;
     if (player?.mode === "clip") playClip(cursor);
   }
@@ -550,7 +552,7 @@ const mixAt = (ev: MouseEvent) => {
 };
 
 mixCanvas.addEventListener("pointerdown", (ev) => {
-  if (!doc) return;
+  if (!doc || ev.button !== 0) return;
   const { t, lane } = mixAt(ev);
   const tr = doc.tracks[lane];
   if (!tr) {
@@ -608,8 +610,8 @@ function stop() {
     player = null;
     p.stop();
   }
-  $("play").textContent = "Play clip";
-  $("playMix").textContent = "Play mix";
+  $("play").classList.remove("on");
+  $("playMix").classList.remove("on");
   draw();
 }
 
@@ -649,7 +651,7 @@ function playClip(from = cursor) {
   }
   const built = buildMix(ctx, doc, (x) => clipOf(x)?.audio, from, ctx.destination, { track: t, loop, end });
   player = { mode: "clip", stop: () => built.sources.forEach((s) => s.stop()), startedAt: ctx.currentTime, from, rate: t.rate ?? 1, loop, end };
-  $("play").textContent = "Stop";
+  $("play").classList.add("on");
   startTicking("clip");
 }
 
@@ -663,7 +665,7 @@ function playMix(from = mixCursor) {
   if (from >= end) from = doc.loop && looping ? doc.loop.start : 0;
   const built = buildMix(ctx, doc, (x) => clipOf(x)?.audio, from, ctx.destination);
   player = { mode: "mix", stop: () => built.sources.forEach((s) => s.stop()), startedAt: ctx.currentTime, from, rate: 1, loop: null, end };
-  $("playMix").textContent = "Stop";
+  $("playMix").classList.add("on");
   startTicking("mix");
 }
 
@@ -686,6 +688,34 @@ on("loopPlay", () => {
   else if (player?.mode === "mix") playMix(playPosition() ?? mixCursor);
 });
 on("addSound", () => send({ type: "addSound" }));
+on("stopMix", stop);
+on("stopClip", stop);
+
+/** Where clips start and end on the mix, with 0, in order. */
+function edges(): number[] {
+  const at = new Set<number>([0]);
+  for (const t of doc?.tracks ?? []) {
+    const c = clipOf(t);
+    at.add(round(t.offset));
+    if (c) at.add(round(t.offset + onMix(t, duration(c.audio))));
+  }
+  return [...at].sort((a, b) => a - b);
+}
+const jumped = () => {
+  if (player?.mode === "mix") playMix(mixCursor);
+  refreshTime();
+  draw();
+};
+on("toPrev", () => {
+  const before = edges().filter((x) => x < mixCursor - 1e-6);
+  mixCursor = before.length ? before[before.length - 1] : 0;
+  jumped();
+});
+on("toNext", () => {
+  const after = edges().filter((x) => x > mixCursor + 1e-6);
+  if (after.length) mixCursor = after[0];
+  jumped();
+});
 on("zoomIn", () => zoom(0.5));
 on("zoomOut", () => zoom(2));
 on("zoomFit", fit);
@@ -740,11 +770,13 @@ on("silence", () => {
 });
 const curve = () => $<HTMLSelectElement>("curve").value as Curve;
 on("fadeIn", () => {
-  const r = selOr(() => (cursor > 0 ? { start: 0, end: cursor } : null));
+  // No selection: start to the cursor, or the first half second when the cursor is at the start.
+  const r = selOr(() => (cursor > 0 ? { start: 0, end: cursor } : { start: 0, end: Math.min(0.5, len() / 4) }));
   if (r) addEdit({ op: "fade", dir: "in", start: round(r.start), end: round(r.end), curve: curve() });
 });
 on("fadeOut", () => {
-  const r = selOr(() => (cursor < len() ? { start: cursor, end: len() } : null));
+  // No selection: the cursor to the end, or the last half second when the cursor is at the start or the end.
+  const r = selOr(() => (cursor > 0 && cursor < len() ? { start: cursor, end: len() } : { start: len() - Math.min(0.5, len() / 4), end: len() }));
   if (r) addEdit({ op: "fade", dir: "out", start: round(r.start), end: round(r.end), curve: curve() });
 });
 on("gain", () => {
@@ -1040,5 +1072,54 @@ function refreshTime() {
   if (doc?.loop) mixParts.push(`loop ${fmt(doc.loop.start)} to ${fmt(doc.loop.end)}`);
   $("mixTime").textContent = mixParts.join(" · ");
 }
+
+// ---- the clip's menu: right-click on the waveform, its edit actions at the pointer --------------------
+
+const menu = document.createElement("div");
+menu.className = "menu";
+menu.hidden = true;
+document.body.append(menu);
+const hideMenu = () => (menu.hidden = true);
+const canPaste = () => !!clipboard && clipboard.track === track()?.id;
+const MenuItems: [string, string, () => boolean][] = [
+  ["Play clip", "play", () => true],
+  ["Trim", "trim", () => !!selection],
+  ["Cut", "cut", () => !!selection],
+  ["Copy", "copy", () => !!selection],
+  ["Paste", "paste", canPaste],
+  ["Silence", "silence", () => true],
+  ["Fade in", "fadeIn", () => true],
+  ["Fade out", "fadeOut", () => true],
+  ["Apply gain", "gain", () => true],
+  ["Normalize", "normalize", () => true],
+  ["Set loop", "setLoop", () => !!selection],
+];
+canvas.addEventListener("contextmenu", (ev) => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (!clip()) return;
+  menu.replaceChildren(
+    ...MenuItems.map(([label, id, ok]) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.disabled = !ok();
+      b.addEventListener("click", () => {
+        hideMenu();
+        $<HTMLButtonElement>(id).click();
+      });
+      return b;
+    }),
+  );
+  menu.hidden = false;
+  menu.style.left = `${Math.max(0, Math.min(ev.clientX, innerWidth - menu.offsetWidth - 4))}px`;
+  menu.style.top = `${Math.max(0, Math.min(ev.clientY, innerHeight - menu.offsetHeight - 4))}px`;
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!menu.contains(e.target as Node)) hideMenu();
+}, true);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") hideMenu();
+});
+window.addEventListener("blur", hideMenu);
 
 send({ type: "ready" });

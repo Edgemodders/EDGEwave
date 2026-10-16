@@ -146,6 +146,41 @@ await run("const s = document.getElementById('trackPreset'); s.value = 'radio'; 
 await sleep(300);
 await run("const s = document.getElementById('trackOffset'); s.value = '0.25'; s.dispatchEvent(new Event('change'))");
 await sleep(800);
+// The owner's A2 findings, kept fixed:
+// Apply gain is an edit; Fade in works with no selection and the cursor at the start.
+await run("const g = document.getElementById('gainDb'); g.value = '-12'; document.getElementById('gain').click()");
+await sleep(300);
+await run("document.getElementById('fadeIn').click()");
+await sleep(300);
+// Right-click keeps the selection and opens the clip's menu.
+const rightClick = await run(`
+  const c = document.getElementById('canvas'), r = c.getBoundingClientRect();
+  const x = (t) => r.left + (t / 1.5) * r.width, y = r.top + r.height / 2;
+  const ev = (type, t, button = 0) => c.dispatchEvent(new PointerEvent(type, { clientX: x(t), clientY: y, pointerId: 1, button, bubbles: true }));
+  ev('pointerdown', 0.6); ev('pointermove', 0.8); ev('pointermove', 1.0); ev('pointerup', 1.0);
+  const before = document.getElementById('time').textContent;
+  ev('pointerdown', 0.2, 2); ev('pointerup', 0.2, 2);
+  c.dispatchEvent(new MouseEvent('contextmenu', { clientX: x(0.2), clientY: y, button: 2, bubbles: true, cancelable: true }));
+  const menu = document.querySelector('.menu');
+  const out = { kept: document.getElementById('time').textContent === before, menu: !menu.hidden, items: menu.children.length };
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  return out;`);
+log("right-click", JSON.stringify(rightClick));
+// The next-edge button: from 0 to track 2's start.
+await run("document.getElementById('toNext').click()");
+const edge = await run("return document.getElementById('mixTime').textContent");
+log("next edge", edge);
+// Remove track 2, then undo (Ctrl+Z): it comes back selected.
+await run("document.getElementById('removeTrack').click()");
+await sleep(800);
+await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "z", code: "KeyZ", windowsVirtualKeyCode: 90, modifiers: 2 });
+await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "z", code: "KeyZ", windowsVirtualKeyCode: 90, modifiers: 2 });
+await sleep(1200);
+const afterUndo = await run("return document.getElementById('trackName').textContent");
+log("after undo", afterUndo);
+const findings = rightClick.kept && rightClick.menu && rightClick.items === 11 && edge.startsWith("0:00.250") && afterUndo.startsWith("2");
+if (!findings) finish(false, "one of the A2 findings is back");
+
 const fx = await run("return document.getElementById('trackEffects').children.length");
 log("track 2 effects", fx, "render", await run("return document.getElementById('renderInfo').textContent"));
 const shot2 = await cdp("Page.captureScreenshot", { format: "png" });
@@ -201,6 +236,8 @@ const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
 if (!t2 || t2.source.soundHash !== 43 || t2.source.eventName !== "smoke_second" || t2.effects.length !== 5 || t2.offset !== 0.25) finish(false, "the saved document does not hold track 2");
+const t2ops = JSON.stringify(t2.edits);
+if (t2ops !== JSON.stringify([{ op: "gain", db: -12 }, { op: "fade", dir: "in", start: 0, end: 0.375, curve: "linear" }])) finish(false, "track 2's edits are not Apply gain and Fade in: " + t2ops);
 const b = renderedWav;
 const rate = b.readUInt32LE(24), ch = b.readUInt16LE(22), n = b.readUInt32LE(40) / (2 * ch);
 const peakAt = (sec) => Math.max(...Array.from({ length: 400 }, (_, i) => Math.abs(b.readInt16LE(44 + (Math.floor(sec * rate) + i) * ch * 2))));

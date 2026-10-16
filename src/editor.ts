@@ -256,9 +256,14 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 </header>
 <div class="toolbar mixbar">
   <span class="label">Mix</span>
-  <button id="playMix" title="Play the whole mix from the mix cursor, with the master (Shift+Space)">Play mix</button>
-  <button id="loopPlay" title="Loop: the clip's selection or the whole clip; the mix's loop points or the whole mix">Loop</button>
-  <button id="addSound" title="Add a game sound effect, a game file or a sound file as a new track">Add Sound…</button>
+  <span class="transport">
+    <button id="toPrev" class="icon" title="Mix cursor to the previous clip edge: a track's start or end, or the start" aria-label="Previous clip edge"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3v10" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M13 3 5 8l8 5z" fill="currentColor"/></svg></button>
+    <button id="playMix" class="icon" title="Play the mix from the mix cursor, with the master (Shift+Space)" aria-label="Play mix"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5 13.5 8 4 13.5z" fill="currentColor"/></svg></button>
+    <button id="stopMix" class="icon" title="Stop" aria-label="Stop"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" fill="currentColor"/></svg></button>
+    <button id="toNext" class="icon" title="Mix cursor to the next clip edge: a track's start or end" aria-label="Next clip edge"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 3v10" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M3 3l8 5-8 5z" fill="currentColor"/></svg></button>
+    <button id="loopPlay" class="icon" title="Loop: the clip's selection or the whole clip; the mix's loop points or the whole mix" aria-label="Loop"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 9V7a3 3 0 0 1 3-3h7" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M11 1.5 13.5 4 11 6.5" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M13.5 7v2a3 3 0 0 1-3 3h-7" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M5 9.5 2.5 12 5 14.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
+  </span>
+  <button id="addSound" class="icon" title="Add Sound: a game sound effect, a game file or a sound file, as a new track" aria-label="Add Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.8" fill="none"/></svg></button>
   <span class="spacer"></span>
   <span id="mixTime" class="mono"></span>
   <button id="render" class="primary" title="Write the mix as a 16-bit WAV, reverb tails included (settings in Master)">Render WAV</button>
@@ -267,7 +272,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 <div class="lanes"><canvas id="mix"></canvas></div>
 <div class="toolbar track">
   <span class="label">Track</span><span id="trackName" class="mono trackname"></span>
-  <label class="param" title="The track's level in dB">Gain <input id="trackGain" type="number" step="0.5" min="-60" max="24"> dB</label>
+  <label class="param" title="The track's level in the mix, in dB. To change the clip itself, use Apply gain below the waveform">Level <input id="trackGain" type="number" step="0.5" min="-60" max="24"> dB</label>
   <label class="param" title="-1 left, 0 centre, 1 right">Pan <input id="trackPan" type="number" step="0.1" min="-1" max="1"></label>
   <label class="param" title="Playback rate: pitch and speed together (0.25 to 4)">Rate <input id="trackRate" type="number" step="0.05" min="0.25" max="4"></label>
   <label class="param" title="Where the clip starts on the mix; or drag it in the lanes">Start <input id="trackOffset" type="number" step="0.01" min="0"> s</label>
@@ -276,7 +281,11 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
   <button id="removeTrack" title="Remove this track from the mix">Remove</button>
 </div>
 <div class="toolbar">
-  <button id="play" title="Play the selected clip, with its track's effects, from the cursor or the selection (Space)">Play clip</button>
+  <span class="label">Clip</span>
+  <span class="transport">
+    <button id="play" class="icon" title="Play the selected clip, with its track's effects, from the cursor or the selection (Space)" aria-label="Play clip"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5 13.5 8 4 13.5z" fill="currentColor"/></svg></button>
+    <button id="stopClip" class="icon" title="Stop" aria-label="Stop"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" fill="currentColor"/></svg></button>
+  </span>
   <span class="sep"></span>
   <button id="zoomIn" title="Zoom in (Ctrl+wheel)">+</button><button id="zoomOut" title="Zoom out">−</button><button id="zoomFit" title="Show the whole clip">Fit</button><button id="zoomSel" title="Zoom to the selection">Sel</button>
   <span class="spacer"></span>
@@ -290,11 +299,11 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
   <button id="paste" title="Insert the copy at the cursor (Ctrl+V)">Paste</button>
   <button id="silence" title="Insert silence at the cursor, as long as the selection or half a second">Silence</button>
   <span class="sep"></span>
-  <button id="fadeIn" title="Fade in over the selection, or from the start to the cursor">Fade in</button>
-  <button id="fadeOut" title="Fade out over the selection, or from the cursor to the end">Fade out</button>
+  <button id="fadeIn" title="Fade in over the selection; with none, from the start to the cursor, or over the first half second">Fade in</button>
+  <button id="fadeOut" title="Fade out over the selection; with none, from the cursor to the end, or over the last half second">Fade out</button>
   <select id="curve" title="The fades' curve"><option value="linear">Linear</option><option value="exponential">Exponential</option><option value="smooth">Smooth</option></select>
   <span class="sep"></span>
-  <input id="gainDb" type="number" step="0.5" value="-3" title="Gain in dB"><button id="gain" title="Change the volume of the selection, or the whole sound">Gain dB</button>
+  <input id="gainDb" type="number" step="0.5" value="-6" title="dB to add (negative is quieter)"><button id="gain" title="Change the clip's volume by this many dB: the selection, or the whole clip. An edit, listed in Edits">Apply gain</button>
   <input id="peakDb" type="number" step="0.5" value="-1" max="0" title="Peak in dBFS"><button id="normalize" title="Bring the loudest peak of the selection, or the whole sound, to this level">Normalize</button>
   <button id="channels" title="Mix down to mono, or make mono stereo">Mono</button>
   <span class="sep"></span>

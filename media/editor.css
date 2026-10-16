@@ -33,6 +33,13 @@ button.on { border-color: var(--cyan); color: var(--cyan); }
 button.primary { border-color: var(--accent); color: var(--accent); }
 button.primary:hover:not(:disabled) { background: var(--accent); color: var(--vscode-editor-background); }
 button[hidden] { display: none; }
+.transport { display: inline-flex; gap: 2px; margin-right: 4px; }
+button.icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 24px; padding: 0; }
+button.icon svg { width: 14px; height: 14px; }
+.menu { position: fixed; z-index: 10; display: flex; flex-direction: column; min-width: 150px; padding: 4px 0; background: var(--vscode-menu-background, var(--vscode-editorWidget-background)); color: var(--vscode-menu-foreground, var(--vscode-foreground)); border: 1px solid var(--vscode-menu-border, var(--line)); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.menu[hidden] { display: none; }
+.menu button { border: 0; text-align: left; padding: 3px 14px; }
+.menu button:hover:not(:disabled) { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground)); color: var(--vscode-menu-selectionForeground, var(--accent)); }
 #translate, #revoice { border-style: dashed; color: var(--dim); }
 input[type="number"], select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 4px; font: inherit; font-family: var(--mono); font-size: 12px; }
 input[type="number"] { width: 58px; }
