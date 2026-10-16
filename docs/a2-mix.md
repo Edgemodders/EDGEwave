@@ -31,38 +31,6 @@ A preset replaces the chain it is applied to; every value stays editable, and ea
 
 Not in A2, as agreed: pitch without changing speed (Rate changes both together). The render writes WAV only; the game's formats are A3.
 
-## Checks run
+## Tests
 
-| Check | Result |
-|---|---|
-| `npm test`: 24 unit tests, adding A2's: documents round trip, an A1 document opens as one track, mute and solo, the mix's end at each track's rate, reverb tails and bypass, presets | Pass |
-| `npm run smoke`: A1's steps, then Add Sound through VS Code's quick pick (typed over DevTools), the radio preset and a start of 0.25 s on track 2, Apply gain and Fade in with no selection, right-click, the next-edge icon, Remove then Ctrl+Z, and a render | Pass: the document holds both tracks; the WAV is 1.75 s (0.25 s + track 2's 1.5 s), stereo, 44.1 kHz, with sound from both tracks |
-| With the real REDcode and the game | **Your hand test, below** |
-
-## Hand test
-
-First round (2026-10-16): every step works, with five findings, all fixed and kept by the smoke test:
-
-| Finding | Fix |
-|---|---|
-| Gain dB did not seem to change the clip | Two gains were easy to mix up. The clip editor's button is now **Apply gain** (an edit, default -6 dB, listed in Edits); the track's mix level is now **Level** |
-| Fade in did nothing | With no selection and the cursor at the start, its range was empty. It now fades the first half second; Fade out at the start or end fades the last half second |
-| Right-click cleared the selection and moved the cursor | Only the left button selects. Right-click on the clip opens EDGEwave's menu of edit actions |
-| Undo of Remove brought the track back unselected | A track that comes back (undo, or Add Sound) becomes the selected one |
-| An icon toolbar, with jumps and Stop | The Mix bar has icons: previous clip edge, play, stop, next clip edge, loop, Add Sound; the clip has play and stop |
-
-To retest: those five. Same setup as A1: **Run EDGEwave with REDcode main** (F5), with a REDcode project open and REDbridge running.
-
-1. **An A1 document.** Open one you made in A1 (the Sounds view). Expect: it opens as one track, with its edits; the Mix bar, one lane and the track controls are above the clip editor.
-2. **Add Sound.** Click **Add Sound…**, type part of an event name (such as `gun` or `door`), pick an event and a variation. Expect: a second lane, selected, with its waveform in the clip editor.
-3. **Add a game file and a file.** Add Sound… > **A game file by its path…** (a voice line's path from Game Assets), and > **A sound file…**. Expect: a lane each. A voice line's track has **Voice line** ticked.
-4. **Place.** Drag a clip along its lane; or type **Start**. Click an empty part of a lane or the ruler to place the mix cursor. Expect: the lane moves, the mix's length in the Mix bar follows.
-5. **Listen.** The Mix bar's play icon (Shift+Space) plays everything from the mix cursor; the Clip bar's (Space) plays the selected clip through its own effects; stop stops either; loop loops either. The edge icons move the mix cursor to the previous or next start or end of a clip.
-6. **Track controls.** Change Level, Pan and Rate; try Mute and Solo with three tracks. Expect: you hear the change in Play mix; muted lanes are dimmed.
-7. **Effects.** Add effects one by one from **Add effect…**, change their values, untick one to bypass it, remove one with ×. Try each preset on a track and on the master.
-8. **The radio test (the design's A2 test).** Two game sounds, one with the **Radio** preset, overlapping. **Render WAV**. Expect: one WAV that sounds like the mix, reverb tails not cut off.
-9. **Undo and redo.** Ctrl+Z and Ctrl+Y through track moves, effect changes and added tracks.
-10. **Remove.** Remove a track. Expect: its lane goes; Remove is greyed when one track is left.
-11. **Fit.** Make the editor short and narrow. Expect: nothing runs off the bottom; the lanes scroll past four tracks; the panes scroll.
-
-Report anything that differs, with the step number.
+The unit tests, the smoke test and the hand test, with its steps and every round's results, are in [Tests](testing.html#a2-mix).

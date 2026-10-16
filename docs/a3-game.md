@@ -54,24 +54,6 @@ The REDmod types, from the REDmodding wiki:
 | The document's `game` (the last choice) | `src/doc.ts` |
 | **Into the Game…** in the Mix bar; the page renders the mix at the format a route asks for | `src/editor.ts`, `webview/editor.ts` |
 
-## Checks run
+## Tests
 
-| Check | Result |
-|---|---|
-| `npm test`: 27 unit tests, adding A3's: an entry added beside others, the same event replaced, a skip without a file, gain and pitch kept to 0 to 1, the types | Pass |
-| `npm run smoke`: after A1's and A2's steps, Into the Game twice through the real quick picks: Override, then Replace the event as 2D | Pass: `42.wav` at 48 kHz stereo handed to REDcode's Import; `source/customSounds/smoke_event.wav` at 48 kHz and the `info.json` entry; the document keeps the REDmod choice |
-| In the game | **Your hand test, below** |
-
-## Hand test
-
-Needs REDcode main at `0f8ebe3` or later (pull, then `npm run build` in `REDcode/extensions/redcode`) with REDbridge 0.9.0 (REDcode: Update REDbridge), a REDcode project, and the game.
-
-1. **Override.** Open a sound effect from Browse Game Sounds in EDGEwave, change it so you will hear it (reverse a part, or the radio preset), and click **Into the Game…** > **Override this variation**. Expect: a message naming the `.opuspak` written under `source/archive`.
-2. **Pack and play.** Click **Pack** (plain archive layout), install with REDcode, and play where the sound happens. Expect: your version. This is the design's A3 test.
-3. **REDmod.** On a sound effect with an event name, **Into the Game…** > **Replace the event with REDmod**, pick a type. Expect: `source/customSounds/<event>.wav` and an entry in `source/resources/info.json`. With `redcode.pack.redmod` off, the message says so.
-4. **REDmod in the game.** Turn on `redcode.pack.redmod`, Pack, deploy and play. Expect: your sound for that event. If REDmod's deploy rejects the WAV, its log (`tools/redmod/bin/REDmodLog.txt`) says why; send me the line.
-5. **Silence.** **Silence the event with REDmod** on another event. Expect: a `mod_skip` entry; in the game the event is silent.
-6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is first.
-7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
-
-Report anything that differs, with the step number.
+The unit tests, the smoke test and the hand test, with its steps and every round's results, are in [Tests](testing.html#a3-into-the-game).

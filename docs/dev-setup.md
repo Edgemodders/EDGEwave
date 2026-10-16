@@ -20,6 +20,8 @@ npm test            # unit tests of the edits, the WAV writer and the document
 npm run smoke       # VS Code with a stand-in REDcode, driven end to end (downloads VS Code once)
 ```
 
+What each test checks, and the hand tests: [Tests](testing.html).
+
 Press **F5** with the repository open in VS Code to run the extension in an Extension Development Host: **Run EDGEwave** in `.vscode/launch.json` builds first. EDGEwave needs REDcode's API (REDcode 0.9.0); until that is released, **Run EDGEwave with REDcode main** loads REDcode from `../REDcode` beside it (build REDcode first). The **Check** workflow typechecks and builds every push to `main`.
 
 ## Git identity
