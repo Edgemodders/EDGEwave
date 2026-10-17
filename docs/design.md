@@ -35,7 +35,7 @@ How they connect:
 | Direction | How | Built by |
 |---|---|---|
 | REDcode to EDGEwave | **Open in EDGEwave** in REDcode's sound browser and player runs the command `edgewave.openSound` with a reference to the sound (below). If EDGEwave is not installed, the button offers to install it. A command, so REDcode never imports EDGEwave's code | REDcode, built (its issue #4, REDcode 0.9.0) |
-| EDGEwave to REDcode | EDGEwave lists `edgemodders.redcode-cyberpunk` (REDcode's id since 0.8.2) in `extensionDependencies` and uses an API that REDcode exports from `activate()`, as REDcode uses REDdeck's `REDdeckApi`: the bridge, the sound effect index, a sound as audio bytes, the open project, import and pack. Contract: REDcode's `docs/api.md` (`REDcodeApi` version 1) | REDcode, built (its issue #4, REDcode 0.9.0) |
+| EDGEwave to REDcode | EDGEwave lists `edgemodders.redcode-cyberpunk` (REDcode's id since 0.8.2) in `extensionDependencies` and uses an API that REDcode exports from `activate()`, as REDcode uses EDGEdeck's `EDGEdeckApi`: the bridge, the sound effect index, a sound as audio bytes, the open project, import and pack. Contract: REDcode's `docs/api.md` (`REDcodeApi` version 1) | REDcode, built (its issue #4, REDcode 0.9.0) |
 
 Both were changes in REDcode, requested in its issue #4 and built by REDcode's session (2026-10-15).
 
