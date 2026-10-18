@@ -2,7 +2,7 @@
 
 Every test run on EDGEwave so far: how to run it again, what to expect, and what it showed. Each phase ends with a hand test by the owner ([design, "Phases"](design.html#phases)); new tests are added here when they are first run.
 
-Last updated 2026-10-16.
+Last updated 2026-10-18.
 
 ## At a glance
 
@@ -12,7 +12,7 @@ Last updated 2026-10-16.
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game needed | A1 to A3 | 2026-10-16 | Pass |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
-| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-16 | Five findings, fixed; retest pending |
+| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | Not run | |
 
 ## Automated
@@ -34,7 +34,7 @@ The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, 
 |---|---|
 | Edits | Trim; cut in either order; paste; paste after a cut moves the range; a paste from an earlier sound survives edits in between; a stereo paste into mono takes a channel; silence; edits run in order; times past the end are clamped; fade in and fade out over their range only; gain of -6 dB halves; normalize to a target, and of silence; stereo to mono and back; the input is never changed |
 | WAV | A round trip keeps the rate, the channels and the samples to 16 bits; samples past full scale are clipped |
-| Documents | A round trip, and what is not a document is rejected; an A1 document (version 1) opens as one track; voice lines are found by their localization folder |
+| Documents | A round trip, and what is not a document is rejected; an A1 document (version 1) opens as one track; voice lines are found by their folder (`vo`, `vo_holocall`, `vo_helmet`, `vo_rewinded`) or, for a copy on disk, by their name |
 | Mix | Mute and solo choose the tracks heard; the end is the latest track's end at its rate, plus reverb tails; presets are fresh copies with every parameter known |
 | REDmod | A custom sound is added to `info.json`, keeping its other fields; the same event replaces its entry; a skip has no file; gain and pitch stay 0 to 1; every type but `mod_skip` is offered once |
 
@@ -120,12 +120,13 @@ What is built: [A1 Edit](a1-edit.html). **Pass** (2026-10-16).
 
 ### A2 Mix
 
-What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 1's five findings.
+What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 2's finding (step 3).
 
 | Round | Date | Steps | Result |
 |---|---|---|---|
 | 1 | 2026-10-16 | 1 to 11 | Every step works, with five findings, all fixed the same day and kept by the smoke test (below) |
-| 2 | | Retest of the five findings | Not run |
+| 2 | 2026-10-18 | 1 to 11, with the five findings | Pass, with one finding, fixed (below) |
+| 3 | | Retest of step 3 with a holocall line and a voice line's WAV | Not run |
 
 | Finding (round 1) | Fix |
 |---|---|
@@ -135,9 +136,13 @@ What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 1's five findi
 | Undo of Remove brought the track back unselected | A track that comes back (undo, or Add Sound) becomes the selected one |
 | Feature request: an icon toolbar, with jumps and Stop | The Mix bar has icons: previous clip edge, play, stop, next clip edge, loop, Add Sound; the clip has play and stop |
 
+| Finding (round 2) | Fix |
+|---|---|
+| A voice line's WAV (`civ_mid_m_83_jap_30_mt_ow_chats_f_2db31806b446a000.wav`) added as a sound file was not marked **Voice line** | EDGEwave knew a voice line only by the folder `localization\<language>\vo`. A copy on disk is outside it, and holocall, helmet and rewinded lines (`vo_holocall`, `vo_helmet`, `vo_rewinded`, 9,424 lines) were missed too. Now any `vo` or `vo_*` folder counts, and so does the name: voice lines end in `_f_` or `_m_` and 16 hex digits. Checked over all 119,857 `.wem` files in game 2.31: the folders hold all 115,061 voice lines; the name matches every one and none of the game's other 468,737 files. The game's path for this line is `ep1\localization\common\vo\` |
+
 1. **An A1 document.** Open one you made in A1 (the Sounds view). Expect: it opens as one track, with its edits; the Mix bar, one lane and the track controls are above the clip editor.
 2. **Add Sound.** Click the Add Sound icon, type part of an event name (such as `gun` or `door`), pick an event and a variation. Expect: a second lane, selected, with its waveform in the clip editor.
-3. **Add a game file and a file.** Add Sound > **A game file by its path…** (a voice line's path from Game Assets), and > **A sound file…**. Expect: a lane each. A voice line's track has **Voice line** ticked.
+3. **Add a game file and a file.** Add Sound > **A game file by its path…** (a voice line's path from Game Assets; try a `vo_holocall` one), and > **A sound file…** (try a voice line's exported WAV). Expect: a lane each. A voice line's track has **Voice line** ticked, by its path or by its name.
 4. **Place.** Drag a clip along its lane; or type **Start**. Click an empty part of a lane or the ruler to place the mix cursor. Expect: the lane moves, the mix's length in the Mix bar follows.
 5. **Listen.** The Mix bar's play icon (Shift+Space) plays everything from the mix cursor; the Clip bar's (Space) plays the selected clip through its own effects; stop stops either; loop loops either. The edge icons move the mix cursor to the previous or next start or end of a clip.
 6. **Track controls.** Change Level, Pan and Rate; try Mute and Solo with three tracks. Expect: you hear the change in the mix; muted lanes are dimmed.

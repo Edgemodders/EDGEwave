@@ -207,7 +207,14 @@ export function docLabel(doc: SoundDoc): string {
   return doc.tracks.length > 1 ? `${first} + ${doc.tracks.length - 1} more` : first;
 }
 
-/** Voice lines live under localization\<language>\vo (and ep1's). */
-export function looksLikeVoice(gamePath: string): boolean {
-  return /(^|[\\/])localization[\\/][^\\/]+[\\/]vo[\\/]/i.test(gamePath);
+/**
+ * Voice lines live under localization\<language or common>\vo, vo_holocall, vo_helmet or vo_rewinded
+ * (base and ep1), and their names end in _f_ or _m_ and 16 hex digits (V's gender, the line's id).
+ * The name catches a copy outside the game's folders, such as an exported WAV. Checked on 2.31 over
+ * all 119,857 .wem files: the folders hold every voice line, the name rule matches no other file.
+ */
+export function looksLikeVoice(path: string): boolean {
+  if (/(^|[\\/])localization[\\/][^\\/]+[\\/]vo(_[a-z]+)?[\\/]/i.test(path)) return true;
+  const name = path.split(/[\\/]/).pop() ?? "";
+  return /_[fm]_[0-9a-f]{16}(?![0-9a-f])/i.test(name);
 }

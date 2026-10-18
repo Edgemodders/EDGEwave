@@ -186,10 +186,19 @@ test("presets are fresh copies, with every effect's parameters known", () => {
   for (const [type, spec] of Object.entries(Effects)) assert.equal(spec.make().type, type);
 });
 
-test("voice lines are found by their localization folder", () => {
+test("voice lines are found by their localization folder, or by their name", () => {
   assert.ok(looksLikeVoice("base\\localization\\en-us\\vo\\judy_q000.wem"));
   assert.ok(looksLikeVoice("ep1\\localization\\common\\vo\\civ_mid.wem"));
+  assert.ok(looksLikeVoice("ep1\\localization\\en-us\\vo_holocall\\songbird_q301.wem"));
+  assert.ok(looksLikeVoice("base\\localization\\common\\vo_helmet\\a.wem"));
+  assert.ok(looksLikeVoice("base\\localization\\en-us\\vo_rewinded\\a.wem"));
+  // A copy on disk, found by its name (the owner's A2 finding), and the game's _alt variants.
+  assert.ok(looksLikeVoice("C:\\Users\\me\\Desktop\\civ_mid_m_83_jap_30_mt_ow_chats_f_2db31806b446a000.wav"));
+  assert.ok(looksLikeVoice("songbird_q306_f_2cdf192dc6518000_alt2 .wem"));
   assert.ok(!looksLikeVoice("base\\sound\\music\\track.wem"));
+  assert.ok(!looksLikeVoice("base\\sound\\soundbanks\\media\\1000720341.wem"));
+  assert.ok(!looksLikeVoice("E:\\proj\\source\\raw\\sfx\\w_gun_shot\\1829305393887079760.wav"));
+  assert.ok(!looksLikeVoice("base\\localization\\en-us\\subtitles\\judy_f_2db31806b446a0001.json"));
 });
 
 test("REDmod: a custom sound is added to info.json, keeping its other fields", () => {
