@@ -6,12 +6,12 @@ Status: **built 2026-10-16, hand test pending.** **Into the Game…** puts the m
 
 | Route | For | What EDGEwave writes | Beside other mods |
 |---|---|---|---|
-| **Override this variation** | One sound effect, by its hash | A 48 kHz, 16-bit WAV with the original's channels, `<hash>.wav` beside the document. REDcode's Import (REDbridge 0.9.0 `sound.importWavs`) writes the touched `.opuspak` and a new `sfx_container.opusinfo` into `source/archive` | **No.** Every mod made this way carries the one shared `sfx_container.opusinfo`, so the last one loaded wins |
-| **Replace the event with REDmod** | An audio event by name, every variation | The WAV in `source/customSounds/<event>.wav`, and an entry in `source/resources/info.json`'s `customSounds`, as WolvenKit's Sound Modding tool writes them | Yes. The event's own Wwise logic (parameters, switches, effects such as slow-motion processing) is dropped |
-| **Silence the event with REDmod** | An audio event by name | A `mod_skip` entry, no file | Yes |
+| **Override sound `<hash>`** | One sound effect, by its hash | A 48 kHz, 16-bit WAV with the original's channels, `<hash>.wav` beside the document. REDcode's Import (REDbridge 0.9.0 `sound.importWavs`) writes the touched `.opuspak` and a new `sfx_container.opusinfo` into `source/archive` | **No.** Every mod made this way carries the one shared `sfx_container.opusinfo`, so the last one loaded wins |
+| **Replace the event `<event>` with REDmod** | An audio event by name, every variation | The WAV in `source/customSounds/<event>.wav`, and an entry in `source/resources/info.json`'s `customSounds`, as WolvenKit's Sound Modding tool writes them | Yes. The event's own Wwise logic (parameters, switches, effects such as slow-motion processing) is dropped |
+| **Silence the event `<event>` with REDmod** | An audio event by name | A `mod_skip` entry, no file | Yes |
 | **A REDmod custom sound for an event…** | Any mix, for an event named by hand | As Replace | Yes |
 
-The routes offered depend on the first track: a sound effect gets all three; anything else gets the named REDmod route. The choice is kept in the document (`game`) and offered first next time. After writing, EDGEwave offers **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
+What goes in is the mix of the tracks you hear (mute and solo count). What it replaces is a separate choice: Into the Game lists the three routes for every game sound effect on a track, under the track's name, the tracks you hear first, then the named REDmod route. So a mix of a game sound and a file can override that game sound. The override's WAV takes the channels of the sound it replaces. The choice (with the sound's hash for an override) is kept in the document (`game`) and offered first next time, under **Last time**. Changed on 2026-10-19 after the owner's finding: before, the routes came from track 1 only, so a game sound added as a later track could not be overridden. After writing, EDGEwave offers **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
 
 The REDmod types, from the REDmodding wiki:
 

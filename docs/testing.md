@@ -48,7 +48,7 @@ npm run build
 npm run smoke
 ```
 
-Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png`, `takes.png` and `revoice.png` to `%TEMP%\ewsmoke`.
+Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png`, `intogame.png`, `takes.png` and `revoice.png` to `%TEMP%\ewsmoke`.
 
 To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the script does this for the VS Code it starts). Keep the temp path short: VS Code's files pass Windows' 260-character limit otherwise.
 
@@ -64,8 +64,8 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | A2 | The next-edge icon from 0 | The mix cursor at `0:00.250` |
 | A2 | Remove track 2, then Ctrl+Z | Track 2 comes back selected |
 | A2 | Render WAV | 1.75 s (0.25 s + track 2's 1.5 s), stereo, 44.1 kHz, with sound from both tracks |
-| A3 | Into the Game > Override this variation | `42.wav` at 48 kHz stereo handed to REDcode's Import (the stub writes `imported.json`) |
-| A3 | Into the Game > Replace the event with REDmod, 2D | `source/customSounds/smoke_event.wav` at 48 kHz, an entry in `source/resources/info.json`, and the document's `game` keeps the choice |
+| A3 | Into the Game > Override sound 43 (track 2, not track 1) | `43.wav` at 48 kHz, mono like sound 43, handed to REDcode's Import (the stub writes `imported.json`); the menu, before typing, is `intogame.png` |
+| A3 | Into the Game > Replace the event smoke_event with REDmod, 2D | `source/customSounds/smoke_event.wav` at 48 kHz stereo, an entry in `source/resources/info.json`, and the document's `game` keeps the choice |
 | V1 | Generate Sound | The key's password box (typed); the 48 kHz request refused and the same at 24 kHz; two takes in the dialog (the second with a changed prompt) and no track yet; a take plays; Add on take 2 makes track 3, at the mix cursor, a 24 kHz WAV in `42.gen/`, `made` with take 2's prompt |
 | V1 | Speak Line in a picked voice | The voice list and the model menu fill; the voice's preview plays; track 4, a voice line, `made` with the voice |
 | V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
@@ -73,7 +73,7 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 
-Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view`).
+Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2 and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -167,13 +167,14 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 
 **Unverified until this test:** that the game plays an override, and that REDmod accepts a 48 kHz 16-bit WAV.
 
-1. **Override.** Open a sound effect from Browse Game Sounds in EDGEwave, change it so you will hear it (reverse a part, or the radio preset), and click **Into the Game…** > **Override this variation**. Expect: a message naming the `.opuspak` written under `source/archive`.
+1. **Override.** Open a sound effect from Browse Game Sounds in EDGEwave, change it so you will hear it (reverse a part, or the radio preset), and click **Into the Game…** > **Override sound `<hash>`** under its track. Expect: a message naming the `.opuspak` written under `source/archive`.
 2. **Pack and play.** Click **Pack** (plain archive layout), install with REDcode, and play where the sound happens. Expect: your version.
-3. **REDmod.** On a sound effect with an event name, **Into the Game…** > **Replace the event with REDmod**, pick a type. Expect: `source/customSounds/<event>.wav` and an entry in `source/resources/info.json`. With `redcode.pack.redmod` off, the message says so.
+3. **REDmod.** On a sound effect with an event name, **Into the Game…** > **Replace the event `<event>` with REDmod**, pick a type. Expect: `source/customSounds/<event>.wav` and an entry in `source/resources/info.json`. With `redcode.pack.redmod` off, the message says so.
 4. **REDmod in the game.** Turn on `redcode.pack.redmod`, Pack, deploy and play. Expect: your sound for that event. If REDmod's deploy rejects the WAV, its log (`tools/redmod/bin/REDmodLog.txt`) says why; send the line.
-5. **Silence.** **Silence the event with REDmod** on another event. Expect: a `mod_skip` entry; in the game the event is silent.
-6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is first.
+5. **Silence.** **Silence the event `<event>` with REDmod** on another event. Expect: a `mod_skip` entry; in the game the event is silent.
+6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is first, under **Last time**.
 7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
+8. **A game sound on a later track** (the owner's finding, 2026-10-19). In a document whose track 1 is not that sound, add a game sound effect with Add Sound, mute or solo so you hear only it (or it and a file you want mixed in), then **Into the Game…**. Expect: the added sound's **Override sound** and its event's REDmod routes, under its track's name, at the top; tracks you do not hear are listed after, marked (not heard). Pick its override, Pack and play: you hear the tracks you heard in EDGEwave.
 
 ### V1 Voice tools
 
