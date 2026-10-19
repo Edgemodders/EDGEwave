@@ -1,7 +1,8 @@
 // The voice tools: Generate Sound, Speak Line and Re-Voice, through ElevenLabs (src/elevenlabs.ts).
 // The page holds the forms and sends requests here; the API key stays on this side, in VS Code's
 // secret storage. Each result is a WAV in the document's `<name>.gen` folder and a new track that says
-// how it was made (`made`). Voices EDGEwave creates (clones of a line, saved remixes) are remembered,
+// how it was made (`made`); Generate Sound's results are takes first, played in the dialog, and become a
+// track when the modder adds one. Voices EDGEwave creates (clones of a line, saved remixes) are remembered,
 // reused and can be deleted (EDGEwave: ElevenLabs Voices Made by EDGEwave).
 
 import { createHash } from "node:crypto";
@@ -43,7 +44,8 @@ export type VoiceRequest =
   | { op: "voices"; search?: string }
   | { op: "models" }
   | { op: "preview"; url: string }
-  | { op: "sound"; prompt: string; seconds?: number; loop?: boolean; influence?: number; at: number }
+  | { op: "sound"; prompt: string; seconds?: number; loop?: boolean; influence?: number }
+  | { op: "addSound"; take: string; at: number }
   | { op: "speak"; text: string; voice?: { id: string; name: string }; line?: Line; model?: string; at: number }
   | { op: "remix"; line: Line; description: string }
   | { op: "revoice"; line: Line; voice?: { id: string; name: string }; generated?: { id: string; description: string }; model?: string; mute: boolean };
@@ -55,7 +57,14 @@ function bytes(x: unknown): Uint8Array {
   throw new Error("The page sent no audio");
 }
 
+/** How many of Generate Sound's takes are kept for Add; older ones are dropped. */
+const MaxTakes = 20;
+
 export class VoiceTools {
+  /** Generate Sound's takes, played in the dialog until one is added as a track. */
+  private readonly takes = new Map<string, { wav: Uint8Array; made: Made }>();
+  private nextTake = 1;
+
   constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel) {}
 
   private config() {
@@ -187,8 +196,19 @@ export class VoiceTools {
           if (r.seconds !== undefined) made.seconds = r.seconds;
           if (r.loop) made.loop = true;
           if (r.influence !== undefined) made.influence = r.influence;
-          return this.addTrack(document, "sound", r.prompt, pcmToWav(result, rate), made, r.at, false);
+          const take = `take${this.nextTake++}`;
+          this.takes.set(take, { wav: pcmToWav(result, rate), made });
+          for (const k of [...this.takes.keys()].slice(0, -MaxTakes)) this.takes.delete(k);
+          return { take, wav: this.takes.get(take)!.wav, seconds: result.length / 2 / rate };
         });
+      case "addSound": {
+        const t = this.takes.get(r.take);
+        if (!t) throw new Error("That take is gone: generate it again.");
+        const made = t.made as Extract<Made, { tool: "sound" }>;
+        const added = await this.addTrack(document, "sound", made.prompt, t.wav, made, r.at, false);
+        this.takes.delete(r.take);
+        return added;
+      }
       case "speak":
         return this.progress("Speaking the line", async () => {
           const api = await this.client();

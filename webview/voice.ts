@@ -1,7 +1,8 @@
 // The voice tools' forms on the page: Generate Sound, Speak Line and Re-Voice. Each sends a request
 // to the host (src/voiceTools.ts), which calls ElevenLabs with the modder's key and adds the result as
-// a new track; the page then sees the new document and selects that track. Previews (an ElevenLabs
-// voice's sample, a remix's) play here.
+// a new track; the page then sees the new document and selects that track. Generate Sound's results are
+// takes, played here, and only the one the modder adds becomes a track. Previews (an ElevenLabs voice's
+// sample, a remix's) play here too.
 
 import type { Audio } from "../src/audio/edits";
 import { encodeWav } from "../src/audio/wav";
@@ -152,14 +153,14 @@ function line() {
   return { track: t.id, key: sourceKey(t.source) + JSON.stringify(t.edits), name: sourceLabel(t.source).replace(/\.[a-z0-9]+$/i, ""), wav: encodeWav(c), offset: t.offset };
 }
 
-/** Runs a request with the form busy; closes the dialog when it worked. */
-async function run(button: HTMLButtonElement, status: (t: string, error?: boolean) => void, busy: (b: boolean) => void, working: string, f: () => Promise<unknown>) {
+/** Runs a request with the form busy; closes the dialog when it worked, unless `stay`. */
+async function run(button: HTMLButtonElement, status: (t: string, error?: boolean) => void, busy: (b: boolean) => void, working: string, f: () => Promise<unknown>, stay = false) {
   button.disabled = true;
   busy(true);
   status(working);
   try {
     await f();
-    close();
+    if (!stay) close();
   } catch (e) {
     status((e as Error).message, true);
   } finally {
@@ -234,25 +235,50 @@ function modelMenu(kind: "speech" | "voiceChange") {
 // ---- the tools -------------------------------------------------------------------------------------------
 
 function generateSound() {
-  open("Generate Sound", "A sound effect from a description, through ElevenLabs, added as a new track at the mix cursor. Spends ElevenLabs credits.", (status, busy) => {
+  open("Generate Sound", "A sound effect from a description, through ElevenLabs. Each try is a take: play it, change the description and generate again, then Add the one you want as a new track at the mix cursor. Each take spends ElevenLabs credits.", (status, busy) => {
     const prompt = el("textarea", { rows: 3, placeholder: "Such as: a heavy metal door slams in a concrete corridor, short echo" });
     const seconds = el("input", { type: "number", min: "0.5", max: "30", step: "0.5", placeholder: "auto" });
     const loop = el("input", { type: "checkbox" });
     const influence = el("input", { type: "number", min: "0", max: "1", step: "0.1", value: "0.3" });
     const go = el("button", { type: "button", class: "primary", textContent: "Generate" });
+    const takes = el("div", { class: "voices takes", hidden: true });
+    let n = 0;
     go.addEventListener("click", () => {
       const text = prompt.value.trim();
       if (!text) return status("Describe the sound first.", true);
-      const req: Record<string, unknown> = { op: "sound", prompt: text, at: host.mixCursor() };
+      const req: Record<string, unknown> = { op: "sound", prompt: text };
       if (seconds.value) req.seconds = Number(seconds.value);
       if (loop.checked) req.loop = true;
       if (influence.value && Number(influence.value) !== 0.3) req.influence = Number(influence.value);
-      void run(go, status, busy, "Generating…", () => ask(req));
+      void run(
+        go,
+        status,
+        busy,
+        "Generating…",
+        async () => {
+          const t = await ask<{ take: string; wav: Uint8Array; seconds: number }>(req);
+          const name = `Take ${++n}`;
+          const add = el("button", { type: "button", class: "primary add", textContent: "Add" });
+          add.addEventListener("click", () => {
+            for (const b of takes.querySelectorAll<HTMLButtonElement>("button.add")) b.disabled = true;
+            void run(add, status, busy, `Adding ${name}…`, () => ask({ op: "addSound", take: t.take, at: host.mixCursor() })).finally(() => {
+              for (const b of takes.querySelectorAll<HTMLButtonElement>("button.add")) b.disabled = false;
+            });
+          });
+          const about = [`${t.seconds.toFixed(1)} s`, text, req.loop ? "loop" : ""].filter(Boolean).join(" · ");
+          takes.prepend(el("div", { class: "voice" }, playButton(async () => t.wav, status), el("span", { class: "vname", textContent: name }), el("span", { class: "dim", textContent: about, title: text }), add));
+          takes.hidden = false;
+          go.textContent = "Generate again";
+          status(`${name} is ready: play it, then Add it, or change the description and generate again.`);
+        },
+        true,
+      );
     });
     return [
       field("Description", prompt),
       el("div", { class: "fields" }, field("Length", seconds, "s, 0.5 to 30"), field("Loop", loop, "seamless"), field("Follow the prompt", influence, "0 to 1")),
       el("div", { class: "actions" }, go),
+      takes,
     ];
   });
 }

@@ -65,6 +65,7 @@ header .ai #translate { border-color: var(--line); color: var(--dim); }
 .dialog .voice { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: center; gap: 6px; padding: 2px 6px; border-bottom: 1px solid var(--line); font-size: 12px; }
 .dialog .voice .vname { color: var(--cyan); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dialog .voice .dim { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog .takes .voice { grid-template-columns: auto auto minmax(0, 1fr) auto; }
 .dialog .voicepick { display: flex; flex-direction: column; gap: 4px; }
 .dialog .describe { display: flex; flex-direction: column; gap: 4px; }
 .dialog .off { opacity: .4; pointer-events: none; }

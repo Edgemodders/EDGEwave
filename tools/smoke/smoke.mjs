@@ -301,13 +301,28 @@ const clickDialogButton = async (text) => {
   return false;
 };
 
+// Generate Sound makes takes in the dialog; only the one added becomes a track.
+const takeCount = (n) => run(`for (let i = 0; i < 40 && document.querySelectorAll('#dialog .takes .voice').length < ${n}; i++) await new Promise((r) => setTimeout(r, 250));
+  return document.querySelectorAll('#dialog .takes .voice').length`);
 await run(`document.getElementById('generateSound').click(); await new Promise((r) => setTimeout(r, 300));
   document.querySelector('#dialog textarea').value = 'a metal door slams';
   document.querySelector('#dialog .actions .primary').click();`);
 await sleep(1500);
 await cdp("Input.insertText", { text: "smoke-key" }); // the key's input box
 await key("Enter", "Enter", 13);
-const generated = await waitTrack(3);
+const take1 = await takeCount(1);
+await run(`document.querySelector('#dialog textarea').value = 'a metal door slams, long echo';
+  document.querySelector('#dialog .actions .primary').click();`);
+const take2 = await takeCount(2);
+await run("document.querySelector('#dialog .takes .voice:last-child button.icon').click()"); // play take 1
+await sleep(600);
+const takes = await run(`return { open: !document.getElementById('dialog').hidden, status: document.querySelector('#dialog .status').textContent, playing: !!document.querySelector('#dialog .takes button.icon.on'), first: document.querySelector('#dialog .takes .vname').textContent }`);
+const notAdded = !(await tracksNow()).startsWith("3 ");
+log("generate sound takes", JSON.stringify({ take1, take2, notAdded, ...takes }));
+fs.writeFileSync(path.join(T, "takes.png"), Buffer.from((await cdp("Page.captureScreenshot", { format: "png" })).data, "base64"));
+log("screenshot", path.join(T, "takes.png"));
+await run("document.querySelector('#dialog .takes button.add').click()"); // add take 2, the newest, on top
+const generated = take1 === 1 && take2 === 2 && notAdded && takes.open && takes.playing && takes.first === "Take 2" && !/cannot/.test(takes.status) && (await waitTrack(3));
 log("generate sound", generated, await dialogStatus());
 await run(`document.getElementById('speakLine').click();
   for (let i = 0; i < 40 && !document.querySelector('#dialog .voice'); i++) await new Promise((r) => setTimeout(r, 250));
@@ -353,7 +368,7 @@ const posts = eleven.filter((r) => r.method === "POST");
 const voiceOk =
   generated && spoken && cloned && revoiced && consented && !preview.status && preview.models >= 2 &&
   made.length === 4 && genFormats.every((r) => r === 24000) &&
-  made[0].made?.tool === "sound" && made[0].made.prompt === "a metal door slams" && !made[0].voice &&
+  made[0].made?.tool === "sound" && made[0].made.prompt === "a metal door slams, long echo" &&!made[0].voice &&
   made[1].made?.tool === "speak" && made[1].made.voiceId === "v_smoke" && made[1].voice &&
   made[2].made?.tool === "speak" && made[2].made.voiceId === "clone_smoke" && made[2].made.from === "t1" &&
   made[3].made?.tool === "revoice" && made[3].made.voiceId === "remix_saved" && made[3].made.description === "female, calm" && made[3].offset === vdoc.tracks[0].offset &&
