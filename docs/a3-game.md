@@ -43,7 +43,7 @@ The REDmod types, from the REDmodding wiki:
 | The override's WAV | `opusenc` takes 16-bit, 24-bit or float WAV at any rate and encodes at 48 kHz, keeping the channel count; an override read back from the pack correlates 0.981 with its input | [REDbridge #6](https://github.com/Edgemodders/REDbridge/issues/6) |
 | Voice lines | Modders re-encode WAV to `.wem` with Wwise (2019.2 in one guide) and pack it at the original path. EDGEwave cannot ship Wwise; using a modder's own install is a candidate for later (unverified) | [A Nexus Mods guide](https://www.nexusmods.com/cyberpunk2077/articles/770), [REDmodding wiki: sound](https://wiki.redmodding.org/cyberpunk-2077-modding/modding-guides/sound/converting-.wem-to-.wav) |
 
-**Unverified until the hand test:** that the game plays an override, and that REDmod accepts a 48 kHz 16-bit WAV.
+**Verified 2026-10-19 by the owner:** the game plays an override (a katana equip sound, from a later track soloed, packed and deployed). **Unverified until the hand test:** that REDmod accepts a 48 kHz 16-bit WAV.
 
 ## What is built
 

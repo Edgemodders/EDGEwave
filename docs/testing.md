@@ -13,7 +13,7 @@ Last updated 2026-10-19.
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | Not run | |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-19 | Started: the override plays in the game; two findings, fixed; the formal steps pending |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
@@ -166,7 +166,16 @@ What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 2's finding (s
 
 What is built, and the research behind the routes: [A3 Into the game](a3-game.html). **Not run yet.** Steps 1 and 2 are the design's A3 test.
 
-**Unverified until this test:** that the game plays an override, and that REDmod accepts a 48 kHz 16-bit WAV.
+**Unverified until this test:** that REDmod accepts a 48 kHz 16-bit WAV. (That the game plays an override was verified in round 1.)
+
+| Round | Date | Result |
+|---|---|---|
+| 1 | 2026-10-19 | Before the formal steps, the owner overrode a katana equip sound (track 4 of a mix, soloed), packed, deployed and heard it in the game: **the override works**. Two findings on the way, both fixed the same day (below) |
+
+| Finding (round 1) | Fix |
+|---|---|
+| Into the Game offered routes for track 1's source only, so a game sound added as a later track could not be overridden | Every sound effect on a track is a target, grouped by track, the heard tracks first; the mix of the tracks heard goes in; an override takes its target's channels and remembers its hash. Step 8 added |
+| The last choice was copied to the top under "Last time", above the soloed track | The last choice is marked "last time" in its own track's group; heard tracks always come first |
 
 1. **Override.** Open a sound effect from Browse Game Sounds in EDGEwave, change it so you will hear it (reverse a part, or the radio preset), and click **Into the Game…** > **Override sound `<hash>`** under its track. Expect: a message naming the `.opuspak` written under `source/archive`.
 2. **Pack and play.** Click **Pack** (plain archive layout), install with REDcode, and play where the sound happens. Expect: your version.
