@@ -15,7 +15,7 @@ Last updated 2026-10-19.
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | Not run | |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
-| [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | Not run | |
+| [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
 ## Automated
 
@@ -192,7 +192,11 @@ What is built: [V1 Voice tools](voice-tools.html). **Not run yet.** Needs an Ele
 
 ### Sounds view: Project and Recent
 
-Asked for by the owner on 2026-10-19: a document kept outside the open folder (made with no REDcode project open) did not show in the Sounds view. The view now has two groups. **Not run yet.**
+Asked for by the owner on 2026-10-19: a document kept outside the open folder (made with no REDcode project open) did not show in the Sounds view. The view now has two groups.
+
+| Round | Date | Result |
+|---|---|---|
+| 1 | 2026-10-19 | **Pass**: the owner reports it all works, with the Open Folder icon |
 
 1. **Project.** Open a folder or a REDcode project with sound documents, and click the EDGEwave icon. Expect: **Project**, with the REDcode project's name beside it (or the folder's), listing the folder's documents by their folder.
 2. **Recent, outside the folder.** With no REDcode project open, Open Sound… on a `.wav` outside the open folder (such as in Documents). Expect: it is first under **Recent**, with its full folder (your home as `~`); it is not under Project.
