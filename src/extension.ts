@@ -6,12 +6,14 @@ import { SoundEditorProvider } from "./editor";
 import { openFile, openSound, ViewType } from "./openSound";
 import type { SoundRef } from "./redcode";
 import { SoundsView } from "./soundsView";
+import { VoiceTools } from "./voiceTools";
 
 export function activate(context: vscode.ExtensionContext): void {
   const log = vscode.window.createOutputChannel("EDGEwave");
+  const voices = new VoiceTools(context, log);
   context.subscriptions.push(
     log,
-    vscode.window.registerCustomEditorProvider(ViewType, new SoundEditorProvider(context, log), {
+    vscode.window.registerCustomEditorProvider(ViewType, new SoundEditorProvider(context, log, voices), {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     // REDcode's Open in EDGEwave runs this with the sound now playing.
@@ -20,6 +22,15 @@ export function activate(context: vscode.ExtensionContext): void {
       return openSound(ref);
     }),
     vscode.commands.registerCommand("edgewave.open", (uri?: vscode.Uri) => openFile(uri)),
+    vscode.commands.registerCommand("edgewave.elevenlabs.setKey", () => voices.setKey()),
+    vscode.commands.registerCommand("edgewave.elevenlabs.clearKey", () => voices.clearKey()),
+    vscode.commands.registerCommand("edgewave.elevenlabs.voices", async () => {
+      try {
+        await voices.manageVoices();
+      } catch (e) {
+        void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+      }
+    }),
   );
   const sounds = new SoundsView(context);
   context.subscriptions.push(

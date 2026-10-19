@@ -10,6 +10,7 @@
 import { downloadAndUnzipVSCode } from "@vscode/test-electron";
 import { spawn } from "node:child_process";
 import * as fs from "node:fs";
+import * as http from "node:http";
 import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,13 +25,56 @@ fs.cpSync(path.join(here, "stub"), path.join(T, "stub"), { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log("[smoke]", ...a);
 
+// A stand-in ElevenLabs (the voice tools): tones as 16-bit PCM at the asked rate. Like a plan without
+// 48 kHz it refuses pcm_48000, so EDGEwave falls back to 24 kHz. Every request is recorded.
+const eleven = [];
+const pcmTone = (seconds, rate, hz) => {
+  const n = Math.round(seconds * rate), b = Buffer.alloc(n * 2);
+  for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(0.4 * 32767 * Math.sin(2 * Math.PI * hz * i / rate)), i * 2);
+  return b;
+};
+const wavOf = (pcm, rate) => {
+  const h = Buffer.alloc(44);
+  h.write("RIFF", 0); h.writeUInt32LE(36 + pcm.length, 4); h.write("WAVE", 8); h.write("fmt ", 12); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22);
+  h.writeUInt32LE(rate, 24); h.writeUInt32LE(rate * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([h, pcm]);
+};
+const elevenServer = http.createServer((req, res) => {
+  const url = new URL(req.url, "http://x");
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", () => {
+    const body = Buffer.concat(chunks).toString("latin1");
+    const fmt = url.searchParams.get("output_format");
+    eleven.push({ method: req.method, path: url.pathname, fmt, key: req.headers["xi-api-key"], body: body.slice(0, 400) });
+    const json = (o, status = 200) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(o)); };
+    if (fmt === "pcm_48000") return json({ detail: { status: "output_format_not_allowed", message: "pcm_48000 is not available on your plan" } }, 403);
+    const rate = fmt ? Number(fmt.split("_")[1]) : 24000;
+    const p = url.pathname;
+    if (p === "/v2/voices") return json({ voices: [{ voice_id: "v_smoke", name: "Smoke Voice", labels: { gender: "female", accent: "american" }, category: "premade", preview_url: `http://127.0.0.1:${elevenServer.address().port}/preview/v_smoke.wav` }], has_more: false });
+    if (p.startsWith("/preview/")) { res.writeHead(200, { "content-type": "audio/wav" }); return res.end(wavOf(pcmTone(0.3, 24000, 500), 24000)); }
+    if (p === "/v1/models") return json([{ model_id: "eleven_multilingual_v2", name: "Eleven Multilingual v2", can_do_text_to_speech: true }, { model_id: "eleven_multilingual_sts_v2", name: "Eleven Multilingual v2 STS", can_do_voice_conversion: true }]);
+    if (p === "/v1/voices/add") return json({ voice_id: "clone_smoke", requires_verification: false });
+    if (p === "/v1/text-to-voice") return json({ voice_id: "remix_saved" });
+    if (p.endsWith("/remix")) return json({ previews: [1, 2].map((i) => ({ generated_voice_id: `gen_${i}`, audio_base_64: pcmTone(0.4, rate, 300 + 100 * i).toString("base64"), media_type: "audio/pcm", duration_secs: 0.4 })), text: "…" });
+    const pcm = p === "/v1/sound-generation" ? pcmTone(0.5, rate, 220) : p.startsWith("/v1/text-to-speech/") ? pcmTone(0.8, rate, 330) : p.startsWith("/v1/speech-to-speech/") ? pcmTone(1.0, rate, 440) : null;
+    if (!pcm) return json({ detail: "not found" }, 404);
+    res.writeHead(200, { "content-type": "application/octet-stream" });
+    res.end(pcm);
+  });
+});
+await new Promise((r) => elevenServer.listen(0, "127.0.0.1", r));
+fs.mkdirSync(path.join(T, "ud", "User"), { recursive: true });
+// Custom dialogs, so the clone consent's modal is in the page and can be clicked.
+fs.writeFileSync(path.join(T, "ud", "User", "settings.json"), JSON.stringify({ "edgewave.elevenlabs.baseUrl": `http://127.0.0.1:${elevenServer.address().port}`, "window.dialogStyle": "custom" }));
+
 const exe = await downloadAndUnzipVSCode({ version: "stable", cachePath: path.join(T, "vsc") });
 const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
 const code = spawn(exe, ["--new-window", "--user-data-dir", path.join(T, "ud"), "--extensions-dir", path.join(T, "ex"), "--disable-extensions",
   "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339", "--force-device-scale-factor=1.5",
   "--skip-welcome", "--skip-release-notes", "--disable-workspace-trust", path.join(T, "proj")], { env, stdio: "ignore" });
 const finish = (ok, msg) => { log(ok ? "PASS" : "FAIL", msg); code.kill(); process.exit(ok ? 0 : 1); };
-setTimeout(() => finish(false, "timed out"), 120000);
+setTimeout(() => finish(false, "timed out"), 240000);
 
 // ---- DevTools: find the editor page's execution context, in the main target or an attached frame
 let ws, nextId = 1; const waiting = new Map(); const contexts = [];
@@ -232,6 +276,93 @@ const a3 =
   game?.route === "redmod" && game.type === "mod_sfx_2d";
 if (!a3) finish(false, "Into the Game did not write what it should");
 
+// Voice tools, against the stand-in ElevenLabs: Generate Sound (asks for the key), Speak Line in a
+// picked voice (with its preview), Speak Line in track 1's voice (the clone consent), Re-Voice by
+// description (remix previews, reusing the clone). Each adds a track.
+const tracksNow = () => run("return document.getElementById('trackName').textContent");
+const waitTrack = async (n) => { for (let i = 0; i < 40; i++) { if ((await tracksNow()).startsWith(`${n} `)) return true; await sleep(500); } return false; };
+const dialogStatus = () => run("return document.querySelector('#dialog .status')?.textContent ?? ''");
+const selectLane = (lane) => run(`
+  const c = document.getElementById('mix'), r = c.getBoundingClientRect();
+  const y = r.top + 18 + 1 + ${lane} * 36 + 18, x = r.left + 4;
+  c.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, pointerId: 2, button: 0, bubbles: true }));
+  c.dispatchEvent(new PointerEvent('pointerup', { clientX: x, clientY: y, pointerId: 2, button: 0, bubbles: true }));`);
+// The workbench itself (not the webview), for VS Code's own dialog.
+let bench;
+for (const c of contexts.filter((c) => !c.origin.startsWith("vscode-webview"))) {
+  try { if (await evalIn(c, "!!document.querySelector('.monaco-workbench')")) { bench = c; break; } } catch {}
+}
+const clickDialogButton = async (text) => {
+  for (let i = 0; i < 20; i++) {
+    const done = await evalIn(bench, `(() => { const b = [...document.querySelectorAll('.monaco-dialog-box .dialog-buttons .monaco-button')].find((x) => x.textContent.includes(${JSON.stringify(text)})); if (b) b.click(); return !!b; })()`);
+    if (done) return true;
+    await sleep(500);
+  }
+  return false;
+};
+
+await run(`document.getElementById('generateSound').click(); await new Promise((r) => setTimeout(r, 300));
+  document.querySelector('#dialog textarea').value = 'a metal door slams';
+  document.querySelector('#dialog .actions .primary').click();`);
+await sleep(1500);
+await cdp("Input.insertText", { text: "smoke-key" }); // the key's input box
+await key("Enter", "Enter", 13);
+const generated = await waitTrack(3);
+log("generate sound", generated, await dialogStatus());
+await run(`document.getElementById('speakLine').click();
+  for (let i = 0; i < 40 && !document.querySelector('#dialog .voice'); i++) await new Promise((r) => setTimeout(r, 250));
+  document.querySelector('#dialog textarea').value = 'Wake up, samurai.';
+  document.querySelector('#dialog .voice input').click();
+  document.querySelector('#dialog .voice button').click();`);
+await sleep(1200);
+const preview = await run("return { status: document.querySelector('#dialog .status').textContent, models: document.querySelector('#dialog select').options.length }");
+log("voice preview", JSON.stringify(preview));
+await run("document.querySelector('#dialog .actions .primary').click()");
+const spoken = await waitTrack(4);
+log("speak line", spoken, await dialogStatus());
+await selectLane(0);
+await sleep(500);
+await run(`document.getElementById('speakLine').click(); await new Promise((r) => setTimeout(r, 300));
+  document.querySelector('#dialog textarea').value = 'In my own voice.';
+  document.querySelector('#dialog .actions .primary').click();`);
+const consented = await clickDialogButton("I have the right");
+const cloned = await waitTrack(5);
+log("speak in the line's voice", { consented, cloned }, await dialogStatus());
+await selectLane(0);
+await sleep(500);
+await run(`document.getElementById('revoice').click(); await new Promise((r) => setTimeout(r, 300));
+  document.querySelector('#dialog .describe textarea').value = 'female, calm';
+  document.querySelector('#dialog .describe button').click();
+  for (let i = 0; i < 40 && !document.querySelector('#dialog .describe .voice'); i++) await new Promise((r) => setTimeout(r, 250));`);
+const shot3 = await cdp("Page.captureScreenshot", { format: "png" });
+fs.writeFileSync(path.join(T, "revoice.png"), Buffer.from(shot3.data, "base64"));
+log("screenshot", path.join(T, "revoice.png"));
+await run("document.querySelector('#dialog .actions .primary').click()");
+const revoiced = await waitTrack(6);
+log("re-voice", revoiced, await dialogStatus());
+// The new tracks are unsaved changes, as Add Sound's are: Ctrl+S.
+await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+await sleep(1200);
+const vdoc = JSON.parse(fs.readFileSync(docFile, "utf8"));
+const made = vdoc.tracks.slice(2).map((t) => ({ id: t.id, file: t.source.file, voice: !!t.voice, offset: t.offset, made: t.made }));
+log("voice tracks", JSON.stringify(made));
+log("ElevenLabs requests", JSON.stringify(eleven.map((r) => `${r.method} ${r.path}${r.fmt ? ` ${r.fmt}` : ""}`)));
+const genFormats = made.map((t) => (t.file && fs.existsSync(path.join(path.dirname(docFile), t.file)) ? wavFormat(path.join(path.dirname(docFile), t.file)).rate : null));
+const posts = eleven.filter((r) => r.method === "POST");
+const voiceOk =
+  generated && spoken && cloned && revoiced && consented && !preview.status && preview.models >= 2 &&
+  made.length === 4 && genFormats.every((r) => r === 24000) &&
+  made[0].made?.tool === "sound" && made[0].made.prompt === "a metal door slams" && !made[0].voice &&
+  made[1].made?.tool === "speak" && made[1].made.voiceId === "v_smoke" && made[1].voice &&
+  made[2].made?.tool === "speak" && made[2].made.voiceId === "clone_smoke" && made[2].made.from === "t1" &&
+  made[3].made?.tool === "revoice" && made[3].made.voiceId === "remix_saved" && made[3].made.description === "female, calm" && made[3].offset === vdoc.tracks[0].offset &&
+  vdoc.tracks[0].mute === true &&
+  eleven.every((r) => r.path.startsWith("/preview/") ? !r.key : r.key === "smoke-key") &&
+  posts[0].path === "/v1/sound-generation" && posts[0].fmt === "pcm_48000" && posts[1].fmt === "pcm_24000" &&
+  eleven.filter((r) => r.path === "/v1/voices/add").length === 1 && eleven.filter((r) => r.fmt === "pcm_48000").length === 1;
+if (!voiceOk) finish(false, "the voice tools did not do what they should");
+
 const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
@@ -245,4 +376,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs" : "render or mix checks failed");

@@ -52,12 +52,23 @@ export type Effect =
 
 export type EffectType = Effect["type"];
 
+/** How a voice tool (ElevenLabs) made a track's source file, so it can be traced or made again. */
+export type Made =
+  /** Generate Sound: a sound effect from a prompt. */
+  | { by: "elevenlabs"; tool: "sound"; prompt: string; seconds?: number; loop?: boolean; influence?: number }
+  /** Speak Line: text in a voice; from, the track whose voice was cloned. */
+  | { by: "elevenlabs"; tool: "speak"; text: string; voiceId: string; voiceName?: string; model?: string; from?: string }
+  /** Re-Voice: a track's line in another voice; description, the change asked for. */
+  | { by: "elevenlabs"; tool: "revoice"; from: string; voiceId: string; voiceName?: string; description?: string; model?: string };
+
 export interface Track {
   /** Stable within the document. */
   id: string;
   source: Source;
   /** A voice line: shows Translate and Re-Voice. */
   voice?: boolean;
+  /** Made by a voice tool. */
+  made?: Made;
   edits: Edit[];
   /** Where the clip starts on the mix, in seconds. */
   offset: number;

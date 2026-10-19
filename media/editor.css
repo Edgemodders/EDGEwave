@@ -17,7 +17,7 @@ body {
   background: var(--vscode-editor-background); color: var(--vscode-foreground);
   font-family: var(--vscode-font-family); font-size: var(--vscode-font-size);
 }
-header { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); white-space: nowrap; min-width: 0; flex: none; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 12px; border-bottom: 1px solid var(--line); font-family: var(--mono); white-space: nowrap; min-width: 0; flex: none; }
 header .name { color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 header .meta { color: var(--dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .spacer { flex: 1; }
@@ -40,7 +40,38 @@ button.icon svg { width: 14px; height: 14px; }
 .menu[hidden] { display: none; }
 .menu button { border: 0; text-align: left; padding: 3px 14px; }
 .menu button:hover:not(:disabled) { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground)); color: var(--vscode-menu-selectionForeground, var(--accent)); }
-#translate, #revoice { border-style: dashed; color: var(--dim); }
+#translate { border-style: dashed; color: var(--dim); }
+header .ai { display: inline-flex; gap: 4px; }
+header .ai button { border-color: var(--cyan); color: var(--cyan); }
+header .ai button:hover:not(:disabled) { background: var(--cyan); color: var(--vscode-editor-background); }
+header .ai #translate { border-color: var(--line); color: var(--dim); }
+
+/* The voice tools' dialog: a form over the editor. */
+.dialog { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 12px; background: rgba(0,0,0,.45); overflow: auto; }
+.dialog[hidden] { display: none; }
+.dialog .box { width: min(620px, 100%); background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); border: 1px solid var(--accent); box-shadow: 0 4px 18px rgba(0,0,0,.5); padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.dialog .box.busy { cursor: progress; }
+.dialog .head { display: flex; align-items: center; justify-content: space-between; }
+.dialog .head h2 { color: var(--accent); margin: 0; }
+.dialog .head .x { border: 0; color: var(--dim); font-size: 16px; }
+.dialog textarea, .dialog input[type="search"] { width: 100%; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 4px 6px; font: inherit; resize: vertical; }
+.dialog textarea:focus, .dialog input[type="search"]:focus { outline: 1px solid var(--accent); outline-offset: -1px; }
+.dialog .field { display: flex; flex-direction: column; gap: 3px; color: var(--dim); font-size: 12px; }
+.dialog .fields { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.dialog .fields .field { flex-direction: row; align-items: center; gap: 6px; }
+.dialog .choice { display: flex; flex-direction: column; gap: 3px; }
+.dialog .voices { max-height: 210px; overflow: auto; border: 1px solid var(--line); }
+.dialog .voices:empty { display: none; }
+.dialog .voice { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: center; gap: 6px; padding: 2px 6px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.dialog .voice .vname { color: var(--cyan); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog .voice .dim { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialog .voicepick { display: flex; flex-direction: column; gap: 4px; }
+.dialog .describe { display: flex; flex-direction: column; gap: 4px; }
+.dialog .off { opacity: .4; pointer-events: none; }
+.dialog .actions { display: flex; justify-content: flex-end; gap: 6px; }
+.dialog .actions.left { justify-content: flex-start; }
+.dialog .status { margin: 0; font-size: 12px; color: var(--cyan); min-height: 1em; }
+.dialog .status.error { color: var(--red); }
 input[type="number"], select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 4px; font: inherit; font-family: var(--mono); font-size: 12px; }
 input[type="number"] { width: 58px; }
 input:focus, select:focus { outline: 1px solid var(--accent); outline-offset: -1px; }

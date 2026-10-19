@@ -10,7 +10,7 @@
     "url": "https://github.com/Edgemodders/EDGEwave"
   },
   "engines": {
-    "vscode": "^1.80.0",
+    "vscode": "^1.90.0",
     "node": ">=20"
   },
   "categories": [
@@ -40,8 +40,49 @@
         "title": "Refresh",
         "category": "EDGEwave",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "edgewave.elevenlabs.setKey",
+        "title": "Set ElevenLabs API Key",
+        "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.elevenlabs.clearKey",
+        "title": "Clear ElevenLabs API Key",
+        "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.elevenlabs.voices",
+        "title": "ElevenLabs Voices Made by EDGEwave…",
+        "category": "EDGEwave"
       }
     ],
+    "configuration": {
+      "title": "EDGEwave",
+      "properties": {
+        "edgewave.elevenlabs.sampleRate": {
+          "type": "number",
+          "enum": [48000, 44100, 32000, 24000, 22050, 16000],
+          "default": 48000,
+          "markdownDescription": "The sample rate the voice tools ask ElevenLabs for (as 16-bit PCM). 44100 needs ElevenLabs' Pro plan. If your plan refuses a rate, EDGEwave uses 24000 from then on."
+        },
+        "edgewave.elevenlabs.speechModel": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The model Speak Line starts with, such as `eleven_multilingual_v2` or `eleven_v3`. Empty: ElevenLabs' default. Speak Line lists your account's models."
+        },
+        "edgewave.elevenlabs.voiceChangerModel": {
+          "type": "string",
+          "default": "eleven_multilingual_sts_v2",
+          "markdownDescription": "The speech-to-speech model Re-Voice starts with."
+        },
+        "edgewave.elevenlabs.baseUrl": {
+          "type": "string",
+          "default": "https://api.elevenlabs.io",
+          "markdownDescription": "ElevenLabs' API server. For data residency: `https://api.us.elevenlabs.io`, `https://api.eu.residency.elevenlabs.io`, `https://api.in.residency.elevenlabs.io`, `https://api.sg.residency.elevenlabs.io`."
+        }
+      }
+    },
     "menus": {
       "commandPalette": [
         {

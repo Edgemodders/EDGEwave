@@ -9,6 +9,7 @@ import * as vscode from "vscode";
 import { formatDoc, looksLikeVoice, newTrack, nextTrackId, parseDoc, type SoundDoc, type Source } from "./doc";
 import { intoGame } from "./intoGame";
 import { redcode } from "./redcode";
+import type { VoiceRequest, VoiceTools } from "./voiceTools";
 
 /** Formats the page decodes itself, read straight from disk. */
 const Direct: Record<string, string> = { ".wav": "audio/wav", ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".flac": "audio/flac" };
@@ -51,7 +52,8 @@ type FromPage =
   | { type: "renderedFor"; id: number; wav?: Uint8Array; error?: string }
   | { type: "edit"; doc: SoundDoc }
   | { type: "render"; wav: Uint8Array }
-  | { type: "stub"; tool: "translate" | "revoice" }
+  | { type: "stub"; tool: "translate" }
+  | { type: "voiceTool"; id: number; req: VoiceRequest }
   | { type: "error"; text: string };
 
 type Pick = vscode.QuickPickItem & { pick?: "file" | "path"; event?: { hash: number; name: string | null; tags: string[]; sounds: number[] } };
@@ -108,7 +110,7 @@ async function pickSource(docDir: string): Promise<Source | undefined> {
 }
 
 export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
-  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel) {}
+  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly voices: VoiceTools) {}
 
   resolveCustomTextEditor(document: vscode.TextDocument, panel: vscode.WebviewPanel): void {
     const webview = panel.webview;
@@ -186,12 +188,18 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
         }
         case "render":
           return this.render(document, bytes(m.wav));
-        case "stub": {
-          const name = m.tool === "translate" ? "Translate" : "Re-Voice";
-          const what = m.tool === "translate" ? "speak this line in another language" : "keep the words and delivery in a different voice";
-          void vscode.window.showInformationMessage(`${name} is planned: it will ${what}, through an AI service. It is not built yet.`);
+        case "stub":
+          void vscode.window.showInformationMessage("Translate is planned: it will speak this line in another language, through an AI service. It is not built yet.");
           return;
-        }
+        case "voiceTool":
+          // Generate Sound, Speak Line and Re-Voice: the answer goes back to the page's form.
+          try {
+            post({ type: "voiceToolResult", id: m.id, ok: true, result: await this.voices.handle(document, m.req) });
+          } catch (e) {
+            this.log.appendLine(`ElevenLabs ${m.req.op}: ${(e as Error).message}`);
+            post({ type: "voiceToolResult", id: m.id, ok: false, error: (e as Error).message });
+          }
+          return;
         case "error":
           this.log.appendLine(`Page: ${m.text}`);
           return;
@@ -250,9 +258,13 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 </head><body>
 <header>
   <span class="name" id="title">Loading…</span><span class="meta" id="meta"></span><span class="spacer"></span>
+  <span class="ai" title="Voice tools, through ElevenLabs (your API key; each use spends your credits)">
+    <button id="generateSound" title="Generate Sound: a sound effect from a text prompt, through ElevenLabs, as a new track at the mix cursor">Generate Sound…</button>
+    <button id="speakLine" title="Speak Line: text spoken in an ElevenLabs voice, or in the selected voice line's voice, as a new track">Speak Line…</button>
+    <button id="revoice" hidden title="Re-Voice: this line's words, timing and delivery in another voice: describe the change (gender, age, emotion) or pick a voice">Re-Voice…</button>
+    <button id="translate" hidden title="Speak this line in another language (planned)">Translate</button>
+  </span>
   <label class="check" title="Mark this sound as a voice line, for the voice tools"><input type="checkbox" id="voice"> Voice line</label>
-  <button id="translate" hidden title="Speak this line in another language (planned)">Translate</button>
-  <button id="revoice" hidden title="Keep the words and delivery in a different voice: another gender or style (planned)">Re-Voice</button>
 </header>
 <div class="toolbar mixbar">
   <span class="label">Mix</span>
@@ -332,6 +344,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
     <div class="row"><span>Result</span><span id="renderInfo" class="mono"></span></div>
   </section>
 </div>
+<div class="dialog" id="dialog" hidden><div class="box" role="dialog" aria-modal="true" id="dialogBox"></div></div>
 <script nonce="${nonce}" src="${js}"></script>
 </body></html>`;
   }

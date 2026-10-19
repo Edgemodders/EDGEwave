@@ -12,6 +12,7 @@ import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail, type Par
 import { encodeWav } from "../src/audio/wav";
 import { docLabel, sourceKey, sourceLabel, type Curve, type Edit, type Effect, type EffectType, type SoundDoc, type Track } from "../src/doc";
 import { buildMix } from "./graph";
+import { setupVoiceTools, voiceToolResult } from "./voice";
 
 declare function acquireVsCodeApi(): { postMessage(m: unknown): void };
 const vscode = acquireVsCodeApi();
@@ -68,7 +69,6 @@ window.addEventListener("message", async (e) => {
     const same = doc && JSON.stringify(doc) === JSON.stringify(m.doc);
     const before = doc ? new Set(doc.tracks.map((t) => t.id)) : null;
     doc = m.doc as SoundDoc;
-    // A track that appeared since the last document (Add Sound) becomes the selected one.
     // A track that was not in the last document (Add Sound, or undo of a Remove) becomes the selected one.
     const fresh = before ? doc.tracks.filter((t) => !before.has(t.id)) : [];
     if (fresh.length) selectTrack(fresh[fresh.length - 1].id);
@@ -89,6 +89,8 @@ window.addEventListener("message", async (e) => {
   } else if (m.type === "audioError") {
     failed.set(m.key, `The sound could not be loaded: ${m.text}`);
     refresh();
+  } else if (m.type === "voiceToolResult") {
+    voiceToolResult(m);
   } else if (m.type === "renderFor") {
     // Into the Game: the mix at the format its route needs.
     try {
@@ -851,7 +853,6 @@ $<HTMLInputElement>("voice").addEventListener("change", (e) => {
   changeTrack((t) => ({ ...t, voice: v || undefined }));
 });
 on("translate", () => send({ type: "stub", tool: "translate" }));
-on("revoice", () => send({ type: "stub", tool: "revoice" }));
 
 $<HTMLSelectElement>("rate").addEventListener("change", (e) => {
   const v = (e.target as HTMLSelectElement).value;
@@ -903,7 +904,7 @@ on("render", async () => {
 
 document.addEventListener("keydown", (ev) => {
   const target = ev.target as HTMLElement;
-  if (target.tagName === "INPUT" || target.tagName === "SELECT") return;
+  if (target.tagName === "INPUT" || target.tagName === "SELECT" || target.tagName === "TEXTAREA" || !$("dialog").hidden) return;
   const mod = ev.ctrlKey || ev.metaKey;
   if (ev.key === " ") {
     ev.preventDefault();
@@ -1121,5 +1122,14 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") hideMenu();
 });
 window.addEventListener("blur", hideMenu);
+
+setupVoiceTools({
+  send,
+  track,
+  clip: () => clip(),
+  mixCursor: () => mixCursor,
+  audio: () => (ctx ??= new AudioContext()),
+  stop,
+});
 
 send({ type: "ready" });
