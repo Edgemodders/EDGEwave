@@ -8,8 +8,8 @@ Last updated 2026-10-18.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-18 | Pass, 32 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-18 | Pass |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-19 | Pass, 32 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-19 | Pass |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
@@ -47,7 +47,7 @@ npm run build
 npm run smoke
 ```
 
-Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png` and `revoice.png` to `%TEMP%\ewsmoke`.
+Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png`, `takes.png` and `revoice.png` to `%TEMP%\ewsmoke`.
 
 To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the script does this for the VS Code it starts). Keep the temp path short: VS Code's files pass Windows' 260-character limit otherwise.
 
@@ -65,13 +65,13 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | A2 | Render WAV | 1.75 s (0.25 s + track 2's 1.5 s), stereo, 44.1 kHz, with sound from both tracks |
 | A3 | Into the Game > Override this variation | `42.wav` at 48 kHz stereo handed to REDcode's Import (the stub writes `imported.json`) |
 | A3 | Into the Game > Replace the event with REDmod, 2D | `source/customSounds/smoke_event.wav` at 48 kHz, an entry in `source/resources/info.json`, and the document's `game` keeps the choice |
-| V1 | Generate Sound | The key's password box (typed); the 48 kHz request refused and the same at 24 kHz; track 3, at the mix cursor, a 24 kHz WAV in `42.gen/`, `made` with the prompt |
+| V1 | Generate Sound | The key's password box (typed); the 48 kHz request refused and the same at 24 kHz; two takes in the dialog (the second with a changed prompt) and no track yet; a take plays; Add on take 2 makes track 3, at the mix cursor, a 24 kHz WAV in `42.gen/`, `made` with take 2's prompt |
 | V1 | Speak Line in a picked voice | The voice list and the model menu fill; the voice's preview plays; track 4, a voice line, `made` with the voice |
 | V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
 | V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 muted |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 
-Last run 2026-10-18: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs`).
+Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -177,7 +177,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 
 What is built: [V1 Voice tools](voice-tools.html). **Not run yet.** Needs an ElevenLabs account and API key; each step spends credits (a few seconds of audio each). Steps 2, 4 and 5 settle what is still unverified: 48 kHz on your plan, a voice preview playing, a remix of a clone.
 
-1. **The key.** In a sound document, click **Generate Sound…**, describe a sound (such as `a heavy metal door slams in a concrete corridor`), **Generate**. Expect: a password box for the key the first time; then a new track at the mix cursor, selected, playing what you asked for. Its WAV is in the document's `.gen` folder.
+1. **The key.** In a sound document, click **Generate Sound…**, describe a sound (such as `a heavy metal door slams in a concrete corridor`), **Generate**. Expect: a password box for the key the first time; then **Take 1** in the dialog with a play button, and no new track yet. Change the description, **Generate again**: Take 2 above Take 1; play both. **Add** on the one you want. Expect: the dialog closes; a new track at the mix cursor, selected, with that take. Its WAV is in the document's `.gen` folder; the other take is not saved anywhere.
 2. **The rate.** Output › EDGEwave. Expect: no "refused 48000 Hz" line on a plan that allows 48 kHz; with one, the next tools use 24 kHz. Tell me which.
 3. **Generate Sound's options.** A length (such as 2 s), Loop, and Follow the prompt at 0.8. Expect: the length you asked for; a loop that plays back seamlessly with the clip's loop.
 4. **Speak Line in a voice.** **Speak Line…**, type a line, search the voices (such as `female`), play a preview, pick a voice and a model, **Speak**. Expect: the preview plays (if it does not, say so: it is an MP3); a new voice-line track with the line spoken.

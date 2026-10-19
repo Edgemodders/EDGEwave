@@ -6,12 +6,12 @@ Status: **built 2026-10-18, hand test pending.** Three buttons in the editor's h
 
 | Button | Shown | What it does | ElevenLabs |
 |---|---|---|---|
-| **Generate Sound…** | Always | A sound effect from a description, 0.5 to 30 s (or from the prompt), seamless loop optional, and how closely to follow the prompt (0 to 1). A new track at the mix cursor | `POST /v1/sound-generation` |
+| **Generate Sound…** | Always | A sound effect from a description, 0.5 to 30 s (or from the prompt), seamless loop optional, and how closely to follow the prompt (0 to 1). Each try is a **take** in the dialog, with a play button: change the description and generate again, then **Add** the take you want as a new track at the mix cursor | `POST /v1/sound-generation` |
 | **Speak Line…** | Always | Text spoken in a voice: one of the account's voices (searchable by name, gender, accent; each with a play button for its preview), or **the selected voice line's voice**. A model from the account's list. A new voice-line track at the mix cursor | `GET /v2/voices`, `GET /v1/models`, `POST /v1/text-to-speech/{voice}`; the line's voice is an instant clone, `POST /v1/voices/add` |
 | **Re-Voice…** | On a voice line | The selected line's words, timing and delivery in another voice. **Describe the change** (such as "female", "older and raspy", "shouting, angry"): EDGEwave clones the line's voice, asks for remixes, you play the previews and pick one. Or **into one of your voices**. A new track at the line's place; the original is muted (untick to keep it) | Describe: clone, `POST /v1/text-to-voice/{voice}/remix`, `POST /v1/text-to-voice` (saves the pick), then `POST /v1/speech-to-speech/{voice}`. Into a voice: speech-to-speech only |
 | **Translate** | On a voice line | Still a stub: planned | |
 
-Each result is a mono WAV in the document's `<name>.gen` folder, beside it (for `42.edgewave`, `42.gen/`), named from the tool, the prompt or line, and the time. The track's `made` says how it was made: the tool, the prompt or text, the voice and model, and for a clone or Re-Voice the track it came from. Like Add Sound, a new track is an unsaved change to the document; undo removes the track but not its WAV.
+Each result (for Generate Sound, the take added) is a mono WAV in the document's `<name>.gen` folder, beside it (for `42.edgewave`, `42.gen/`), named from the tool, the prompt or line, and the time. The track's `made` says how it was made: the tool, the prompt or text, the voice and model, and for a clone or Re-Voice the track it came from. Like Add Sound, a new track is an unsaved change to the document; undo removes the track but not its WAV.
 
 ## The API key
 
@@ -51,8 +51,8 @@ EDGEwave asks for raw 16-bit PCM (`output_format=pcm_<rate>`) and wraps it as WA
 | Part | Where |
 |---|---|
 | The ElevenLabs client: the calls, PCM to WAV, errors as a modder reads them, file names from prompts. No VS Code imports; unit tests against a stand-in server | `src/elevenlabs.ts`, `test/elevenlabs.test.ts` |
-| The tools on the extension's side: the key, the clone consent, the voices EDGEwave made, the rate fallback, writing the WAV and the new track | `src/voiceTools.ts` |
-| The forms, the voice list, the previews | `webview/voice.ts`, `media/editor.css` |
+| The tools on the extension's side: the key, the clone consent, the voices EDGEwave made, the rate fallback, Generate Sound's takes (the last 20, in memory), writing the WAV and the new track | `src/voiceTools.ts` |
+| The forms, the voice list, the previews and takes | `webview/voice.ts`, `media/editor.css` |
 | The track's `made` | `src/doc.ts` |
 | The commands and settings; VS Code 1.90 or later (Node's own `fetch`) | `package.json`, `src/extension.ts` |
 
