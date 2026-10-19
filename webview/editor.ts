@@ -92,10 +92,11 @@ window.addEventListener("message", async (e) => {
   } else if (m.type === "voiceToolResult") {
     voiceToolResult(m);
   } else if (m.type === "renderFor") {
-    // Into the Game: the mix at the format its route needs.
+    // Into the Game: the mix at the format its route needs; {track} is the channels of the sound it replaces.
     try {
-      const first = doc ? sources.get(sourceKey(doc.tracks[0].source))?.audio : undefined;
-      const channels = m.channels === "source" ? Math.min(2, first?.channels.length ?? 2) : m.channels;
+      const target = typeof m.channels === "object" ? doc?.tracks.find((t) => t.id === m.channels.track) : undefined;
+      const audio = target ? sources.get(sourceKey(target.source))?.audio : undefined;
+      const channels = typeof m.channels === "object" ? Math.min(2, audio?.channels.length ?? 2) : m.channels;
       send({ type: "renderedFor", id: m.id, wav: await renderMix(m.rate, channels) });
     } catch (err) {
       send({ type: "renderedFor", id: m.id, error: (err as Error).message });

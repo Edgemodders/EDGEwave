@@ -7,7 +7,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { formatDoc, looksLikeVoice, newTrack, nextTrackId, parseDoc, type SoundDoc, type Source } from "./doc";
-import { intoGame } from "./intoGame";
+import { intoGame, type RenderFor } from "./intoGame";
 import { redcode } from "./redcode";
 import type { VoiceRequest, VoiceTools } from "./voiceTools";
 
@@ -131,7 +131,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
     // Renders the page makes for Into the Game, at the format a route needs.
     let nextRender = 1;
     const renders = new Map<number, { resolve: (wav: Uint8Array) => void; reject: (e: Error) => void }>();
-    const renderFor = (rate: number, channels: "source" | 1 | 2) =>
+    const renderFor: RenderFor = (rate, channels) =>
       new Promise<Uint8Array>((resolve, reject) => {
         const id = nextRender++;
         renders.set(id, { resolve, reject });

@@ -20,6 +20,7 @@ const repo = path.resolve(here, "..", "..");
 const T = path.join(os.tmpdir(), "ewsmoke");
 fs.rmSync(path.join(T, "ud"), { recursive: true, force: true });
 fs.rmSync(path.join(T, "proj"), { recursive: true, force: true });
+fs.rmSync(path.join(T, "imported.json"), { force: true });
 fs.mkdirSync(path.join(T, "proj", "source", "raw"), { recursive: true });
 fs.cpSync(path.join(here, "stub"), path.join(T, "stub"), { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -237,10 +238,11 @@ for (let i = 0; i < 20 && !fs.existsSync(wav); i++) await sleep(500);
 if (!fs.existsSync(wav)) finish(false, "no render at " + wav);
 await sleep(500);
 const doc = JSON.parse(fs.readFileSync(docFile, "utf8"));
-// The A2 render, read now: Into the Game's override writes the same file at 48 kHz.
+// The A2 render, read now, before Into the Game writes beside it.
 const renderedWav = fs.readFileSync(wav);
 log("document", JSON.stringify(doc));
-// A3: Into the Game, both routes, through the real quick picks.
+// A3: Into the Game, both routes, through the real quick picks. The override replaces track 2's sound
+// (43, mono), so the target is not track 1 and the WAV has the target's channels.
 const pickFirst = async (filter) => {
   await sleep(1200);
   if (filter) await cdp("Input.insertText", { text: filter });
@@ -248,7 +250,11 @@ const pickFirst = async (filter) => {
   await key("Enter", "Enter", 13);
 };
 await run("document.getElementById('intoGame').click()");
-await pickFirst(""); // Override this variation
+await sleep(1500);
+fs.writeFileSync(path.join(T, "intogame.png"), Buffer.from((await cdp("Page.captureScreenshot", { format: "png" })).data, "base64"));
+await cdp("Input.insertText", { text: "Override sound 43" });
+await sleep(600);
+await key("Enter", "Enter", 13);
 const imported = path.join(T, "imported.json");
 for (let i = 0; i < 20 && !fs.existsSync(imported); i++) await sleep(500);
 const override = fs.existsSync(imported) ? JSON.parse(fs.readFileSync(imported, "utf8")).file : null;
@@ -256,7 +262,7 @@ log("override imported", override);
 await sleep(800);
 await key("Escape", "Escape", 27); // the notification
 await run("document.getElementById('intoGame').click()");
-await pickFirst("Replace"); // Replace the event with REDmod
+await pickFirst("Replace the event smoke_event");
 await pickFirst(""); // 2D
 const info = path.join(T, "proj", "source", "resources", "info.json");
 const custom = path.join(T, "proj", "source", "customSounds", "smoke_event.wav");
@@ -271,8 +277,8 @@ log("formats", JSON.stringify({ overrideFormat, customFormat }));
 const game = JSON.parse(fs.readFileSync(docFile, "utf8")).game;
 log("document game", JSON.stringify(game));
 const a3 =
-  !!override && path.basename(override) === "42.wav" && overrideFormat?.rate === 48000 && overrideFormat?.ch === 2 &&
-  customFormat?.rate === 48000 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
+  !!override && path.basename(override) === "43.wav" && overrideFormat?.rate === 48000 && overrideFormat?.ch === 1 &&
+  customFormat?.rate === 48000 && customFormat.ch === 2 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
   game?.route === "redmod" && game.type === "mod_sfx_2d";
 if (!a3) finish(false, "Into the Game did not write what it should");
 
@@ -408,4 +414,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2 and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view" : "render or mix checks failed");

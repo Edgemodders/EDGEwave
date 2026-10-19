@@ -92,8 +92,8 @@ export interface Render {
 
 /** How Into the Game put this sound in the mod last time, offered first next time. */
 export type IntoGame =
-  /** Replace one sound effect variation in its .opuspak (REDbridge's sound.importWavs, through REDcode's Import). */
-  | { route: "override" }
+  /** Replace one sound effect variation in its .opuspak (REDbridge's sound.importWavs, through REDcode's Import); which one (absent before 2026-10-19: track 1's). */
+  | { route: "override"; soundHash?: number }
   /** A REDmod custom sound: the game plays the render for this event (all its variations), as type. */
   | { route: "redmod"; event: string; type: string; gain: number; pitch: number }
   /** A REDmod custom sound that silences this event. */

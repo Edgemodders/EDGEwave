@@ -1,5 +1,7 @@
-// Into the Game (A3): puts the mix into the open REDcode project, in a layout the game loads, for
-// REDcode's pack. Two routes, both chosen in a quick pick and remembered in the document (doc.game):
+// Into the Game (A3): puts the mix (the tracks heard, with mute and solo) into the open REDcode project,
+// in a layout the game loads, for REDcode's pack. What it replaces is a separate choice: any game sound
+// effect on a track, the heard ones first, so a mix of a game sound and a file can override that sound.
+// Two routes, both chosen in a quick pick and remembered in the document (doc.game):
 //
 // - Override one sound effect variation: a 48 kHz WAV with the original's channels, named after the
 //   sound's hash, imported by REDcode (REDbridge's sound.importWavs writes the .opuspak and
@@ -14,17 +16,68 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { formatDoc, looksLikeVoice, parseDoc, type IntoGame, type SoundDoc } from "./doc";
+import { audible } from "./audio/mix";
+import { formatDoc, looksLikeVoice, parseDoc, sourceLabel, type IntoGame, type SoundDoc, type Track } from "./doc";
 import { redcode, type ProjectRef } from "./redcode";
 import { RedmodTypes, soundFileFor, upsertCustomSound } from "./redmod";
 
-/** Renders the mix through the page at a rate, with the first track's source's channels ("source") or a count. */
-export type RenderFor = (rate: number, channels: "source" | 1 | 2) => Promise<Uint8Array>;
+/** Renders the mix through the page at a rate, with a track's source's channels ({track}: the sound it replaces) or a count. */
+export type RenderFor = (rate: number, channels: { track: string } | 1 | 2) => Promise<Uint8Array>;
 
 type Route = IntoGame["route"] | "redmodNamed";
-type Item = vscode.QuickPickItem & { route: Route };
+type Item = vscode.QuickPickItem & { route?: Route; track?: Track; soundHash?: number; event?: string };
 
 const Rate = 48000;
+
+/** A sound effect track: what an override or a REDmod event can replace. */
+type SfxTrack = Track & { source: Extract<Track["source"], { kind: "sfx" }> };
+
+/** The quick pick's items: for each game sound effect on a track (heard ones first), its override and its event's routes. */
+function routes(doc: SoundDoc): Item[] {
+  const heard = new Set(audible(doc.tracks).map((t) => t.id));
+  const sfx = doc.tracks.filter((t): t is SfxTrack => t.source.kind === "sfx");
+  const ordered = [...sfx.filter((t) => heard.has(t.id)), ...sfx.filter((t) => !heard.has(t.id))];
+  const items: Item[] = [];
+  const hashes = new Set<number>();
+  const events = new Set<string>();
+  for (const t of ordered) {
+    const { soundHash, eventName } = t.source;
+    const group: Item[] = [];
+    if (!hashes.has(soundHash)) {
+      hashes.add(soundHash);
+      group.push({
+        label: `$(replace) Override sound ${soundHash}`,
+        description: eventName,
+        detail: "Exactly this sound, in its .opuspak. Mods that override sounds this way do not work together: the last one loaded wins.",
+        route: "override",
+        track: t,
+        soundHash,
+      });
+    }
+    if (eventName && !events.has(eventName)) {
+      events.add(eventName);
+      group.push(
+        { label: `$(package) Replace the event ${eventName} with REDmod`, detail: "The game plays this mix for the event, every variation. Works beside other mods; the event's own Wwise logic is dropped.", route: "redmod", track: t, event: eventName },
+        { label: `$(mute) Silence the event ${eventName} with REDmod`, detail: "The game no longer plays this event.", route: "skip", track: t, event: eventName },
+      );
+    }
+    if (!group.length) continue;
+    const n = doc.tracks.indexOf(t) + 1;
+    items.push({ label: `Track ${n} · ${sourceLabel(t.source)}${heard.has(t.id) ? "" : " (not heard)"}`, kind: vscode.QuickPickItemKind.Separator }, ...group);
+  }
+  items.push(
+    { label: "Any event", kind: vscode.QuickPickItemKind.Separator },
+    { label: "$(package) A REDmod custom sound for an event…", detail: "Name the audio event the game should play this mix for (REDcode's sound list shows the names).", route: "redmodNamed" },
+  );
+  return items;
+}
+
+/** The item for the last choice, if this document still offers it. */
+function lastItem(items: Item[], last: IntoGame | undefined): Item | undefined {
+  if (!last) return undefined;
+  if (last.route === "override") return items.find((i) => i.route === "override" && (last.soundHash === undefined || i.soundHash === last.soundHash));
+  return items.find((i) => i.route === last.route && i.event === last.event) ?? items.find((i) => i.route === "redmodNamed" && last.route === "redmod");
+}
 
 export async function intoGame(document: vscode.TextDocument, renderFor: RenderFor, log: vscode.OutputChannel): Promise<void> {
   const api = await redcode();
@@ -32,53 +85,40 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   if (!project) throw new Error("Open a REDcode project first: Into the Game writes into its source folders.");
   if (document.isDirty) await document.save();
   const doc = parseDoc(document.getText());
-  const s = doc.tracks[0].source;
-  const event = s.kind === "sfx" ? s.eventName : undefined;
+  const heard = audible(doc.tracks);
+  if (!heard.length) throw new Error("Every track is muted: Into the Game puts the tracks you hear into the mod.");
 
-  if (doc.tracks.some((t) => t.voice) || (s.kind === "game" && looksLikeVoice(s.path))) {
+  // A voice line heard, and no sound effect to put the mix in place of.
+  if (!heard.some((t) => t.source.kind === "sfx") && heard.some((t) => t.voice || (t.source.kind === "game" && looksLikeVoice(t.source.path)))) {
     void vscode.window.showInformationMessage(
       "Voice lines cannot go into the game as voice lines yet: a .wem needs Wwise to make, which EDGEwave does not have. A REDmod custom sound can still play this mix for an audio event.",
     );
   }
 
-  const items: Item[] = [];
-  if (s.kind === "sfx") {
-    items.push({
-      label: "$(replace) Override this variation",
-      description: `sound ${s.soundHash}`,
-      detail: "Exactly this sound, in its .opuspak. Mods that override sounds this way do not work together: the last one loaded wins.",
-      route: "override",
-    });
-  }
-  if (event) {
-    items.push(
-      { label: "$(package) Replace the event with REDmod", description: event, detail: "The game plays this mix for the event, every variation. Works beside other mods; the event's own Wwise logic is dropped.", route: "redmod" },
-      { label: "$(mute) Silence the event with REDmod", description: event, detail: "The game no longer plays this event.", route: "skip" },
-    );
-  } else {
-    items.push({ label: "$(package) A REDmod custom sound for an event…", detail: "Name the audio event the game should play this mix for (REDcode's sound list shows the names).", route: "redmodNamed" });
-  }
-  // The last choice first.
-  const last = doc.game?.route;
-  items.sort((a, b) => Number(b.route === last) - Number(a.route === last));
-  const chosen = await vscode.window.showQuickPick(items, { title: "Into the Game: how should this sound go into the mod?" });
-  if (!chosen) return;
+  const items = routes(doc);
+  // The last choice first, under its own heading.
+  const last = lastItem(items, doc.game);
+  const shown: Item[] = last ? [{ label: "Last time", kind: vscode.QuickPickItemKind.Separator }, last, ...items] : items;
+  const chosen = await vscode.window.showQuickPick(shown, { title: "Into the Game: what should the tracks you hear replace?", matchOnDetail: false });
+  if (!chosen?.route) return;
+  // The channels of the sound replaced; for a named event, the first track heard.
+  const channels = { track: (chosen.track ?? heard[0]).id };
 
   let game: IntoGame;
   let done: string;
   if (chosen.route === "override") {
-    if (s.kind !== "sfx") return;
-    const wav = await renderFor(Rate, "source");
-    const file = overrideFile(document, project, s.soundHash);
+    const hash = chosen.soundHash!;
+    const wav = await renderFor(Rate, channels);
+    const file = overrideFile(document, project, hash);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, wav);
     const r = await api.importFile(file);
     if (!r.ok) throw new Error(`REDcode could not import ${path.basename(file)}; see REDcode's output.`);
-    log.appendLine(`Into the Game: sound ${s.soundHash} from ${file} into ${r.written.join(", ")}`);
-    game = { route: "override" };
-    done = `Sound ${s.soundHash} now overrides the game's, in ${r.written.map((w) => path.relative(project.dir, w)).join(", ")}.`;
+    log.appendLine(`Into the Game: sound ${hash} from ${file} into ${r.written.join(", ")}`);
+    game = { route: "override", soundHash: hash };
+    done = `Sound ${hash} now overrides the game's, in ${r.written.map((w) => path.relative(project.dir, w)).join(", ")}.`;
   } else {
-    let name = event;
+    let name = chosen.event;
     if (chosen.route === "redmodNamed" || !name) {
       name = (await vscode.window.showInputBox({ title: "Into the Game: the audio event", prompt: "The event the game should play this mix for", value: doc.game && doc.game.route !== "override" ? doc.game.event : "" }))?.trim();
       if (!name) return;
@@ -99,7 +139,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
       const gain = doc.game?.route === "redmod" ? doc.game.gain : 1;
       const pitch = doc.game?.route === "redmod" ? doc.game.pitch : 0;
       // REDmod checks the WAV's format; which rates it takes is unverified, so the game's own 48 kHz.
-      const wav = await renderFor(Rate, "source");
+      const wav = await renderFor(Rate, channels);
       const file = soundFileFor(name);
       const out = path.join(project.dir, "source", "customSounds", file);
       fs.mkdirSync(path.dirname(out), { recursive: true });
