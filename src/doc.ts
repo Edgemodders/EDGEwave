@@ -96,8 +96,8 @@ export type IntoGame =
   | { route: "override"; soundHash?: number }
   /** A REDmod custom sound: the game plays the render for this event (all its variations), as type. */
   | { route: "redmod"; event: string; type: string; gain: number; pitch: number }
-  /** A REDmod custom sound that silences this event. */
-  | { route: "skip"; event: string };
+  /** A REDmod custom sound that silences this event: the render with its samples zeroed, as type (absent before 2026-10-19: mod_skip). */
+  | { route: "skip"; event: string; type?: string };
 
 export interface SoundDoc {
   edgewave: 2;

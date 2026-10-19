@@ -9,9 +9,8 @@
 //
 // Silence is a silent WAV, as modders do it: in the A3 hand test (2026-10-19) a mod_skip entry was
 // deployed (REDmod's mods.json had it) but the game still played the event, while a custom sound
-// for the same event played. mod_skip is still read in an existing info.json, and replaced.
-
-import { encodeWav } from "./audio/wav";
+// for the same event played. So was a 0.1 s mono 2D silence at gain 0; the silence is now the
+// render itself with its samples zeroed. mod_skip is still read in an existing info.json, and replaced.
 
 export type RedmodType =
   | "mod_skip"
@@ -52,14 +51,21 @@ export function soundFileFor(event: string): string {
   return `${event.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")}.wav`;
 }
 
-/** A tenth of a second of silence: 48 kHz, 16-bit, mono, the format REDmod took in the hand test. */
-export function silentWav(): Uint8Array {
-  return encodeWav({ sampleRate: 48000, channels: [new Float32Array(4800)] });
-}
-
-/** The entry that silences an event: its silent WAV, 2D, at gain 0. */
-export function silenceEntry(event: string): CustomSound {
-  return { name: event, type: "mod_sfx_2d", file: soundFileFor(event), gain: 0, pitch: 0 };
+/** A copy of a PCM WAV file with its samples zeroed: the same format and length, silent. */
+export function silenced(wav: Uint8Array): Uint8Array {
+  const out = wav.slice();
+  const v = new DataView(out.buffer);
+  const tag = (o: number) => String.fromCharCode(out[o], out[o + 1], out[o + 2], out[o + 3]);
+  if (tag(0) !== "RIFF" || tag(8) !== "WAVE") throw new Error("Not a WAV file");
+  for (let o = 12; o + 8 <= out.length; ) {
+    const size = v.getUint32(o + 4, true);
+    if (tag(o) === "data") {
+      out.fill(0, o + 8, Math.min(out.length, o + 8 + size));
+      return out;
+    }
+    o += 8 + size + (size & 1);
+  }
+  throw new Error("The WAV file has no data");
 }
 
 /**

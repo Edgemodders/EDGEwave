@@ -6,7 +6,7 @@ import { applyEdits, duration, frames, peak, type Audio } from "../src/audio/edi
 import { decodeWav, encodeWav } from "../src/audio/wav";
 import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail } from "../src/audio/mix";
 import { formatDoc, looksLikeVoice, newDoc, newTrack, nextTrackId, parseDoc } from "../src/doc";
-import { RedmodTypes, silenceEntry, silentWav, soundFileFor, upsertCustomSound } from "../src/redmod";
+import { RedmodTypes, silenced, soundFileFor, upsertCustomSound } from "../src/redmod";
 
 /** A ramp 0, 1, 2 ... scaled small, at 10 Hz, so frames and seconds are easy to read. */
 function ramp(n: number, ch = 1, rate = 10): Audio {
@@ -224,14 +224,18 @@ test("REDmod: the same event again replaces its entry; a skip has no file; gain 
   assert.equal(soundFileFor('a:b/c'), "a_b_c.wav");
 });
 
-test("REDmod: silence is a silent WAV at gain 0, replacing a mod_skip", () => {
-  const text = upsertCustomSound(JSON.stringify({ customSounds: [{ name: "ev", type: "mod_skip" }] }), silenceEntry("ev"));
-  assert.deepEqual(JSON.parse(text).customSounds, [{ name: "ev", type: "mod_sfx_2d", file: "ev.wav", gain: 0, pitch: 0 }]);
-  const a = decodeWav(silentWav());
+test("REDmod: silence is the render with its samples zeroed, same format and length", () => {
+  const wav = encodeWav({ sampleRate: 48000, channels: [Float32Array.from([0.5, -0.5, 0.25]), Float32Array.from([1, 0, -1])] });
+  const s = silenced(wav);
+  assert.equal(s.length, wav.length);
+  assert.deepEqual(s.subarray(0, 44), wav.subarray(0, 44));
+  const a = decodeWav(s);
   assert.equal(a.sampleRate, 48000);
-  assert.equal(a.channels.length, 1);
-  assert.equal(a.channels[0].length, 4800);
-  assert.ok(a.channels[0].every((s) => s === 0));
+  assert.equal(a.channels.length, 2);
+  assert.equal(a.channels[0].length, 3);
+  assert.ok(a.channels.every((c) => c.every((x) => x === 0)));
+  assert.ok(decodeWav(wav).channels[0][0] !== 0, "the render itself is untouched");
+  assert.throws(() => silenced(new Uint8Array(12)), /Not a WAV/);
 });
 
 test("REDmod: every type but mod_skip is offered, once", () => {

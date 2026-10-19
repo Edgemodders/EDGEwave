@@ -20,7 +20,7 @@ import * as vscode from "vscode";
 import { audible } from "./audio/mix";
 import { formatDoc, looksLikeVoice, parseDoc, sourceLabel, type IntoGame, type SoundDoc, type Track } from "./doc";
 import { redcode, type ProjectRef } from "./redcode";
-import { RedmodTypes, silenceEntry, silentWav, soundFileFor, upsertCustomSound } from "./redmod";
+import { RedmodTypes, silenced, soundFileFor, upsertCustomSound } from "./redmod";
 
 /** Renders the mix through the page at a rate, with a track's source's channels ({track}: the sound it replaces) or a count. */
 export type RenderFor = (rate: number, channels: { track: string } | 1 | 2) => Promise<Uint8Array>;
@@ -67,7 +67,7 @@ function routes(doc: SoundDoc): Item[] {
       events.add(eventName);
       group.push(
         { label: `$(package) Replace the event ${eventName}, every variation, with REDmod`, detail: "The game plays this mix in place of each of the event's sounds. Works beside other mods; the event's own Wwise logic is dropped.", route: "redmod", track: t, event: eventName },
-        { label: `$(mute) Silence the event ${eventName}, every variation, with REDmod`, detail: "The game plays a short silent sound in place of the event's.", route: "skip", track: t, event: eventName },
+        { label: `$(mute) Silence the event ${eventName}, every variation, with REDmod`, detail: "The game plays silence in place of the event's sounds: this mix, as long and in the same format, with every sample zeroed.", route: "skip", track: t, event: eventName },
       );
     }
     if (!group.length) continue;
@@ -133,31 +133,29 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
     const info = path.join(project.resources, "info.json");
     const out = path.join(project.dir, "source", "customSounds", soundFileFor(name));
     if (!(await mayReplace(out, name, doc.game))) return;
-    if (chosen.route === "skip") {
-      fs.mkdirSync(path.dirname(out), { recursive: true });
-      fs.writeFileSync(out, silentWav());
-      writeInfo(info, upsertCustomSound(readMaybe(info), silenceEntry(name)));
-      game = { route: "skip", event: name };
-      done = `REDmod will play silence for ${name}: ${path.relative(project.dir, out)} (in ${path.relative(project.dir, info)}).`;
-    } else {
-      const lastType = doc.game?.route === "redmod" ? doc.game.type : undefined;
-      const types = [...RedmodTypes].sort((a, b) => Number(b.type === lastType) - Number(a.type === lastType));
-      const t = await vscode.window.showQuickPick(
-        types.map((x) => ({ label: x.label, description: x.type, detail: x.detail, type: x.type })),
-        { title: `Into the Game: how should the game play ${name}?` },
-      );
-      if (!t) return;
-      const gain = doc.game?.route === "redmod" ? doc.game.gain : 1;
-      const pitch = doc.game?.route === "redmod" ? doc.game.pitch : 0;
-      // REDmod checks the WAV's format; which rates it takes is unverified, so the game's own 48 kHz.
-      const wav = await renderFor(Rate, channels);
-      const file = path.basename(out);
-      fs.mkdirSync(path.dirname(out), { recursive: true });
-      fs.writeFileSync(out, wav);
-      writeInfo(info, upsertCustomSound(readMaybe(info), { name, type: t.type, file, gain, pitch }));
-      game = { route: "redmod", event: name, type: t.type, gain, pitch };
-      done = `REDmod will play ${path.relative(project.dir, out)} for ${name}, as ${t.type} (in ${path.relative(project.dir, info)}).`;
-    }
+    // Silence is a replacement like any other, with the samples zeroed: same type, gain, rate, channels
+    // and length as a replacement that plays (the hand test: a 0.1 s mono 2D silence at gain 0 did not take).
+    const silence = chosen.route === "skip";
+    const lastType = doc.game?.route === "redmod" || doc.game?.route === "skip" ? doc.game.type : undefined;
+    const types = [...RedmodTypes].sort((a, b) => Number(b.type === lastType) - Number(a.type === lastType));
+    const t = await vscode.window.showQuickPick(
+      types.map((x) => ({ label: x.label, description: x.type, detail: x.detail, type: x.type })),
+      { title: silence ? `Into the Game: how does the game play ${name}? (the silence takes its place)` : `Into the Game: how should the game play ${name}?` },
+    );
+    if (!t) return;
+    const gain = doc.game?.route === "redmod" ? doc.game.gain : 1;
+    const pitch = doc.game?.route === "redmod" ? doc.game.pitch : 0;
+    // REDmod checks the WAV's format; which rates it takes is unverified, so the game's own 48 kHz.
+    const mix = await renderFor(Rate, channels);
+    const wav = silence ? silenced(mix) : mix;
+    const file = path.basename(out);
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, wav);
+    writeInfo(info, upsertCustomSound(readMaybe(info), { name, type: t.type, file, gain, pitch }));
+    game = silence ? { route: "skip", event: name, type: t.type } : { route: "redmod", event: name, type: t.type, gain, pitch };
+    done = silence
+      ? `REDmod will play silence for ${name}, as ${t.type}: ${path.relative(project.dir, out)} (in ${path.relative(project.dir, info)}).`
+      : `REDmod will play ${path.relative(project.dir, out)} for ${name}, as ${t.type} (in ${path.relative(project.dir, info)}).`;
     log.appendLine(`Into the Game: ${done}`);
   }
 

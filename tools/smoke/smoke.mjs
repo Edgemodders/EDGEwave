@@ -291,23 +291,26 @@ const a3 =
   customFormat?.rate === 48000 && customFormat.ch === 2 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
   game?.route === "redmod" && game.type === "mod_sfx_2d" && lastFirst;
 if (!a3) finish(false, "Into the Game did not write what it should");
-// Silence the same event: this document wrote its WAV, so no question; a silent WAV at gain 0, not a mod_skip.
+// Silence the same event: this document wrote its WAV, so no question; the type as last time (2D);
+// the same WAV as the replacement, every sample zeroed; not a mod_skip.
+const replaced = fs.readFileSync(custom);
 await sleep(800);
 await key("Escape", "Escape", 27); // the notification
 await run("document.getElementById('intoGame').click()");
 await pickFirst("Silence the event smoke_event");
-let silenced;
-for (let i = 0; i < 20; i++) {
-  silenced = JSON.parse(fs.readFileSync(info, "utf8")).customSounds;
-  if (silenced?.[0]?.gain === 0) break;
+await pickFirst(""); // 2D, last time's type
+let silentBytes = replaced;
+for (let i = 0; i < 20 && silentBytes.subarray(44).some((b) => b !== 0); i++) {
   await sleep(500);
+  silentBytes = fs.readFileSync(custom);
 }
-const silentBytes = fs.readFileSync(custom);
-log("silence", JSON.stringify({ silenced, rate: silentBytes.readUInt32LE(24), ch: silentBytes.readUInt16LE(22), data: silentBytes.readUInt32LE(40) }));
+const silenced = JSON.parse(fs.readFileSync(info, "utf8")).customSounds;
+const docGame = JSON.parse(fs.readFileSync(docFile, "utf8")).game;
+log("silence", JSON.stringify({ silenced, docGame, bytes: silentBytes.length, replacedBytes: replaced.length, ch: silentBytes.readUInt16LE(22) }));
 const silenceOk =
-  silenced?.length === 1 && silenced[0].type === "mod_sfx_2d" && silenced[0].file === "smoke_event.wav" && silenced[0].gain === 0 &&
-  silentBytes.readUInt32LE(24) === 48000 && silentBytes.readUInt16LE(22) === 1 && silentBytes.readUInt32LE(40) === 9600 &&
-  JSON.parse(fs.readFileSync(docFile, "utf8")).game?.route === "skip";
+  silenced?.length === 1 && silenced[0].type === "mod_sfx_2d" && silenced[0].file === "smoke_event.wav" && silenced[0].gain === 1 &&
+  silentBytes.length === replaced.length && silentBytes.subarray(0, 44).equals(replaced.subarray(0, 44)) && silentBytes.subarray(44).every((b) => b === 0) &&
+  docGame?.route === "skip" && docGame.type === "mod_sfx_2d";
 if (!silenceOk) finish(false, "Silence the event did not write a silent WAV");
 
 // Voice tools, against the stand-in ElevenLabs: Generate Sound (asks for the key), Speak Line in a
