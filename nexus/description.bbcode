@@ -1,0 +1,133 @@
+[center][img]https://raw.githubusercontent.com/Edgemodders/EDGEwave/main/docs/assets/brand/banner.png[/img][/center]
+
+[center][size=5][b][color=#fcee0a]A sound studio for Cyberpunk 2077 modding, in VS Code.[/color][/b][/size][/center]
+
+[center]Open any of the game's sounds, edit it, mix it with others, add effects, make new sounds and voices with AI, and put the result into your mod. All in the same window as your project, beside REDcode.[/center]
+[center][/center]
+[center][size=3]One of the VS Code tools from the Edgemodders community. They all work together, with optional AI assistants.[/size][/center]
+[center][/center]
+[center][color=#f6b26b][size=3][i]This is an early preview release.[/i][/size][/color][/center]
+[line]
+
+[quote][size=4][b][color=#fcee0a]STATUS: PREVIEW[/color][/b][/size]
+Editing, mixing and the Sounds view are tested by hand. Putting sounds into the game and the AI voice tools are built and tested against stand-ins; their tests in the game and against ElevenLabs are under way. New features land in small updates.
+[b]This is not a game mod.[/b] It is an extension for VS Code, so install it there (steps below), not with Vortex. It needs [url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url]. The quickest way is straight from the [url=https://marketplace.visualstudio.com/items?itemName=Edgemodders.edgewave]VS Code Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/edgewave]Open VSX[/url], which install REDcode with it; the file here is the same extension.[/quote]
+
+[color=#19f3ff][i](Screenshot 1: the sound editor, a mix of several tracks with the clip editor below)[/i][/color]
+
+[size=5][b][color=#fcee0a]What EDGEwave is[/color][/b][/size]
+
+EDGEwave is built by [url=https://edgemodders.ai/]EDGEmodders[/url], a modding community whose idea is simple: [b]anyone can mod[/b]. It is the sound studio of the EDGE tools. [b]REDcode[/b] finds the game's sounds and plays them; [b]Open in EDGEwave[/b] takes one into EDGEwave, where you change it and send it back into your mod.
+
+Everything is read from your own copy of the game, through REDcode and REDbridge (WolvenKit's libraries). EDGEwave ships no game audio.
+
+[size=5][b][color=#fcee0a]Highlights[/color][/b][/size]
+
+[size=4][b][color=#19f3ff]Open any game sound[/color][/b][/size]
+In REDcode's [b]Browse Game Sounds[/b], pick a sound effect and click [b]Open in EDGEwave[/b]. Voice lines and other game files open the same way, and so do sound files on disk: WAV, OGG, MP3, FLAC and Opus. Each sound gets a small document in your project that remembers the source and every change, so nothing is lost and the original is never touched.
+
+[size=4][b][color=#19f3ff]Edit with a waveform[/color][/b][/size]
+Trim, cut, copy and paste, silence, fade in and out with a choice of curves, apply gain, normalize, make it stereo, set a loop. Select by dragging, zoom in, play the selection. Undo and redo work as in any file.
+
+[color=#19f3ff][i](Screenshot 2: the clip editor with a selection and the edit buttons)[/i][/color]
+
+[size=4][b][color=#19f3ff]Mix several sounds[/color][/b][/size]
+[b]Add Sound[/b] puts another game sound or file on its own track. Each track has its level, pan, rate, start time, mute and solo. Add effects to a track or to the whole mix: EQ, low-pass, high-pass, band-pass, reverb, distortion and compressor. Or start from a preset: [b]Radio[/b], [b]Holocall[/b], [b]PA speaker[/b] and [b]Muffled through a wall[/b]. [b]Render WAV[/b] writes the mix at the sample rate you choose.
+
+[color=#19f3ff][i](Screenshot 3: the Effects pane with the Holocall preset on a voice line)[/i][/color]
+
+[size=4][b][color=#19f3ff]Into the game[/color][/b][/size]
+[b]Into the Game…[/b] puts your mix into the mod, the way the game needs it:
+[list]
+[*][b]Replace an event with REDmod[/b]: your sound plays wherever the game plays that event. REDcode packs it as a REDmod custom sound, and several mods can do this side by side.[/*]
+[*][b]Silence an event[/b] with REDmod.[/*]
+[*][b]Override one variation[/b] of a sound effect, imported into the game's sound files through REDcode. Only one mod can do this at a time.[/*]
+[/list]
+Voice lines cannot go back in as voice lines yet: that needs Wwise.
+
+[size=4][b][color=#19f3ff]Make sounds and voices with AI[/color][/b][/size]
+With your own [url=https://elevenlabs.io/]ElevenLabs[/url] account:
+[list]
+[*][b]Generate Sound[/b]: describe a sound, play the takes, change the description and try again, then add the one you like as a track.[/*]
+[*][b]Speak Line[/b]: type a line and hear it in one of your ElevenLabs voices, with previews, or in the voice of the line you have selected.[/*]
+[*][b]Re-Voice[/b]: the same words, timing and delivery in another voice. Describe the change ([i]female[/i], [i]older and raspy[/i], [i]shouting, angry[/i]), play the previews and pick one, or choose one of your voices.[/*]
+[/list]
+Your key stays in VS Code's secret storage. Each use spends your ElevenLabs credits. Cloning a voice asks first: a game line's voice belongs to a real voice actor, so only clone a voice you have the right to.
+
+[color=#19f3ff][i](Screenshot 4: the Re-Voice dialog with remix previews)[/i][/color]
+
+[size=4][b][color=#19f3ff]Your sounds, in a project or not[/color][/b][/size]
+The [b]Sounds[/b] view lists the sounds in your project, and the ones you opened lately from any folder, so you can try things out without making a project.
+
+[size=4][b][color=#19f3ff]Coming next[/color][/b][/size]
+Planned: a searchable index of every sound in the game, built from your own copy, with the events and banks that play it; [b]Translate[/b], the same line spoken in another language; and playing your sounds in the running game through REDnode.
+
+[size=5][b][color=#fcee0a]Requirements[/color][/b][/size]
+
+[list]
+[*]Windows 10 or 11, 64-bit.[/*]
+[*][url=https://code.visualstudio.com/]VS Code[/url] 1.90 or later, [url=https://vscodium.com/]VSCodium[/url], or EDGEkit.[/*]
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url] 0.10 or later, which reads the game's sounds for EDGEwave. The stores install it with EDGEwave.[/*]
+[*]Cyberpunk 2077 on PC: the Steam, GOG or Epic install.[/*]
+[*]Optional: an [url=https://elevenlabs.io/]ElevenLabs[/url] account and API key, for Generate Sound, Speak Line and Re-Voice. ElevenLabs charges for its credits.[/*]
+[/list]
+[size=5][b][color=#fcee0a]Install[/color][/b][/size]
+
+[b]From a store (recommended, updates itself):[/b] in VS Code, open the Extensions view (Ctrl+Shift+X), search for [b]EDGEwave[/b] and click Install. REDcode comes with it. Or open its [url=https://marketplace.visualstudio.com/items?itemName=Edgemodders.edgewave]Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/edgewave]Open VSX[/url] page.
+
+[b]From the file here:[/b]
+[list]
+[*]Install [url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url] first, if you have not.[/*]
+[*]Download the main file with [b]Manual download[/b] and extract it anywhere.[/*]
+[*]In VS Code, open the Extensions view (Ctrl+Shift+X), click [b]...[/b] at its top, choose [b]Install from VSIX...[/b] and pick [i]edgewave-<version>.vsix[/i].[/*]
+[*]Click the EDGEwave icon in the activity bar, or open a sound from REDcode's Browse Game Sounds with [b]Open in EDGEwave[/b].[/*]
+[/list]
+Do not install it with Vortex: it is not a game mod, and Vortex would put it in the game folder.
+
+[size=5][b][color=#fcee0a]The EDGE platform[/color][/b][/size]
+
+EDGEwave is one of the EDGE tools. Each works on its own and together:
+
+[list]
+[*][b][url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url][/b]: the modding workspace in VS Code. It finds and plays the game's sounds, and packs what EDGEwave makes into your mod.[/*]
+[*][b][url=https://github.com/Edgemodders/EDGEdeck]EDGEdeck[/url][/b]: a simple mod manager in VS Code, for installs you can undo.[/*]
+[*][b][url=https://github.com/Edgemodders/REDnode]REDnode[/url][/b]: mods in JavaScript, web pages over the game, and REDagent, an AI assistant in the game.[/*]
+[*][b][url=https://github.com/Edgemodders/REDbridge]REDbridge[/url][/b]: runs WolvenKit's libraries for REDcode and the other tools.[/*]
+[*][b][url=https://github.com/Edgemodders/EDGEkit]EDGEkit[/url][/b]: one editor with every EDGE tool built in.[/*]
+[/list]
+[size=5][b][color=#fcee0a]Questions[/color][/b][/size]
+
+[b]Does it change the game's files?[/b]
+No. Your edits live in your project. Only REDcode's Pack and Install put your mod into the game, and only your mod's files.
+
+[b]Do I need ElevenLabs?[/b]
+No. Editing, mixing, effects and Into the Game work without it. Only Generate Sound, Speak Line and Re-Voice use it, with your own account.
+
+[b]Can I change a voice line in the game?[/b]
+You can edit, mix and re-voice one in EDGEwave and render it as a WAV. Putting it back into the game as a voice line needs a Wwise file, which no open tool makes yet.
+
+[b]Is it free?[/b]
+Yes, and open source under the MIT license. The code is on [url=https://github.com/Edgemodders/EDGEwave]GitHub[/url]. ElevenLabs is a paid service of its own.
+
+[line]
+
+[size=5][b][color=#fcee0a]Links[/color][/b][/size]
+
+[list]
+[*]EDGEmodders: [url=https://edgemodders.ai/]edgemodders.ai[/url][/*]
+[*]Docs: [url=https://edgemodders.github.io/EDGEwave/]edgemodders.github.io/EDGEwave[/url][/*]
+[*]Source and issues: [url=https://github.com/Edgemodders/EDGEwave]github.com/Edgemodders/EDGEwave[/url][/*]
+[*]VS Code Marketplace: [url=https://marketplace.visualstudio.com/items?itemName=Edgemodders.edgewave]Edgemodders.edgewave[/url][/*]
+[*]Open VSX: [url=https://open-vsx.org/extension/edgemodders/edgewave]edgemodders/edgewave[/url][/*]
+[*]Community Discord: [url=https://discord.gg/63qP3Erw43]discord.gg/63qP3Erw43[/url][/*]
+[/list]
+[size=5][b][color=#fcee0a]Credits[/color][/b][/size]
+
+[list]
+[*][b][url=https://www.nexusmods.com/profile/Cyberbuilds]Cyberbuilds [/url]for the concepts, designs and entire development.[/b][/*]
+[*][b]WolvenKit[/b] and its team and contributors (GPL-3.0): the game's sound files are read and written through their libraries, in REDbridge, and REDmod custom sounds follow their Sound Modding tool.[/*]
+[*][b]REDcode[/b]: finding, decoding and packing the game's sounds.[/*]
+[*][b]ElevenLabs[/b]: the AI sound and voice service behind the voice tools.[/*]
+[*]The Cyberpunk 2077 modding community and its wiki, whose research on the game's sounds this builds on.[/*]
+[/list]
+[size=2]EDGEwave is not affiliated with CD PROJEKT RED, the WolvenKit team, ElevenLabs, Audiokinetic or Microsoft. Cyberpunk 2077 and REDengine are trademarks of CD PROJEKT. Wwise is a trademark of Audiokinetic. Visual Studio Code is a trademark of Microsoft.[/size]
