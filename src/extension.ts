@@ -38,6 +38,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("edgewave.refreshSounds", () => sounds.refresh()),
     vscode.commands.registerCommand("edgewave.forgetRecent", (node) => sounds.forget(node)),
     vscode.commands.registerCommand("edgewave.clearRecent", () => sounds.clearRecent()),
+    // With no folder, VS Code's own Open Folder dialog.
+    vscode.commands.registerCommand("edgewave.openFolder", () => vscode.commands.executeCommand("vscode.openFolder")),
   );
 }
 

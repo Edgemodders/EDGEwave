@@ -54,6 +54,12 @@
         "icon": "$(clear-all)"
       },
       {
+        "command": "edgewave.openFolder",
+        "title": "Open Folder\u2026",
+        "category": "EDGEwave",
+        "icon": "$(folder-opened)"
+      },
+      {
         "command": "edgewave.elevenlabs.setKey",
         "title": "Set ElevenLabs API Key",
         "category": "EDGEwave"
@@ -112,6 +118,10 @@
         {
           "command": "edgewave.clearRecent",
           "when": "false"
+        },
+        {
+          "command": "edgewave.openFolder",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -152,6 +162,11 @@
         {
           "command": "edgewave.clearRecent",
           "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
+          "group": "inline"
+        },
+        {
+          "command": "edgewave.openFolder",
+          "when": "view == edgewave.sounds && viewItem == edgewave.noFolder",
           "group": "inline"
         },
         {

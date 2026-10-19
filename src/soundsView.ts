@@ -149,6 +149,11 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
     if (n.kind === "note") {
       const item = new vscode.TreeItem(n.text, vscode.TreeItemCollapsibleState.None);
       item.id = `note:${n.group}`;
+      if (n.group === "project" && !vscode.workspace.workspaceFolders?.length) {
+        // Its hover icon (package.json) and a click both open a folder.
+        item.contextValue = "edgewave.noFolder";
+        item.command = { command: "edgewave.openFolder", title: "Open Folder…" };
+      }
       return item;
     }
     const item = new vscode.TreeItem(path.basename(n.uri.fsPath, Extension), vscode.TreeItemCollapsibleState.None);

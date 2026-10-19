@@ -199,4 +199,5 @@ Asked for by the owner on 2026-10-19: a document kept outside the open folder (m
 3. **Across windows.** Close VS Code and open it on another folder, or none. Expect: Recent still lists the same documents, newest first; clicking one opens it.
 4. **Remove and clear.** Hover a Recent sound and click its **×** (or right-click > Remove from Recent); hover **Recent** and click **Clear Recent**. Expect: the one, then all, are gone from Recent; the files stay on disk.
 5. **A deleted document.** Delete a document listed in Recent, then Refresh. Expect: it is no longer listed.
-6. **Nothing yet.** With no folder open and Recent cleared. Expect: the welcome text with Browse Game Sounds and Open Sound….
+6. **No folder.** Close the folder (File > Close Folder) with something in Recent. Expect: **No folder open** under Project; hovering it shows a folder icon on the right, and the icon (or a click on the row) opens VS Code's Open Folder dialog.
+7. **Nothing yet.** With no folder open and Recent cleared. Expect: the welcome text with Browse Game Sounds and Open Sound….
