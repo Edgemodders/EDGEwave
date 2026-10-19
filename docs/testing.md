@@ -65,6 +65,7 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | A2 | Remove track 2, then Ctrl+Z | Track 2 comes back selected |
 | A2 | Render WAV | 1.75 s (0.25 s + track 2's 1.5 s), stereo, 44.1 kHz, with sound from both tracks |
 | A3 | Into the Game > Override sound 43 (track 2, not track 1) | `43.wav` at 48 kHz, mono like sound 43, handed to REDcode's Import (the stub writes `imported.json`); the menu, before typing, is `intogame.png` |
+| A3 | Into the Game, second time | Both tracks heard: the first row is Override sound 43, marked last time |
 | A3 | Into the Game > Replace the event smoke_event with REDmod, 2D | `source/customSounds/smoke_event.wav` at 48 kHz stereo, an entry in `source/resources/info.json`, and the document's `game` keeps the choice |
 | V1 | Generate Sound | The key's password box (typed); the 48 kHz request refused and the same at 24 kHz; two takes in the dialog (the second with a changed prompt) and no track yet; a take plays; Add on take 2 makes track 3, at the mix cursor, a 24 kHz WAV in `42.gen/`, `made` with take 2's prompt |
 | V1 | Speak Line in a picked voice | The voice list and the model menu fill; the voice's preview plays; track 4, a voice line, `made` with the voice |
@@ -172,7 +173,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 3. **REDmod.** On a sound effect with an event name, **Into the Game…** > **Replace the event `<event>` with REDmod**, pick a type. Expect: `source/customSounds/<event>.wav` and an entry in `source/resources/info.json`. With `redcode.pack.redmod` off, the message says so.
 4. **REDmod in the game.** Turn on `redcode.pack.redmod`, Pack, deploy and play. Expect: your sound for that event. If REDmod's deploy rejects the WAV, its log (`tools/redmod/bin/REDmodLog.txt`) says why; send the line.
 5. **Silence.** **Silence the event `<event>` with REDmod** on another event. Expect: a `mod_skip` entry; in the game the event is silent.
-6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is first, under **Last time**.
+6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is marked **last time**, and its track is first among the tracks you hear. Solo another track and open it again: that track comes first, and the last choice stays in its own track's group.
 7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
 8. **A game sound on a later track** (the owner's finding, 2026-10-19). In a document whose track 1 is not that sound, add a game sound effect with Add Sound, mute or solo so you hear only it (or it and a file you want mixed in), then **Into the Game…**. Expect: the added sound's **Override sound** and its event's REDmod routes, under its track's name, at the top; tracks you do not hear are listed after, marked (not heard). Pick its override, Pack and play: you hear the tracks you heard in EDGEwave.
 

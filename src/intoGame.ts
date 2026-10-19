@@ -32,11 +32,19 @@ const Rate = 48000;
 /** A sound effect track: what an override or a REDmod event can replace. */
 type SfxTrack = Track & { source: Extract<Track["source"], { kind: "sfx" }> };
 
-/** The quick pick's items: for each game sound effect on a track (heard ones first), its override and its event's routes. */
+/**
+ * The quick pick's items: for each game sound effect on a track, its override and its event's routes,
+ * under the track's name. Heard tracks first; among them (and among the rest) the track of the last
+ * choice first. The last choice is marked, never moved above a heard track.
+ */
 function routes(doc: SoundDoc): Item[] {
   const heard = new Set(audible(doc.tracks).map((t) => t.id));
   const sfx = doc.tracks.filter((t): t is SfxTrack => t.source.kind === "sfx");
-  const ordered = [...sfx.filter((t) => heard.has(t.id)), ...sfx.filter((t) => !heard.has(t.id))];
+  const last = doc.game;
+  const wasLast = (t: SfxTrack) =>
+    !!last && (last.route === "override" ? last.soundHash === t.source.soundHash : last.event === t.source.eventName);
+  const rank = (t: SfxTrack) => (heard.has(t.id) ? 0 : 2) + (wasLast(t) ? 0 : 1);
+  const ordered = [...sfx].sort((a, b) => rank(a) - rank(b));
   const items: Item[] = [];
   const hashes = new Set<number>();
   const events = new Set<string>();
@@ -69,6 +77,8 @@ function routes(doc: SoundDoc): Item[] {
     { label: "Any event", kind: vscode.QuickPickItemKind.Separator },
     { label: "$(package) A REDmod custom sound for an event…", detail: "Name the audio event the game should play this mix for (REDcode's sound list shows the names).", route: "redmodNamed" },
   );
+  const chosen = lastItem(items, last);
+  if (chosen) chosen.description = [chosen.description, "last time"].filter(Boolean).join(" · ");
   return items;
 }
 
@@ -95,11 +105,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
     );
   }
 
-  const items = routes(doc);
-  // The last choice first, under its own heading.
-  const last = lastItem(items, doc.game);
-  const shown: Item[] = last ? [{ label: "Last time", kind: vscode.QuickPickItemKind.Separator }, last, ...items] : items;
-  const chosen = await vscode.window.showQuickPick(shown, { title: "Into the Game: what should the tracks you hear replace?", matchOnDetail: false });
+  const chosen = await vscode.window.showQuickPick(routes(doc), { title: "Into the Game: what should the tracks you hear replace?" });
   if (!chosen?.route) return;
   // The channels of the sound replaced; for a named event, the first track heard.
   const channels = { track: (chosen.track ?? heard[0]).id };

@@ -241,6 +241,11 @@ const doc = JSON.parse(fs.readFileSync(docFile, "utf8"));
 // The A2 render, read now, before Into the Game writes beside it.
 const renderedWav = fs.readFileSync(wav);
 log("document", JSON.stringify(doc));
+// The workbench itself (not the webview), for VS Code's own dialog and quick pick.
+let bench;
+for (const c of contexts.filter((c) => !c.origin.startsWith("vscode-webview"))) {
+  try { if (await evalIn(c, "!!document.querySelector('.monaco-workbench')")) { bench = c; break; } } catch {}
+}
 // A3: Into the Game, both routes, through the real quick picks. The override replaces track 2's sound
 // (43, mono), so the target is not track 1 and the WAV has the target's channels.
 const pickFirst = async (filter) => {
@@ -262,6 +267,11 @@ log("override imported", override);
 await sleep(800);
 await key("Escape", "Escape", 27); // the notification
 await run("document.getElementById('intoGame').click()");
+// Both tracks are heard, so the last choice's track (2) comes first, its override marked "last time".
+await sleep(1200);
+const firstRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 2).map((r) => r.textContent.trim())`);
+log("into the game, second time", JSON.stringify(firstRows));
+const lastFirst = /^Override sound 43/.test(firstRows[0] ?? "") && /last time/.test(firstRows[0] ?? "");
 await pickFirst("Replace the event smoke_event");
 await pickFirst(""); // 2D
 const info = path.join(T, "proj", "source", "resources", "info.json");
@@ -279,7 +289,7 @@ log("document game", JSON.stringify(game));
 const a3 =
   !!override && path.basename(override) === "43.wav" && overrideFormat?.rate === 48000 && overrideFormat?.ch === 1 &&
   customFormat?.rate === 48000 && customFormat.ch === 2 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
-  game?.route === "redmod" && game.type === "mod_sfx_2d";
+  game?.route === "redmod" && game.type === "mod_sfx_2d" && lastFirst;
 if (!a3) finish(false, "Into the Game did not write what it should");
 
 // Voice tools, against the stand-in ElevenLabs: Generate Sound (asks for the key), Speak Line in a
@@ -293,11 +303,6 @@ const selectLane = (lane) => run(`
   const y = r.top + 18 + 1 + ${lane} * 36 + 18, x = r.left + 4;
   c.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: y, pointerId: 2, button: 0, bubbles: true }));
   c.dispatchEvent(new PointerEvent('pointerup', { clientX: x, clientY: y, pointerId: 2, button: 0, bubbles: true }));`);
-// The workbench itself (not the webview), for VS Code's own dialog.
-let bench;
-for (const c of contexts.filter((c) => !c.origin.startsWith("vscode-webview"))) {
-  try { if (await evalIn(c, "!!document.querySelector('.monaco-workbench')")) { bench = c; break; } } catch {}
-}
 const clickDialogButton = async (text) => {
   for (let i = 0; i < 20; i++) {
     const done = await evalIn(bench, `(() => { const b = [...document.querySelectorAll('.monaco-dialog-box .dialog-buttons .monaco-button')].find((x) => x.textContent.includes(${JSON.stringify(text)})); if (b) b.click(); return !!b; })()`);
