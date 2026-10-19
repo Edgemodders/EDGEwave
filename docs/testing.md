@@ -2,7 +2,7 @@
 
 Every test run on EDGEwave so far: how to run it again, what to expect, and what it showed. Each phase ends with a hand test by the owner ([design, "Phases"](design.html#phases)); new tests are added here when they are first run.
 
-Last updated 2026-10-18.
+Last updated 2026-10-19.
 
 ## At a glance
 
@@ -15,6 +15,7 @@ Last updated 2026-10-18.
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | Not run | |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
+| [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | Not run | |
 
 ## Automated
 
@@ -70,8 +71,9 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
 | V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 muted |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
+| A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 
-Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs`).
+Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -187,3 +189,14 @@ What is built: [V1 Voice tools](voice-tools.html). **Not run yet.** Needs an Ele
 8. **Into the game.** Into the Game on a document with a Re-Voiced line (the named REDmod route, as for any voice line). Expect: the render at 48 kHz, as for any mix.
 9. **Clean up.** **EDGEwave: ElevenLabs Voices Made by EDGEwave…**: the clone and the saved remix are listed; delete them. Expect: they are gone from your ElevenLabs account's voices.
 10. **Errors.** **EDGEwave: Set ElevenLabs API Key** with a wrong key, then Generate Sound. Expect: the dialog shows ElevenLabs' message (such as "Invalid API key"), nothing is added. Set the right key again.
+
+### Sounds view: Project and Recent
+
+Asked for by the owner on 2026-10-19: a document kept outside the open folder (made with no REDcode project open) did not show in the Sounds view. The view now has two groups. **Not run yet.**
+
+1. **Project.** Open a folder or a REDcode project with sound documents, and click the EDGEwave icon. Expect: **Project**, with the REDcode project's name beside it (or the folder's), listing the folder's documents by their folder.
+2. **Recent, outside the folder.** With no REDcode project open, Open Sound… on a `.wav` outside the open folder (such as in Documents). Expect: it is first under **Recent**, with its full folder (your home as `~`); it is not under Project.
+3. **Across windows.** Close VS Code and open it on another folder, or none. Expect: Recent still lists the same documents, newest first; clicking one opens it.
+4. **Remove and clear.** Hover a Recent sound and click its **×** (or right-click > Remove from Recent); hover **Recent** and click **Clear Recent**. Expect: the one, then all, are gone from Recent; the files stay on disk.
+5. **A deleted document.** Delete a document listed in Recent, then Refresh. Expect: it is no longer listed.
+6. **Nothing yet.** With no folder open and Recent cleared. Expect: the welcome text with Browse Game Sounds and Open Sound….

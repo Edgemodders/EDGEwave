@@ -11,7 +11,7 @@ Status: **done 2026-10-16** (built 2026-10-15; hand test passed). The single-sou
 | The sound document (`.edgewave`) | `src/doc.ts` |
 | The edits and the WAV writer, pure TypeScript with unit tests | `src/audio/`, `test/` |
 | The editor: a custom editor over the document's text, so save, undo and redo are VS Code's own | `src/editor.ts`, `webview/editor.ts`, `media/editor.css` |
-| The EDGEwave activity bar icon and its **Sounds** view: the workspace's sound documents, with Open Sound… and REDcode's Browse Game Sounds when there are none | `src/soundsView.ts`, `images/activity.svg` |
+| The EDGEwave activity bar icon and its **Sounds** view: **Project**, the open folder's sound documents (with the REDcode project's name), and **Recent**, the last 20 opened from any folder, to try sounds without a project (added 2026-10-19); Open Sound… and REDcode's Browse Game Sounds when there are none | `src/soundsView.ts`, `images/activity.svg` |
 | The smoke test: VS Code with a stand-in REDcode, driven over DevTools | `tools/smoke/` |
 
 Where a sound's document goes, under the open project's `source/raw` (or a folder you pick when no project is open):
