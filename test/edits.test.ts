@@ -6,7 +6,7 @@ import { applyEdits, duration, frames, peak, type Audio } from "../src/audio/edi
 import { decodeWav, encodeWav } from "../src/audio/wav";
 import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail } from "../src/audio/mix";
 import { formatDoc, looksLikeVoice, newDoc, newTrack, nextTrackId, parseDoc } from "../src/doc";
-import { RedmodTypes, soundFileFor, upsertCustomSound } from "../src/redmod";
+import { RedmodTypes, silenceEntry, silentWav, soundFileFor, upsertCustomSound } from "../src/redmod";
 
 /** A ramp 0, 1, 2 ... scaled small, at 10 Hz, so frames and seconds are easy to read. */
 function ramp(n: number, ch = 1, rate = 10): Audio {
@@ -222,6 +222,16 @@ test("REDmod: the same event again replaces its entry; a skip has no file; gain 
   assert.deepEqual(JSON.parse(text).customSounds, [{ name: "ev", type: "mod_skip" }]);
   assert.throws(() => upsertCustomSound("not json", { name: "x", type: "mod_skip" }), /not valid JSON/);
   assert.equal(soundFileFor('a:b/c'), "a_b_c.wav");
+});
+
+test("REDmod: silence is a silent WAV at gain 0, replacing a mod_skip", () => {
+  const text = upsertCustomSound(JSON.stringify({ customSounds: [{ name: "ev", type: "mod_skip" }] }), silenceEntry("ev"));
+  assert.deepEqual(JSON.parse(text).customSounds, [{ name: "ev", type: "mod_sfx_2d", file: "ev.wav", gain: 0, pitch: 0 }]);
+  const a = decodeWav(silentWav());
+  assert.equal(a.sampleRate, 48000);
+  assert.equal(a.channels.length, 1);
+  assert.equal(a.channels[0].length, 4800);
+  assert.ok(a.channels[0].every((s) => s === 0));
 });
 
 test("REDmod: every type but mod_skip is offered, once", () => {

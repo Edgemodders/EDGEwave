@@ -291,6 +291,24 @@ const a3 =
   customFormat?.rate === 48000 && customFormat.ch === 2 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
   game?.route === "redmod" && game.type === "mod_sfx_2d" && lastFirst;
 if (!a3) finish(false, "Into the Game did not write what it should");
+// Silence the same event: this document wrote its WAV, so no question; a silent WAV at gain 0, not a mod_skip.
+await sleep(800);
+await key("Escape", "Escape", 27); // the notification
+await run("document.getElementById('intoGame').click()");
+await pickFirst("Silence the event smoke_event");
+let silenced;
+for (let i = 0; i < 20; i++) {
+  silenced = JSON.parse(fs.readFileSync(info, "utf8")).customSounds;
+  if (silenced?.[0]?.gain === 0) break;
+  await sleep(500);
+}
+const silentBytes = fs.readFileSync(custom);
+log("silence", JSON.stringify({ silenced, rate: silentBytes.readUInt32LE(24), ch: silentBytes.readUInt16LE(22), data: silentBytes.readUInt32LE(40) }));
+const silenceOk =
+  silenced?.length === 1 && silenced[0].type === "mod_sfx_2d" && silenced[0].file === "smoke_event.wav" && silenced[0].gain === 0 &&
+  silentBytes.readUInt32LE(24) === 48000 && silentBytes.readUInt16LE(22) === 1 && silentBytes.readUInt32LE(40) === 9600 &&
+  JSON.parse(fs.readFileSync(docFile, "utf8")).game?.route === "skip";
+if (!silenceOk) finish(false, "Silence the event did not write a silent WAV");
 
 // Voice tools, against the stand-in ElevenLabs: Generate Sound (asks for the key), Speak Line in a
 // picked voice (with its preview), Speak Line in track 1's voice (the clone consent), Re-Voice by
@@ -419,4 +437,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2 and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the Sounds view" : "render or mix checks failed");

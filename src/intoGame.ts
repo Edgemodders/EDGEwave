@@ -8,8 +8,9 @@
 //   sfx_container.opusinfo into source/archive). Exact, but mods that do this do not combine: each
 //   carries the one shared index, so the last loaded wins.
 // - A REDmod custom sound: the WAV in source/customSounds and an entry in source/resources/info.json,
-//   as WolvenKit's Sound Modding tool writes them. Replaces (or silences) an audio event, every
-//   variation, beside other mods; the event's own Wwise logic is dropped.
+//   as WolvenKit's Sound Modding tool writes them. Replaces an audio event, every variation, beside
+//   other mods; the event's own Wwise logic is dropped. Silence is the same with a silent WAV, since
+//   REDmod's mod_skip did not silence an event in the hand test.
 //
 // Voice lines (.wem) have no route yet: nothing here makes a .wem.
 
@@ -19,7 +20,7 @@ import * as vscode from "vscode";
 import { audible } from "./audio/mix";
 import { formatDoc, looksLikeVoice, parseDoc, sourceLabel, type IntoGame, type SoundDoc, type Track } from "./doc";
 import { redcode, type ProjectRef } from "./redcode";
-import { RedmodTypes, soundFileFor, upsertCustomSound } from "./redmod";
+import { RedmodTypes, silenceEntry, silentWav, soundFileFor, upsertCustomSound } from "./redmod";
 
 /** Renders the mix through the page at a rate, with a track's source's channels ({track}: the sound it replaces) or a count. */
 export type RenderFor = (rate: number, channels: { track: string } | 1 | 2) => Promise<Uint8Array>;
@@ -65,8 +66,8 @@ function routes(doc: SoundDoc): Item[] {
     if (eventName && !events.has(eventName)) {
       events.add(eventName);
       group.push(
-        { label: `$(package) Replace the event ${eventName} with REDmod`, detail: "The game plays this mix for the event, every variation. Works beside other mods; the event's own Wwise logic is dropped.", route: "redmod", track: t, event: eventName },
-        { label: `$(mute) Silence the event ${eventName} with REDmod`, detail: "The game no longer plays this event.", route: "skip", track: t, event: eventName },
+        { label: `$(package) Replace the event ${eventName}, every variation, with REDmod`, detail: "The game plays this mix in place of each of the event's sounds. Works beside other mods; the event's own Wwise logic is dropped.", route: "redmod", track: t, event: eventName },
+        { label: `$(mute) Silence the event ${eventName}, every variation, with REDmod`, detail: "The game plays a short silent sound in place of the event's.", route: "skip", track: t, event: eventName },
       );
     }
     if (!group.length) continue;
@@ -130,10 +131,14 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
       if (!name) return;
     }
     const info = path.join(project.resources, "info.json");
+    const out = path.join(project.dir, "source", "customSounds", soundFileFor(name));
+    if (!(await mayReplace(out, name, doc.game))) return;
     if (chosen.route === "skip") {
-      writeInfo(info, upsertCustomSound(readMaybe(info), { name, type: "mod_skip" }));
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, silentWav());
+      writeInfo(info, upsertCustomSound(readMaybe(info), silenceEntry(name)));
       game = { route: "skip", event: name };
-      done = `REDmod will silence ${name} (in ${path.relative(project.dir, info)}).`;
+      done = `REDmod will play silence for ${name}: ${path.relative(project.dir, out)} (in ${path.relative(project.dir, info)}).`;
     } else {
       const lastType = doc.game?.route === "redmod" ? doc.game.type : undefined;
       const types = [...RedmodTypes].sort((a, b) => Number(b.type === lastType) - Number(a.type === lastType));
@@ -146,8 +151,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
       const pitch = doc.game?.route === "redmod" ? doc.game.pitch : 0;
       // REDmod checks the WAV's format; which rates it takes is unverified, so the game's own 48 kHz.
       const wav = await renderFor(Rate, channels);
-      const file = soundFileFor(name);
-      const out = path.join(project.dir, "source", "customSounds", file);
+      const file = path.basename(out);
       fs.mkdirSync(path.dirname(out), { recursive: true });
       fs.writeFileSync(out, wav);
       writeInfo(info, upsertCustomSound(readMaybe(info), { name, type: t.type, file, gain, pitch }));
@@ -174,6 +178,21 @@ function overrideFile(document: vscode.TextDocument, project: ProjectRef, hash: 
   const dir = path.dirname(document.uri.fsPath);
   const underRaw = !path.relative(project.raw, dir).startsWith("..") && !path.isAbsolute(path.relative(project.raw, dir));
   return path.join(underRaw ? dir : path.join(project.raw, "sfx"), `${hash}.wav`);
+}
+
+/**
+ * Whether to write the event's WAV: yes when there is none, or when this document wrote it last time
+ * (the usual re-render); else the modder is asked, since one WAV serves every variation of an event.
+ */
+async function mayReplace(out: string, event: string, last: IntoGame | undefined): Promise<boolean> {
+  if (!fs.existsSync(out)) return true;
+  if (last && last.route !== "override" && last.event.toLowerCase() === event.toLowerCase()) return true;
+  const pick = await vscode.window.showWarningMessage(
+    `customSounds already has ${path.basename(out)} for ${event}. Replace it?`,
+    { modal: true, detail: "REDmod plays one sound for every variation of an event, so this replaces what the game plays for the whole event." },
+    "Replace",
+  );
+  return pick === "Replace";
 }
 
 function readMaybe(file: string): string | undefined {

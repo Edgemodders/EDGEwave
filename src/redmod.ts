@@ -6,6 +6,12 @@
 // Sources: REDmod's own messages and fields in tools/redmod/bin/redMod.exe (customSounds, name, type,
 // file, gain, pitch; the WAV is validated), the mod_sfx_* events in WolvenKit's event list, and the
 // REDmodding wiki's Audio Modding page (the types' meanings; gain and pitch from 0 to 1).
+//
+// Silence is a silent WAV, as modders do it: in the A3 hand test (2026-10-19) a mod_skip entry was
+// deployed (REDmod's mods.json had it) but the game still played the event, while a custom sound
+// for the same event played. mod_skip is still read in an existing info.json, and replaced.
+
+import { encodeWav } from "./audio/wav";
 
 export type RedmodType =
   | "mod_skip"
@@ -18,7 +24,7 @@ export type RedmodType =
   | "mod_sfx_street"
   | "mod_sfx_ui";
 
-/** How the game plays each type, in the wiki's words. mod_skip is a silence, with no file. */
+/** How the game plays each type, in the wiki's words. mod_skip (a silence, with no file) is not offered. */
 export const RedmodTypes: { type: Exclude<RedmodType, "mod_skip">; label: string; detail: string }[] = [
   { type: "mod_sfx_2d", label: "2D", detail: "Played without any position or attenuation" },
   { type: "mod_sfx_occlusion", label: "Occlusion", detail: "Medium attenuation with normal occlusion" },
@@ -44,6 +50,16 @@ export interface CustomSound {
 /** A WAV file name for an event, safe on Windows. */
 export function soundFileFor(event: string): string {
   return `${event.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")}.wav`;
+}
+
+/** A tenth of a second of silence: 48 kHz, 16-bit, mono, the format REDmod took in the hand test. */
+export function silentWav(): Uint8Array {
+  return encodeWav({ sampleRate: 48000, channels: [new Float32Array(4800)] });
+}
+
+/** The entry that silences an event: its silent WAV, 2D, at gain 0. */
+export function silenceEntry(event: string): CustomSound {
+  return { name: event, type: "mod_sfx_2d", file: soundFileFor(event), gain: 0, pitch: 0 };
 }
 
 /**
