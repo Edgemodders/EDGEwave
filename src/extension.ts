@@ -11,9 +11,10 @@ import { VoiceTools } from "./voiceTools";
 export function activate(context: vscode.ExtensionContext): void {
   const log = vscode.window.createOutputChannel("EDGEwave");
   const voices = new VoiceTools(context, log);
+  const sounds = new SoundsView(context);
   context.subscriptions.push(
     log,
-    vscode.window.registerCustomEditorProvider(ViewType, new SoundEditorProvider(context, log, voices), {
+    vscode.window.registerCustomEditorProvider(ViewType, new SoundEditorProvider(context, log, voices, (uri) => void sounds.remember(uri)), {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     // REDcode's Open in EDGEwave runs this with the sound now playing.
@@ -32,10 +33,11 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
   );
-  const sounds = new SoundsView(context);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("edgewave.sounds", sounds),
     vscode.commands.registerCommand("edgewave.refreshSounds", () => sounds.refresh()),
+    vscode.commands.registerCommand("edgewave.forgetRecent", (node) => sounds.forget(node)),
+    vscode.commands.registerCommand("edgewave.clearRecent", () => sounds.clearRecent()),
   );
 }
 

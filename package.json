@@ -42,6 +42,18 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "edgewave.forgetRecent",
+        "title": "Remove from Recent",
+        "category": "EDGEwave",
+        "icon": "$(close)"
+      },
+      {
+        "command": "edgewave.clearRecent",
+        "title": "Clear Recent",
+        "category": "EDGEwave",
+        "icon": "$(clear-all)"
+      },
+      {
         "command": "edgewave.elevenlabs.setKey",
         "title": "Set ElevenLabs API Key",
         "category": "EDGEwave"
@@ -92,6 +104,14 @@
         {
           "command": "edgewave.refreshSounds",
           "when": "false"
+        },
+        {
+          "command": "edgewave.forgetRecent",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.clearRecent",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -117,6 +137,26 @@
         {
           "command": "edgewave.open",
           "when": "view == redcode.project && viewItem =~ /^projectFile/",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.forgetRecent",
+          "when": "view == edgewave.sounds && viewItem == edgewave.recentSound",
+          "group": "inline"
+        },
+        {
+          "command": "edgewave.forgetRecent",
+          "when": "view == edgewave.sounds && viewItem == edgewave.recentSound",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.clearRecent",
+          "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
+          "group": "inline"
+        },
+        {
+          "command": "edgewave.clearRecent",
+          "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
           "group": "edgewave@1"
         }
       ]
@@ -161,7 +201,7 @@
     "viewsWelcome": [
       {
         "view": "edgewave.sounds",
-        "contents": "No sound documents in this workspace yet.\nOpen a game sound from REDcode's sound list with Open in EDGEwave, or open a sound file.\n[Browse Game Sounds](command:redcode.browseSounds)\n[Open Sound\u2026](command:edgewave.open)"
+        "contents": "No sound documents yet, in this folder or opened lately.\nOpen a game sound from REDcode's sound list with Open in EDGEwave, or open a sound file.\n[Browse Game Sounds](command:redcode.browseSounds)\n[Open Sound\u2026](command:edgewave.open)"
       }
     ]
   },

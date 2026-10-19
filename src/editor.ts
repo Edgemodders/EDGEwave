@@ -110,9 +110,16 @@ async function pickSource(docDir: string): Promise<Source | undefined> {
 }
 
 export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
-  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly voices: VoiceTools) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly log: vscode.OutputChannel,
+    private readonly voices: VoiceTools,
+    /** Called with each document opened: the Sounds view's Recent. */
+    private readonly opened: (uri: vscode.Uri) => void,
+  ) {}
 
   resolveCustomTextEditor(document: vscode.TextDocument, panel: vscode.WebviewPanel): void {
+    this.opened(document.uri);
     const webview = panel.webview;
     const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     const media = vscode.Uri.joinPath(this.context.extensionUri, "media");

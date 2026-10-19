@@ -378,6 +378,23 @@ const voiceOk =
   eleven.filter((r) => r.path === "/v1/voices/add").length === 1 && eleven.filter((r) => r.fmt === "pcm_48000").length === 1;
 if (!voiceOk) finish(false, "the voice tools did not do what they should");
 
+// The Sounds view: Project (the open folder) and Recent (opened lately), each listing 42.
+await key("F1", "F1", 112);
+await sleep(600);
+await cdp("Input.insertText", { text: "EDGEwave: Focus on Sounds View" });
+await sleep(800);
+await key("Enter", "Enter", 13);
+let soundRows = [];
+for (let i = 0; i < 20; i++) {
+  soundRows = await evalIn(bench, `[...document.querySelectorAll('.part.sidebar .monaco-list-row')].filter((r) => r.offsetParent).map((r) => r.textContent.trim())`);
+  if (soundRows.some((r) => r.startsWith("Recent"))) break;
+  await sleep(500);
+}
+log("sounds view", JSON.stringify(soundRows));
+const groupAt = (g) => soundRows.findIndex((r) => r.startsWith(g));
+const viewOk = groupAt("Project") === 0 && groupAt("Recent") > 1 && soundRows[1].startsWith("42") && soundRows[groupAt("Recent") + 1]?.startsWith("42");
+if (!viewOk) finish(false, "the Sounds view does not list 42 under Project and Recent");
+
 const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
@@ -391,4 +408,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs; the Sounds view" : "render or mix checks failed");
