@@ -87,7 +87,7 @@ An edit or a mix is saved as a sound document: JSON that names its sources and l
 | Mix | Add a clip by a quick search of the game's sounds (REDcode's index) or from a file | O |
 | Effects | EQ and filters, pitch and speed, reverb, distortion | O |
 | Effects | Presets modders reach for: radio, holocall, PA speaker, muffled through a wall | O |
-| Voice | **Translate** and **Re-Voice** buttons on a voice line, stubs for now (below) | O |
+| Voice | **Generate Sound**, **Speak Line** and **Re-Voice** through ElevenLabs (V1); **Translate** a stub for now (below) | O |
 | Render | To WAV in the project; to the game's formats in A3 | O |
 
 ### How it is built
@@ -130,14 +130,16 @@ So VS Code's build cannot decode Opus in a webview at all. The owner's retest of
 
 ## Voice tools
 
-Asked for by the owner on 2026-10-14, to be defined in detail later. For now they are two stub buttons in the editor's layout, on a voice line (a sound from a `lang_*_voice` archive, or any clip the modder marks as voice):
+Asked for by the owner on 2026-10-14; defined on 2026-10-18 as three tools through [ElevenLabs](https://elevenlabs.io), with the modder's own API key, built as phase V1 ([V1 Voice tools](voice-tools.html)):
 
-| Button | The idea |
+| Button | What it does |
 |---|---|
-| **Translate** | The same line spoken in another language |
-| **Re-Voice** | The same words and delivery in a different voice: another gender or style |
+| **Generate Sound…** | A sound effect from a text prompt, as a new track |
+| **Speak Line…** | Text spoken in one of the modder's ElevenLabs voices, with previews, or in the selected voice line's voice (an instant clone) |
+| **Re-Voice…** | On a voice line: the same words and delivery in another voice, by a described change (gender, age, emotion: a remix of the line's clone) or into a picked voice (speech-to-speech) |
+| **Translate** | The same line spoken in another language. Still a stub, to be defined |
 
-Both will call third-party services, likely with the modder's own API key. Until they are defined, the buttons say the feature is planned. Their phase is set when they are defined.
+The owner's choices (2026-10-18): the key in VS Code's secret storage; cloning allowed behind a one-time consent check, since a game line's voice is a real voice actor's; these names; built before the first release.
 
 ## The index
 
@@ -188,6 +190,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | **A1 Edit** | The REDcode request (Open in EDGEwave, REDcode's API); `edgewave.openSound`; the sound document and its editor with the edit features; render to WAV; the Translate and Re-Voice stub buttons | A game voice line opened from REDcode's browser, trimmed and faded, renders to a WAV in the project |
 | **A2 Mix** | Tracks, effects and presets; quick search to add game sounds as clips | Two game sounds layered with the radio preset render to one WAV |
 | **A3 Into the game** | Into the Game: overriding a sound effect in its `.opuspak` (REDbridge 0.9.0 `sound.importWavs` through REDcode's Import); REDmod custom sounds for an event, or a silence; voice lines researched, no route yet. No Opus encoder of EDGEwave's own was needed: REDbridge encodes | An edited sound plays in the game after REDcode packs the mod |
+| **V1 Voice tools** | Generate Sound, Speak Line and Re-Voice through ElevenLabs: the client, the key in secret storage, the clone consent, the forms with previews, the `made` record | A generated sound, a spoken line and a re-voiced game line, each a track that renders |
 | **A4 Index** | REDbridge bank methods; the index; the query language; search with fields, filters and paging; details with links | A search for an event name finds its sounds, switches and parameters |
 | **A5 Voices and objects** | Subtitles and scenes; TweakDB objects and radios; V's gender filter | A line of dialogue is found by its text and opened in the studio |
 | **A6 EDGE** | MCP tools for agents; play an event in the running game through REDnode; a REDnode package's own sounds once its Sound API exists | An agent finds and edits a sound; an event plays in the running game from EDGEwave |

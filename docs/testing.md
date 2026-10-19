@@ -8,12 +8,13 @@ Last updated 2026-10-18.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to A3 | 2026-10-16 | Pass, 27 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game needed | A1 to A3 | 2026-10-16 | Pass |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-18 | Pass, 32 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-18 | Pass |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | Not run | |
+| [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
 
 ## Automated
 
@@ -28,7 +29,7 @@ npm test
 
 Expected: no errors, `dist/extension.js` and `dist/editor.js` written, and every unit test passing. The **Check** workflow (`.github/workflows/check.yml`) runs the same on every push to `main` that changes code, and on pull requests.
 
-The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, `src/doc.ts` and `src/redmod.ts`:
+The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, `src/doc.ts` and `src/redmod.ts`, and `test/elevenlabs.test.ts`, over the ElevenLabs client against a stand-in server on localhost:
 
 | Area | Tests |
 |---|---|
@@ -37,6 +38,7 @@ The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, 
 | Documents | A round trip, and what is not a document is rejected; an A1 document (version 1) opens as one track; voice lines are found by their folder (`vo`, `vo_holocall`, `vo_helmet`, `vo_rewinded`) or, for a copy on disk, by their name |
 | Mix | Mute and solo choose the tracks heard; the end is the latest track's end at its rate, plus reverb tails; presets are fresh copies with every parameter known |
 | REDmod | A custom sound is added to `info.json`, keeping its other fields; the same event replaces its entry; a skip has no file; gain and pitch stay 0 to 1; every type but `mod_skip` is offered once |
+| ElevenLabs | A sound effect asks for PCM at the rate, with the key, and clamps its length and prompt influence; speech, speech-to-speech and a clone send each endpoint's fields (JSON, or multipart with the WAV); voices page through; a remix's base64 previews become WAVs; a saved remix sends its fields; errors read as their message (`detail.message`, a validation list, or text); a refused output format is told apart from a bad key; PCM becomes a mono WAV; file names from prompts end on a whole word |
 
 ### Smoke test: VS Code with a stand-in REDcode
 
@@ -45,7 +47,7 @@ npm run build
 npm run smoke
 ```
 
-Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave and a stand-in REDcode (`tools/smoke/stub`). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png` and `mix.png` to `%TEMP%\ewsmoke`.
+Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png` and `revoice.png` to `%TEMP%\ewsmoke`.
 
 To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the script does this for the VS Code it starts). Keep the temp path short: VS Code's files pass Windows' 260-character limit otherwise.
 
@@ -63,8 +65,13 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | A2 | Render WAV | 1.75 s (0.25 s + track 2's 1.5 s), stereo, 44.1 kHz, with sound from both tracks |
 | A3 | Into the Game > Override this variation | `42.wav` at 48 kHz stereo handed to REDcode's Import (the stub writes `imported.json`) |
 | A3 | Into the Game > Replace the event with REDmod, 2D | `source/customSounds/smoke_event.wav` at 48 kHz, an entry in `source/resources/info.json`, and the document's `game` keeps the choice |
+| V1 | Generate Sound | The key's password box (typed); the 48 kHz request refused and the same at 24 kHz; track 3, at the mix cursor, a 24 kHz WAV in `42.gen/`, `made` with the prompt |
+| V1 | Speak Line in a picked voice | The voice list and the model menu fill; the voice's preview plays; track 4, a voice line, `made` with the voice |
+| V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
+| V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 muted |
+| V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 
-Last run 2026-10-16: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod`).
+Last run 2026-10-18: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override and REDmod; voice tools against a stand-in ElevenLabs`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -165,3 +172,18 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 5. **Silence.** **Silence the event with REDmod** on another event. Expect: a `mod_skip` entry; in the game the event is silent.
 6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is first.
 7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
+
+### V1 Voice tools
+
+What is built: [V1 Voice tools](voice-tools.html). **Not run yet.** Needs an ElevenLabs account and API key; each step spends credits (a few seconds of audio each). Steps 2, 4 and 5 settle what is still unverified: 48 kHz on your plan, a voice preview playing, a remix of a clone.
+
+1. **The key.** In a sound document, click **Generate Sound…**, describe a sound (such as `a heavy metal door slams in a concrete corridor`), **Generate**. Expect: a password box for the key the first time; then a new track at the mix cursor, selected, playing what you asked for. Its WAV is in the document's `.gen` folder.
+2. **The rate.** Output › EDGEwave. Expect: no "refused 48000 Hz" line on a plan that allows 48 kHz; with one, the next tools use 24 kHz. Tell me which.
+3. **Generate Sound's options.** A length (such as 2 s), Loop, and Follow the prompt at 0.8. Expect: the length you asked for; a loop that plays back seamlessly with the clip's loop.
+4. **Speak Line in a voice.** **Speak Line…**, type a line, search the voices (such as `female`), play a preview, pick a voice and a model, **Speak**. Expect: the preview plays (if it does not, say so: it is an MP3); a new voice-line track with the line spoken.
+5. **Speak Line in a line's voice.** Select a game voice line's track, **Speak Line…**, **In the selected line's voice**, type a new line, **Speak**. Expect: the consent question once, then a track in something like that voice. A second Speak in the same line's voice makes no new clone (Output › EDGEwave says "Cloned" only once).
+6. **Re-Voice by description.** On a voice line, **Re-Voice…**, describe a change (such as `female, calm` or `older, raspy`), **Make previews**, play them, pick one, **Re-Voice**. Expect: a new track at the line's place with the same words and timing in the new voice; the original muted.
+7. **Re-Voice into a voice.** **Re-Voice…** > **Into one of your ElevenLabs voices**, pick one, **Re-Voice**. Expect: the same, in that voice; no clone made.
+8. **Into the game.** Into the Game on a document with a Re-Voiced line (the named REDmod route, as for any voice line). Expect: the render at 48 kHz, as for any mix.
+9. **Clean up.** **EDGEwave: ElevenLabs Voices Made by EDGEwave…**: the clone and the saved remix are listed; delete them. Expect: they are gone from your ElevenLabs account's voices.
+10. **Errors.** **EDGEwave: Set ElevenLabs API Key** with a wrong key, then Generate Sound. Expect: the dialog shows ElevenLabs' message (such as "Invalid API key"), nothing is added. Set the right key again.

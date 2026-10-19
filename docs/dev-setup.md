@@ -5,7 +5,7 @@ EDGEwave follows the EDGE platform's shared setup: [REDnode's dev setup](https:/
 | Tool | Version | Why |
 |---|---|---|
 | Node | 24 (24.11.1 tested) | Builds the extension |
-| VS Code | 1.80 or later | Runs it |
+| VS Code | 1.90 or later | Runs it (Node 20, for the voice tools' fetch) |
 | REDbridge | From A1 on | Reads the game's audio. EDGEdeck's **Get REDbridge** or REDcode's **Install REDbridge** fetches it |
 
 ## Build
