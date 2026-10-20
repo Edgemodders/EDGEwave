@@ -464,6 +464,40 @@ log("splitter", JSON.stringify({ split0, split1, split2, spare, split3 }));
 const splitOk = split0 === 19 + 4 * 36 + 2 && split1 === 19 + 36 + 2 && split2 === split1 + 36 && split3 === Math.min(19 + 6 * 36 + 2, split2 + spare) && split3 > split2;
 if (!splitOk) finish(false, "the splitter did not resize the lanes");
 
+// Moving lanes: drag track 3's grip above track 1; right-click the top lane > Move Down; then undo.
+const saveDoc = async () => {
+  await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+  await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+  await sleep(1200);
+  return JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.map((t) => t.id);
+};
+const order0 = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.map((t) => t.id);
+await run(`
+  const box = document.querySelector('.lanes'); box.scrollTop = 0;
+  const g = document.querySelectorAll('#laneChecks .grip')[2], r = g.getBoundingClientRect(), top = box.getBoundingClientRect().top + 1 + 19;
+  const ev = (type, cy) => g.dispatchEvent(new PointerEvent(type, { clientX: r.left + 3, clientY: cy, pointerId: 8, button: 0, bubbles: true }));
+  ev('pointerdown', r.top + 7); ev('pointermove', top + 40); ev('pointermove', top + 4);
+  window.__dropShown = !document.querySelector('.dropline').hidden;
+  ev('pointerup', top + 4);`);
+await sleep(400);
+const dropShown = await run("return window.__dropShown");
+await run(`
+  const c = document.getElementById('mix'), r = c.getBoundingClientRect();
+  c.dispatchEvent(new MouseEvent('contextmenu', { clientX: r.left + 40, clientY: r.top + 19 + 18, bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  [...document.querySelectorAll('.menu button')].find((b) => b.textContent === 'Move Down').click();`);
+await sleep(400);
+const order1 = await saveDoc();
+await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "z", code: "KeyZ", windowsVirtualKeyCode: 90, modifiers: 2 });
+await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "z", code: "KeyZ", windowsVirtualKeyCode: 90, modifiers: 2 });
+await sleep(800);
+const order2 = await saveDoc();
+log("move lanes", JSON.stringify({ order0, dropShown, order1, order2 }));
+const [o0, o1, o2] = [order0, order1, order2].map((o) => o.join());
+const [a0, b0, c0, ...rest0] = order0;
+const moveOk = dropShown === true && o1 === [a0, c0, b0, ...rest0].join() && o2 === [c0, a0, b0, ...rest0].join() && o0 !== o1;
+if (!moveOk) finish(false, "moving lanes did not reorder the tracks");
+
 // The Sounds view: Project (the open folder) and Recent (opened lately), each listing 42.
 await key("F1", "F1", 112);
 await sleep(600);
@@ -494,4 +528,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view" : "render or mix checks failed");

@@ -506,15 +506,78 @@ function syncChecks() {
       const id = doc?.tracks[[...laneChecks.children].indexOf(box.parentElement!)]?.id;
       if (id) setInMix((t) => (t.id === id ? on : !t.mute));
     });
+    const grip = document.createElement("span");
+    grip.className = "grip";
+    grip.title = "Drag to move this track up or down";
+    grip.addEventListener("pointerdown", (ev) => startLaneDrag(ev, grip));
     const row = document.createElement("div");
-    row.append(box);
+    row.append(grip, box);
     laneChecks.append(row);
   }
   doc.tracks.forEach((t, i) => {
-    const box = laneChecks.children[i].firstElementChild as HTMLInputElement;
+    const box = laneChecks.children[i].querySelector("input")!;
     box.checked = !t.mute;
     box.title = `Track ${i + 1}: ${t.mute ? "not in the mix. Check to put it in" : "in the mix. Uncheck to leave it out"}`;
   });
+}
+
+// ---- moving a lane: drag its grip up or down, or the lanes' menu ------------------------------------------
+
+const dropLine = document.createElement("div");
+dropLine.className = "dropline";
+dropLine.hidden = true;
+mixCanvas.parentElement!.append(dropLine);
+let laneDrag: { from: number; to: number; grip: HTMLElement } | null = null;
+
+/** Moves the track at index `from` to stand before the track now at `to` (0 to the number of tracks). */
+function moveTrack(from: number, to: number) {
+  const tr = doc?.tracks[from];
+  if (!tr || to === from || to === from + 1) return;
+  selectTrack(tr.id);
+  change((d) => {
+    const ts = [...d.tracks];
+    const [t] = ts.splice(from, 1);
+    ts.splice(to > from ? to - 1 : to, 0, t);
+    return { ...d, tracks: ts };
+  });
+}
+
+function startLaneDrag(ev: PointerEvent, grip: HTMLElement) {
+  if (ev.button !== 0 || !doc) return;
+  ev.preventDefault();
+  const from = [...laneChecks.children].indexOf(grip.parentElement!);
+  laneDrag = { from, to: from, grip };
+  grip.classList.add("dragging");
+  try {
+    grip.setPointerCapture(ev.pointerId);
+  } catch {
+    // A synthetic pointer: the drag still works over the grip.
+  }
+  const move = (e: PointerEvent) => {
+    if (!laneDrag || !doc) return;
+    const box = mixCanvas.parentElement!, r = box.getBoundingClientRect();
+    // Past the top or bottom edge, the lanes scroll.
+    if (e.clientY < r.top + 16) box.scrollTop -= 12;
+    else if (e.clientY > r.bottom - 16) box.scrollTop += 12;
+    const y = e.clientY - r.top - box.clientTop + box.scrollTop - Ruler - 1;
+    laneDrag.to = Math.max(0, Math.min(doc.tracks.length, Math.round(y / Lane)));
+    const still = laneDrag.to === laneDrag.from || laneDrag.to === laneDrag.from + 1;
+    dropLine.hidden = still;
+    dropLine.style.top = `${Ruler + 1 + laneDrag.to * Lane}px`;
+  };
+  const end = (e: PointerEvent) => {
+    grip.removeEventListener("pointermove", move);
+    grip.removeEventListener("pointerup", end);
+    grip.removeEventListener("pointercancel", end);
+    grip.classList.remove("dragging");
+    dropLine.hidden = true;
+    const d = laneDrag;
+    laneDrag = null;
+    if (d && e.type === "pointerup") moveTrack(d.from, d.to);
+  };
+  grip.addEventListener("pointermove", move);
+  grip.addEventListener("pointerup", end);
+  grip.addEventListener("pointercancel", end);
 }
 
 /** Puts each track in the mix or leaves it out; out is saved as mute. */
@@ -1218,13 +1281,16 @@ canvas.addEventListener("contextmenu", (ev) => {
 mixCanvas.parentElement!.addEventListener("contextmenu", (ev) => {
   ev.preventDefault();
   ev.stopPropagation();
-  const tr = doc?.tracks[mixAt(ev).lane];
+  const i = mixAt(ev).lane;
+  const tr = doc?.tracks[i];
   if (!doc || !tr) return;
   selectTrack(tr.id);
   const others = doc.tracks.some((t) => t.id !== tr.id && !t.mute);
   showMenu(ev, [
     ["Only This Track", !!tr.mute || others, () => setInMix((t) => t.id === tr.id)],
     ["All Tracks", doc.tracks.some((t) => t.mute), () => setInMix(() => true)],
+    ["Move Up", i > 0, () => moveTrack(i, i - 1)],
+    ["Move Down", i < doc.tracks.length - 1, () => moveTrack(i, i + 2)],
   ]);
 });
 document.addEventListener("pointerdown", (e) => {
