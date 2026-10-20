@@ -6,10 +6,10 @@ Status: **built 2026-10-16; hand test passed 2026-10-18 but one finding, fixed, 
 
 | Part | Where |
 |---|---|
-| Version 2 of the sound document: tracks, each a source with its own edits, start, gain, pan, rate, mute, solo and effects; a master with gain and effects. An A1 document opens as one track and is written as version 2 at its next change | `src/doc.ts` |
-| The mix's arithmetic (which tracks are heard, where the mix ends, reverb tails), the effects' parameters and the presets, pure, with unit tests | `src/audio/mix.ts`, `test/` |
+| Version 2 of the sound document: tracks, each a source with its own edits, start, gain, pan, rate, in the mix or not (`mute`), and effects; a master with gain and effects. An A1 document opens as one track and is written as version 2 at its next change | `src/doc.ts` |
+| The mix's arithmetic (which tracks are in the mix, where the mix ends, reverb tails), the effects' parameters and the presets, pure, with unit tests | `src/audio/mix.ts`, `test/` |
 | The audio graph: per track the edited clip at its rate, its effects, gain and pan; then the master. Playback and render build the same graph, so what is heard is what is rendered | `webview/graph.ts` |
-| The page: the mix lanes and the selected track's controls above A1's clip editor; Edits, Effects and Master panes below; Render in the Mix bar | `webview/editor.ts`, `media/editor.css` |
+| The page: the mix lanes, each with a checkbox at its left (checked, the track is in the mix; right-click a lane for **Only This Track** and **All Tracks**), and the selected track's controls above A1's clip editor; Edits, Effects and Master panes below; Render in the Mix bar | `webview/editor.ts`, `media/editor.css` |
 | **Add Sound…**: a quick pick over the game's sound effects (REDcode's index, by event name or tag, then the variation), a game file by path, or a sound file | `src/editor.ts` |
 
 | Effect | Parameters |
@@ -34,3 +34,13 @@ Not in A2, as agreed: pitch without changing speed (Rate changes both together).
 ## Tests
 
 The unit tests, the smoke test and the hand test, with its steps and every round's results, are in [Tests](testing.html#a2-mix).
+
+## In the mix: checkboxes, not Mute and Solo (2026-10-19)
+
+The owner's finding in the A3 hand test: with several tracks soloed, soloing another did not do what it seemed to, and a track's Mute and Solo showed only while it was selected. Agreed the same day: one checkbox per lane, always shown, in place of both.
+
+| | Before | Now |
+|---|---|---|
+| In the mix | Not muted, and soloed when any track is | Checked |
+| Control | Mute and Solo in the track bar, for the selected track | The lane's checkbox; right-click a lane: **Only This Track**, **All Tracks** |
+| In the file | `mute`, `solo` | `mute` alone (unchecked). A document with `solo` opens with the tracks it let be heard checked, the rest unchecked, and loses `solo` at its next change |

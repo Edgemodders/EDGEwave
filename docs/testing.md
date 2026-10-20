@@ -13,7 +13,7 @@ Last updated 2026-10-19.
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-19 | Round 2: steps 1 to 5 pass (Silence is a silent WAV; `mod_skip` does not silence); steps 6 and 7 pending |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-19 | Round 2: steps 1 to 5 pass (Silence is a silent WAV; `mod_skip` does not silence); step 6's finding fixed (checkboxes in place of Mute and Solo): retest 6, then 7 |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
@@ -37,7 +37,7 @@ The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, 
 | Edits | Trim; cut in either order; paste; paste after a cut moves the range; a paste from an earlier sound survives edits in between; a stereo paste into mono takes a channel; silence; edits run in order; times past the end are clamped; fade in and fade out over their range only; gain of -6 dB halves; normalize to a target, and of silence; stereo to mono and back; the input is never changed |
 | WAV | A round trip keeps the rate, the channels and the samples to 16 bits; samples past full scale are clipped |
 | Documents | A round trip, and what is not a document is rejected; an A1 document (version 1) opens as one track; voice lines are found by their folder (`vo`, `vo_holocall`, `vo_helmet`, `vo_rewinded`) or, for a copy on disk, by their name |
-| Mix | Mute and solo choose the tracks heard; the end is the latest track's end at its rate, plus reverb tails; presets are fresh copies with every parameter known |
+| Mix | The checked tracks are in the mix (out of it is saved as `mute`); a document with `solo` opens as the tracks it let be heard; the end is the latest track's end at its rate, plus reverb tails; presets are fresh copies with every parameter known |
 | REDmod | A custom sound is added to `info.json`, keeping its other fields; the same event replaces its entry; a skip has no file; gain and pitch stay 0 to 1; silence is the render with its samples zeroed, the same format and length; every type but `mod_skip` is offered once |
 | ElevenLabs | A sound effect asks for PCM at the rate, with the key, and clamps its length and prompt influence; speech, speech-to-speech and a clone send each endpoint's fields (JSON, or multipart with the WAV); voices page through; a remix's base64 previews become WAVs; a saved remix sends its fields; errors read as their message (`detail.message`, a validation list, or text); a refused output format is told apart from a bad key; PCM becomes a mono WAV; file names from prompts end on a whole word |
 
@@ -65,17 +65,18 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | A2 | Remove track 2, then Ctrl+Z | Track 2 comes back selected |
 | A2 | Render WAV | 1.75 s (0.25 s + track 2's 1.5 s), stereo, 44.1 kHz, with sound from both tracks |
 | A3 | Into the Game > Override sound 43 (track 2, not track 1) | `43.wav` at 48 kHz, mono like sound 43, handed to REDcode's Import (the stub writes `imported.json`); the menu, before typing, is `intogame.png` |
-| A3 | Into the Game, second time | Both tracks heard: the first row is Override sound 43, marked last time |
+| A3 | Into the Game, second time | Both tracks in the mix: the first row is Override sound 42 (the mixer's order), and Override sound 43 below it is marked last time |
 | A3 | Into the Game > Replace the event smoke_event with REDmod, 2D | `source/customSounds/smoke_event.wav` at 48 kHz stereo, an entry in `source/resources/info.json`, and the document's `game` keeps the choice |
 | A3 | Into the Game > Silence the event smoke_event, 2D | No question (this document wrote the WAV); `smoke_event.wav` keeps the replacement's header and length, every sample zero; its entry `mod_sfx_2d`, gain 1; the document's `game` is the skip route with its type |
 | V1 | Generate Sound | The key's password box (typed); the 48 kHz request refused and the same at 24 kHz; two takes in the dialog (the second with a changed prompt) and no track yet; a take plays; Add on take 2 makes track 3, at the mix cursor, a 24 kHz WAV in `42.gen/`, `made` with take 2's prompt |
 | V1 | Speak Line in a picked voice | The voice list and the model menu fill; the voice's preview plays; track 4, a voice line, `made` with the voice |
 | V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
-| V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 muted |
+| V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 out of the mix |
+| A2 | The lanes' checkboxes; right-click the generated sound's lane > Only This Track; Into the Game | Track 1's box checks; then only track 3's is checked, saved as `mute` on the others; Into the Game's first row is the named REDmod route, saying no track in the mix is a game sound effect (track 3) |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 
-Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the Sounds view`).
+Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the Sounds view`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -156,7 +157,7 @@ What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 2's finding (s
 3. **Add a game file and a file.** Add Sound > **A game file by its path…** (a voice line's path from Game Assets; try a `vo_holocall` one), and > **A sound file…** (try a voice line's exported WAV). Expect: a lane each. A voice line's track has **Voice line** ticked, by its path or by its name.
 4. **Place.** Drag a clip along its lane; or type **Start**. Click an empty part of a lane or the ruler to place the mix cursor. Expect: the lane moves, the mix's length in the Mix bar follows.
 5. **Listen.** The Mix bar's play icon (Shift+Space) plays everything from the mix cursor; the Clip bar's (Space) plays the selected clip through its own effects; stop stops either; loop loops either. The edge icons move the mix cursor to the previous or next start or end of a clip.
-6. **Track controls.** Change Level, Pan and Rate; try Mute and Solo with three tracks. Expect: you hear the change in the mix; muted lanes are dimmed.
+6. **Track controls.** Change Level, Pan and Rate; with three tracks, uncheck a lane's box, then right-click a lane > **Only This Track**, then > **All Tracks**. Expect: you hear the change in the mix; lanes out of the mix are dimmed and unchecked. (Mute and Solo until 2026-10-19.)
 7. **Effects.** Add effects one by one from **Add effect…**, change their values, untick one to bypass it, remove one with ×. Try each preset on a track and on the master.
 8. **The radio test (the design's A2 test).** Two game sounds, one with the **Radio** preset, overlapping. **Render WAV**. Expect: one WAV that sounds like the mix, reverb tails not cut off.
 9. **Undo and redo.** Ctrl+Z and Ctrl+Y through track moves, effect changes and added tracks.
@@ -184,15 +185,16 @@ Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48
 | `mod_skip` does not silence an event in the game | Silence writes a silent WAV as the event's custom sound, as modders do: the mix rendered as for a replacement, every sample zeroed, with the type you pick, at gain 1. Silent in the game on the katana equip. (A first try, 0.1 s of mono silence as `mod_sfx_2d` at gain 0, was only tried on the layered vending machine, so it is not known whether it works) |
 | Replacing an event from another variation's document overwrote the event's WAV without a word; how variations fit was unclear | The REDmod rows say **every variation**; EDGEwave asks before replacing an event's WAV that this document did not write last. One variation alone is the override route |
 | Silencing an event after replacing it left the replaced WAV in `customSounds` | Silence now writes that WAV itself, as silence |
+| Step 6: with a generated sound soloed, Into the Game listed only the katana's tracks (not heard), last time's first; with several tracks soloed, soloing another did not do what it seemed to | Checkboxes in the lanes in place of Mute and Solo, with **Only This Track** and **All Tracks** ([A2 Mix](a2-mix.html)). Into the Game lists the tracks in the mix in the mixer's order, then **Any event** (first, and saying why, when no track in the mix is a game sound effect), then the tracks out of the mix; the last choice is only marked |
 
 1. **Override.** Open a sound effect from Browse Game Sounds in EDGEwave, change it so you will hear it (reverse a part, or the radio preset), and click **Into the Game…** > **Override sound `<hash>`** under its track. Expect: a message naming the `.opuspak` written under `source/archive`.
 2. **Pack and play.** Click **Pack** (plain archive layout), install with REDcode, and play where the sound happens. Expect: your version.
 3. **REDmod.** On a sound effect with an event name (its track shows the name, as in `<event> · <hash>`), **Into the Game…** > **Replace the event `<event>`, every variation, with REDmod**, pick a type. Expect: `source/customSounds/<event>.wav` and an entry in `source/resources/info.json`. With `redcode.pack.redmod` off, the message says so. Then open another variation of the same event and replace the event from it: EDGEwave asks before replacing the WAV.
 4. **REDmod in the game.** Turn on `redcode.pack.redmod`, Pack, start the game with REDcode's **Run Game** (it adds `-modded`, so the game deploys) and play. Expect: your sound for that event. If REDmod's deploy rejects the WAV, its log (`tools/redmod/bin/REDmodLog.txt`) says why; send the line.
 5. **Silence.** **Silence the event `<event>`, every variation, with REDmod**, and pick the type that played in step 4. Expect: `source/customSounds/<event>.wav` is as long as your mix and silent, its entry has that type with gain 1; in the game the event is silent. Pick an event that plays on its own, such as a weapon's equip: an action such as a can dropping from a vending machine plays several events at once, and the others still sound.
-6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is marked **last time**, and its track is first among the tracks you hear. Solo another track and open it again: that track comes first, and the last choice stays in its own track's group.
+6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is marked **last time** where it is listed. Right-click another game sound's lane > **Only This Track** and open it again: that track comes first, and the last choice stays marked in its own track's group, under **not in the mix**. With only a file (such as a generated sound) checked, the first row is **A REDmod custom sound for an event…**, saying no track in the mix is a game sound effect.
 7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
-8. **A game sound on a later track** (the owner's finding, 2026-10-19). In a document whose track 1 is not that sound, add a game sound effect with Add Sound, mute or solo so you hear only it (or it and a file you want mixed in), then **Into the Game…**. Expect: the added sound's **Override sound** and its event's REDmod routes, under its track's name, at the top; tracks you do not hear are listed after, marked (not heard). Pick its override, Pack and play: you hear the tracks you heard in EDGEwave.
+8. **A game sound on a later track** (the owner's finding, 2026-10-19). In a document whose track 1 is not that sound, add a game sound effect with Add Sound, check only its lane (or it and a file you want mixed in), then **Into the Game…**. Expect: the added sound's **Override sound** and its event's REDmod routes, under its track's name, at the top; tracks out of the mix are listed after **Any event**, marked **not in the mix**. Pick its override, Pack and play: you hear the checked tracks as in EDGEwave.
 
 ### V1 Voice tools
 

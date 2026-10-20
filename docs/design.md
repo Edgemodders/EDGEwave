@@ -83,7 +83,7 @@ An edit or a mix is saved as a sound document: JSON that names its sources and l
 | Edit | Fade in and out, gain, normalize, mono and stereo, resample | O |
 | Edit | Loop points, for sounds the game loops | O |
 | Edit | Undo and redo through VS Code; the edits are non-destructive | E |
-| Mix | Tracks, each a clip with offset, gain and pan; mute and solo | O |
+| Mix | Tracks, each a clip with offset, gain and pan; a checkbox for each, in the mix or not (it was mute and solo until 2026-10-19) | O |
 | Mix | Add a clip by a quick search of the game's sounds (REDcode's index) or from a file | O |
 | Effects | EQ and filters, pitch and speed, reverb, distortion | O |
 | Effects | Presets modders reach for: radio, holocall, PA speaker, muffled through a wall | O |
