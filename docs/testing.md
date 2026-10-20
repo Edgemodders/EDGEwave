@@ -13,7 +13,7 @@ Last updated 2026-10-19.
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-19 | Round 2: steps 1 to 4 pass; step 5 failed (`mod_skip`), Silence is now a silent WAV: retest 5, then 6 and 7 |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-19 | Round 2: steps 1 to 5 pass (Silence is a silent WAV; `mod_skip` does not silence); steps 6 and 7 pending |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
@@ -172,7 +172,7 @@ Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48
 | Round | Date | Result |
 |---|---|---|
 | 1 | 2026-10-19 | Before the formal steps, the owner overrode a katana equip sound (track 4 of a mix, soloed), packed, deployed and heard it in the game: **the override works**. Two findings on the way, both fixed the same day (below) |
-| 2 | 2026-10-19 | Steps 1 to 4 pass: the game played a REDmod custom sound for `dev_vending_machine_can_falls` (`mod_sfx_room`); REDmod's deploy found the mod and wrote all three entries to `mods.json`, with no complaint about the WAVs. **Step 5 failed:** with a `mod_skip` entry for the same event, deployed, the game played the event's own sound. Three findings, fixed the same day (below). Finding the events in the game by ear was hard, so the owner asked REDnode for a Sound Tracer ([REDnode #14](https://github.com/Edgemodders/REDnode/issues/14)) |
+| 2 | 2026-10-19 | Steps 1 to 5 pass. Step 4: the game played a REDmod custom sound for `dev_vending_machine_can_falls` (`mod_sfx_room`); REDmod's deploy found the mod and wrote every entry to `mods.json`, with no complaint about the WAVs. Step 5 first seemed to fail: with `mod_skip`, then two silent WAVs, the can still sounded the same. A short ping as its custom sound showed why: a can dropping plays several events layered together. On `w_melee_katana_equip`, one event on its own, the silent WAV silences it and `mod_skip` (by hand, the audible WAV left in place) does not. Gain 0 in `info.json` left a replacement loud. Three findings, fixed the same day (below). Finding events by ear was hard, so the owner asked REDnode for a Sound Tracer ([REDnode #14](https://github.com/Edgemodders/REDnode/issues/14)) |
 
 | Finding (round 1) | Fix |
 |---|---|
@@ -181,7 +181,7 @@ Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48
 
 | Finding (round 2) | Fix |
 |---|---|
-| `mod_skip` did not silence the event in the game | Silence writes a silent WAV as the event's custom sound, as modders do. First as 0.1 s of mono silence, `mod_sfx_2d` at gain 0: in the game the event still played its own sound, while a Room replacement of it played. Now the mix rendered as for a replacement, every sample zeroed, with the type you pick at gain 1 |
+| `mod_skip` does not silence an event in the game | Silence writes a silent WAV as the event's custom sound, as modders do: the mix rendered as for a replacement, every sample zeroed, with the type you pick, at gain 1. Silent in the game on the katana equip. (A first try, 0.1 s of mono silence as `mod_sfx_2d` at gain 0, was only tried on the layered vending machine, so it is not known whether it works) |
 | Replacing an event from another variation's document overwrote the event's WAV without a word; how variations fit was unclear | The REDmod rows say **every variation**; EDGEwave asks before replacing an event's WAV that this document did not write last. One variation alone is the override route |
 | Silencing an event after replacing it left the replaced WAV in `customSounds` | Silence now writes that WAV itself, as silence |
 
@@ -189,7 +189,7 @@ Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48
 2. **Pack and play.** Click **Pack** (plain archive layout), install with REDcode, and play where the sound happens. Expect: your version.
 3. **REDmod.** On a sound effect with an event name (its track shows the name, as in `<event> · <hash>`), **Into the Game…** > **Replace the event `<event>`, every variation, with REDmod**, pick a type. Expect: `source/customSounds/<event>.wav` and an entry in `source/resources/info.json`. With `redcode.pack.redmod` off, the message says so. Then open another variation of the same event and replace the event from it: EDGEwave asks before replacing the WAV.
 4. **REDmod in the game.** Turn on `redcode.pack.redmod`, Pack, start the game with REDcode's **Run Game** (it adds `-modded`, so the game deploys) and play. Expect: your sound for that event. If REDmod's deploy rejects the WAV, its log (`tools/redmod/bin/REDmodLog.txt`) says why; send the line.
-5. **Silence.** **Silence the event `<event>`, every variation, with REDmod**, and pick the type that played in step 4. Expect: `source/customSounds/<event>.wav` is as long as your mix and silent, its entry has that type with gain 1; in the game the event is silent. An event replaced in step 4 is easiest to check: you know where it plays.
+5. **Silence.** **Silence the event `<event>`, every variation, with REDmod**, and pick the type that played in step 4. Expect: `source/customSounds/<event>.wav` is as long as your mix and silent, its entry has that type with gain 1; in the game the event is silent. Pick an event that plays on its own, such as a weapon's equip: an action such as a can dropping from a vending machine plays several events at once, and the others still sound.
 6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is marked **last time**, and its track is first among the tracks you hear. Solo another track and open it again: that track comes first, and the last choice stays in its own track's group.
 7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
 8. **A game sound on a later track** (the owner's finding, 2026-10-19). In a document whose track 1 is not that sound, add a game sound effect with Add Sound, mute or solo so you hear only it (or it and a file you want mixed in), then **Into the Game…**. Expect: the added sound's **Override sound** and its event's REDmod routes, under its track's name, at the top; tracks you do not hear are listed after, marked (not heard). Pick its override, Pack and play: you hear the tracks you heard in EDGEwave.

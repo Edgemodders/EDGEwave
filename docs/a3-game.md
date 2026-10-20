@@ -8,7 +8,7 @@ Status: **built 2026-10-16, hand test pending.** **Into the Game…** puts the m
 |---|---|---|---|
 | **Override sound `<hash>`** | One sound effect, by its hash | A 48 kHz, 16-bit WAV with the original's channels, `<hash>.wav` beside the document. REDcode's Import (REDbridge 0.9.0 `sound.importWavs`) writes the touched `.opuspak` and a new `sfx_container.opusinfo` into `source/archive` | **No.** Every mod made this way carries the one shared `sfx_container.opusinfo`, so the last one loaded wins |
 | **Replace the event `<event>`, every variation, with REDmod** | An audio event by name, every variation: one WAV for all of them | The WAV in `source/customSounds/<event>.wav`, and an entry in `source/resources/info.json`'s `customSounds`, as WolvenKit's Sound Modding tool writes them. If that WAV is there already and this document did not write it last, EDGEwave asks before replacing it | Yes. The event's own Wwise logic (parameters, switches, effects such as slow-motion processing) is dropped |
-| **Silence the event `<event>`, every variation, with REDmod** | An audio event by name | The mix rendered as for a replacement (48 kHz, the target sound's channels, the mix's length) with every sample zeroed, as `source/customSounds/<event>.wav`; its entry has the type you pick, at gain 1. Not `mod_skip`: see below | Yes |
+| **Silence the event `<event>`, every variation, with REDmod** | An audio event by name | The mix rendered as for a replacement (48 kHz, the target sound's channels, the mix's length) with every sample zeroed, as `source/customSounds/<event>.wav`; its entry has the type you pick, at gain 1. Silent in the game (the katana equip). Not `mod_skip`: see below | Yes |
 | **A REDmod custom sound for an event…** | Any mix, for an event named by hand | As Replace | Yes |
 
 What goes in is the mix of the tracks you hear (mute and solo count). What it replaces is a separate choice: Into the Game lists the three routes for every game sound effect on a track, under the track's name, the tracks you hear first, then the named REDmod route. So a mix of a game sound and a file can override that game sound. The override's WAV takes the channels of the sound it replaces. The choice (with the sound's hash for an override) is kept in the document (`game`) and marked **last time** next time; its track comes first among the tracks you hear, but never above them (the owner's second finding, 2026-10-19). Changed on 2026-10-19 after the owner's finding: before, the routes came from track 1 only, so a game sound added as a later track could not be overridden. After writing, EDGEwave offers **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
@@ -25,7 +25,7 @@ The REDmod types, from the REDmodding wiki:
 | `mod_sfx_city` | A longer attenuation, for city sounds |
 | `mod_sfx_radio` | Needs to be tuned to a broadcast channel |
 | `mod_sfx_ui` | Menu and UI sounds. On the wiki; not in WolvenKit's event list (unverified) |
-| `mod_skip` | Not played, by the wiki. In the hand test it did not silence the event, so EDGEwave no longer writes it |
+| `mod_skip` | Not played, by the wiki. In the hand test it did not silence an event on its own (`w_melee_katana_equip`), so EDGEwave does not write it |
 
 `gain` (0 to 1) starts at 1 and `pitch` (pitch variance, 0 to 1) at 0. Change them in the document's `game` or the project's `info.json`.
 
@@ -45,7 +45,17 @@ The REDmod types, from the REDmodding wiki:
 
 **Verified 2026-10-19 by the owner:** the game plays an override (a katana equip sound, from a later track soloed, packed and deployed). REDmod accepts EDGEwave's 48 kHz 16-bit WAV, and the game plays it for the event (`dev_vending_machine_can_falls`, `mod_sfx_room`).
 
-**Why Silence is a silent WAV.** In the same test a `mod_skip` entry for `dev_vending_machine_can_falls` was deployed (REDmod's log found the mod, and `r6/cache/modded/mods.json` lists the entry) but the game still played the event's own sound, while a custom sound for that event played. The game's executable does contain the string `mod_skip`, beside the code that reads `mods.json`; why it did not take is unknown. Modders silence an event with a silent sound file, so EDGEwave does too. A first try, 0.1 s of mono silence as `mod_sfx_2d` at gain 0, did not silence it either (the owner's guesses: the original is stereo and spatial, and the file is very short; a gain of 0 may also read as no sound). So the silence now matches a replacement that played in every way but its samples: the same type, gain 1, the same rate, channels and length (unverified in the game until the retest). An older `mod_skip` entry in `info.json` is replaced the next time that event is silenced or replaced.
+**Why Silence is a silent WAV** (the A3 hand test, round 2, 2026-10-19).
+
+| Test | Result |
+|---|---|
+| A custom sound for `dev_vending_machine_can_falls` | Played. A short ping in its place showed why the next tests misled: a can dropping plays several events layered together, and only this one was replaced |
+| `mod_skip`, then a silent WAV, for that event | The can still sounded the same: the other layers. The silences were not proven either way |
+| A silent WAV for `w_melee_katana_equip`, one event on its own | **Silent.** The mix rendered as for a replacement, every sample zeroed, at gain 1 |
+| `mod_skip` for `w_melee_katana_equip`, by hand, with the event's audible WAV left in `customSounds` | **Not silent.** The game's executable contains the string `mod_skip`, beside the code that reads `mods.json`; why it does not take is unknown |
+| `gain` 0 in `info.json`, on a loud replacement | Still loud: gain seems to be ignored (unverified: whether `mods.json` had the 0) |
+
+So Silence writes a silent WAV, as modders do, and never `mod_skip`. An older `mod_skip` entry in `info.json` is replaced the next time that event is silenced or replaced.
 
 ## What is built
 
