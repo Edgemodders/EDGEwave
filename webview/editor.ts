@@ -506,12 +506,8 @@ function syncChecks() {
       const id = doc?.tracks[[...laneChecks.children].indexOf(box.parentElement!)]?.id;
       if (id) setInMix((t) => (t.id === id ? on : !t.mute));
     });
-    const grip = document.createElement("span");
-    grip.className = "grip";
-    grip.title = "Drag to move this track up or down";
-    grip.addEventListener("pointerdown", (ev) => startLaneDrag(ev, grip));
     const row = document.createElement("div");
-    row.append(grip, box);
+    row.append(box);
     laneChecks.append(row);
   }
   doc.tracks.forEach((t, i) => {
@@ -521,13 +517,12 @@ function syncChecks() {
   });
 }
 
-// ---- moving a lane: drag its grip up or down, or the lanes' menu ------------------------------------------
+// ---- moving a lane: drag it up or down (the mix's mouse, below), or the lanes' menu ---------------------
 
 const dropLine = document.createElement("div");
 dropLine.className = "dropline";
 dropLine.hidden = true;
 mixCanvas.parentElement!.append(dropLine);
-let laneDrag: { from: number; to: number; grip: HTMLElement } | null = null;
 
 /** Moves the track at index `from` to stand before the track now at `to` (0 to the number of tracks). */
 function moveTrack(from: number, to: number) {
@@ -540,44 +535,6 @@ function moveTrack(from: number, to: number) {
     ts.splice(to > from ? to - 1 : to, 0, t);
     return { ...d, tracks: ts };
   });
-}
-
-function startLaneDrag(ev: PointerEvent, grip: HTMLElement) {
-  if (ev.button !== 0 || !doc) return;
-  ev.preventDefault();
-  const from = [...laneChecks.children].indexOf(grip.parentElement!);
-  laneDrag = { from, to: from, grip };
-  grip.classList.add("dragging");
-  try {
-    grip.setPointerCapture(ev.pointerId);
-  } catch {
-    // A synthetic pointer: the drag still works over the grip.
-  }
-  const move = (e: PointerEvent) => {
-    if (!laneDrag || !doc) return;
-    const box = mixCanvas.parentElement!, r = box.getBoundingClientRect();
-    // Past the top or bottom edge, the lanes scroll.
-    if (e.clientY < r.top + 16) box.scrollTop -= 12;
-    else if (e.clientY > r.bottom - 16) box.scrollTop += 12;
-    const y = e.clientY - r.top - box.clientTop + box.scrollTop - Ruler - 1;
-    laneDrag.to = Math.max(0, Math.min(doc.tracks.length, Math.round(y / Lane)));
-    const still = laneDrag.to === laneDrag.from || laneDrag.to === laneDrag.from + 1;
-    dropLine.hidden = still;
-    dropLine.style.top = `${Ruler + 1 + laneDrag.to * Lane}px`;
-  };
-  const end = (e: PointerEvent) => {
-    grip.removeEventListener("pointermove", move);
-    grip.removeEventListener("pointerup", end);
-    grip.removeEventListener("pointercancel", end);
-    grip.classList.remove("dragging");
-    dropLine.hidden = true;
-    const d = laneDrag;
-    laneDrag = null;
-    if (d && e.type === "pointerup") moveTrack(d.from, d.to);
-  };
-  grip.addEventListener("pointermove", move);
-  grip.addEventListener("pointerup", end);
-  grip.addEventListener("pointercancel", end);
 }
 
 /** Puts each track in the mix or leaves it out; out is saved as mute. */
@@ -707,9 +664,20 @@ new ResizeObserver(() => {
   draw();
 }).observe(canvas);
 
-// ---- the mix's mouse: select a lane, drag a clip to move it, click elsewhere to place the mix cursor -----
+// ---- the mix's mouse: a click selects a lane and places the mix cursor; a drag sideways moves a clip in
+// time, up or down moves the lane. The first few pixels pick the direction, and it holds for the drag. -----
 
-let dragging: { id: string; grab: number; offset: number; moved: boolean } | null = null;
+let dragging: {
+  id: string;
+  lane: number;
+  grab: number;
+  offset: number;
+  x: number;
+  y: number;
+  inClip: boolean;
+  mode: "time" | "lane" | null;
+  to: number;
+} | null = null;
 const mixAt = (ev: MouseEvent) => {
   const r = mixCanvas.getBoundingClientRect();
   return { t: Math.max(0, (ev.clientX - r.left) * mixSecPerPx), lane: Math.floor((ev.clientY - r.top - Ruler - 1) / Lane) };
@@ -727,32 +695,47 @@ mixCanvas.addEventListener("pointerdown", (ev) => {
   selectTrack(tr.id);
   const c = clipOf(tr);
   const end = tr.offset + (c ? onMix(tr, duration(c.audio)) : 0);
-  if (t >= tr.offset && t <= end) {
-    capture(mixCanvas, ev.pointerId);
-    dragging = { id: tr.id, grab: t - tr.offset, offset: tr.offset, moved: false };
-  } else {
-    mixCursor = t;
-  }
+  capture(mixCanvas, ev.pointerId);
+  dragging = { id: tr.id, lane, grab: t - tr.offset, offset: tr.offset, x: ev.clientX, y: ev.clientY, inClip: t >= tr.offset && t <= end, mode: null, to: lane };
   draw();
 });
 mixCanvas.addEventListener("pointermove", (ev) => {
-  if (!dragging) return;
-  const { t } = mixAt(ev);
-  const offset = Math.max(0, t - dragging.grab);
-  if (Math.abs(offset - dragging.offset) / mixSecPerPx > 1) dragging.moved = true;
-  if (dragging.moved) dragging.offset = offset;
-  drawMix();
+  if (!dragging || !doc) return;
+  const dx = ev.clientX - dragging.x, dy = ev.clientY - dragging.y;
+  if (!dragging.mode && Math.hypot(dx, dy) > 4) {
+    dragging.mode = Math.abs(dy) > Math.abs(dx) ? "lane" : dragging.inClip ? "time" : null;
+    if (dragging.mode === "lane") mixCanvas.style.cursor = "ns-resize";
+  }
+  if (dragging.mode === "time") {
+    dragging.offset = Math.max(0, mixAt(ev).t - dragging.grab);
+    drawMix();
+  } else if (dragging.mode === "lane") {
+    const box = mixCanvas.parentElement!, r = box.getBoundingClientRect();
+    // Past the top or bottom edge, the lanes scroll.
+    if (ev.clientY < r.top + 16) box.scrollTop -= 12;
+    else if (ev.clientY > r.bottom - 16) box.scrollTop += 12;
+    const y = ev.clientY - r.top - box.clientTop + box.scrollTop - Ruler - 1;
+    dragging.to = Math.max(0, Math.min(doc.tracks.length, Math.round(y / Lane)));
+    dropLine.hidden = dragging.to === dragging.lane || dragging.to === dragging.lane + 1;
+    dropLine.style.top = `${Ruler + 1 + dragging.to * Lane}px`;
+  }
 });
-mixCanvas.addEventListener("pointerup", (ev) => {
+const endMixDrag = (ev: PointerEvent) => {
   if (!dragging) return;
   const d = dragging;
   dragging = null;
-  if (d.moved) changeTrack((t) => ({ ...t, offset: Math.round(d.offset * 1000) / 1000 }));
-  else {
+  mixCanvas.style.cursor = "";
+  dropLine.hidden = true;
+  if (ev.type === "pointercancel") return drawMix();
+  if (d.mode === "time") changeTrack((t) => ({ ...t, offset: Math.round(d.offset * 1000) / 1000 }));
+  else if (d.mode === "lane") moveTrack(d.lane, d.to);
+  else if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) <= 4) {
     mixCursor = mixAt(ev).t;
     draw();
   }
-});
+};
+mixCanvas.addEventListener("pointerup", endMixDrag);
+mixCanvas.addEventListener("pointercancel", endMixDrag);
 
 // ---- playback ---------------------------------------------------------------------------------------------
 

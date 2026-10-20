@@ -464,21 +464,37 @@ log("splitter", JSON.stringify({ split0, split1, split2, spare, split3 }));
 const splitOk = split0 === 19 + 4 * 36 + 2 && split1 === 19 + 36 + 2 && split2 === split1 + 36 && split3 === Math.min(19 + 6 * 36 + 2, split2 + spare) && split3 > split2;
 if (!splitOk) finish(false, "the splitter did not resize the lanes");
 
-// Moving lanes: drag track 3's grip above track 1; right-click the top lane > Move Down; then undo.
+// Moving lanes: drag track 3's lane up above track 1 (its clip keeps its start); right-click the top lane >
+// Move Down; then undo.
 const saveDoc = async () => {
   await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
   await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
   await sleep(1200);
   return JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.map((t) => t.id);
 };
-const order0 = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.map((t) => t.id);
+// First sideways, with a little wobble: track 1's clip moves in time, the order stays.
+const sideBefore = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks;
 await run(`
   const box = document.querySelector('.lanes'); box.scrollTop = 0;
-  const g = document.querySelectorAll('#laneChecks .grip')[2], r = g.getBoundingClientRect(), top = box.getBoundingClientRect().top + 1 + 19;
-  const ev = (type, cy) => g.dispatchEvent(new PointerEvent(type, { clientX: r.left + 3, clientY: cy, pointerId: 8, button: 0, bubbles: true }));
-  ev('pointerdown', r.top + 7); ev('pointermove', top + 40); ev('pointermove', top + 4);
+  const c = document.getElementById('mix'), r = c.getBoundingClientRect();
+  const t1 = ${JSON.stringify(sideBefore[0].offset)}, x = r.left + 5, y = r.top + 19 + 18;
+  const ev = (type, cx, cy) => c.dispatchEvent(new PointerEvent(type, { clientX: cx, clientY: cy, pointerId: 9, button: 0, bubbles: true }));
+  ev('pointerdown', x, y); ev('pointermove', x + 8, y + 3); ev('pointermove', x + 40, y + 6); ev('pointerup', x + 40, y + 6);`);
+await sleep(400);
+await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+await sleep(1200);
+const before0 = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks;
+const sidewaysOk = before0.map((t) => t.id).join() === sideBefore.map((t) => t.id).join() && before0[0].offset > sideBefore[0].offset;
+log("sideways", JSON.stringify({ from: sideBefore[0].offset, to: before0[0].offset, sidewaysOk }));
+const order0 = before0.map((t) => t.id);
+await run(`
+  const box = document.querySelector('.lanes'); box.scrollTop = 0;
+  const c = document.getElementById('mix'), r = c.getBoundingClientRect(), x = r.left + 3, y = r.top + 19 + 2 * 36 + 18;
+  const ev = (type, cx, cy) => c.dispatchEvent(new PointerEvent(type, { clientX: cx, clientY: cy, pointerId: 8, button: 0, bubbles: true }));
+  ev('pointerdown', x, y); ev('pointermove', x + 2, y - 10); ev('pointermove', x + 3, y - 50); ev('pointermove', x + 3, r.top + 19 + 4);
   window.__dropShown = !document.querySelector('.dropline').hidden;
-  ev('pointerup', top + 4);`);
+  ev('pointerup', x + 3, r.top + 19 + 4);`);
 await sleep(400);
 const dropShown = await run("return window.__dropShown");
 await run(`
@@ -495,7 +511,8 @@ const order2 = await saveDoc();
 log("move lanes", JSON.stringify({ order0, dropShown, order1, order2 }));
 const [o0, o1, o2] = [order0, order1, order2].map((o) => o.join());
 const [a0, b0, c0, ...rest0] = order0;
-const moveOk = dropShown === true && o1 === [a0, c0, b0, ...rest0].join() && o2 === [c0, a0, b0, ...rest0].join() && o0 !== o1;
+const offsetKept = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.find((t) => t.id === order0[2]).offset === before0[2].offset;
+const moveOk = sidewaysOk && dropShown === true && offsetKept && o1 === [a0, c0, b0, ...rest0].join() && o2 === [c0, a0, b0, ...rest0].join() && o0 !== o1;
 if (!moveOk) finish(false, "moving lanes did not reorder the tracks");
 
 // The Sounds view: Project (the open folder) and Recent (opened lately), each listing 42.

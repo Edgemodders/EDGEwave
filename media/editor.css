@@ -95,13 +95,9 @@ input[type="checkbox"]:disabled { opacity: .4; cursor: default; }
 .lanes { flex: none; max-height: calc(19px + 4 * 36px + 2px); overflow-y: auto; margin: 6px 12px 0; border: 1px solid var(--line); }
 .lanes { display: flex; align-items: flex-start; position: relative; }
 .lanes canvas { display: block; flex: 1; min-width: 0; width: 100%; cursor: grab; touch-action: none; }
-.lanechecks { flex: none; width: 32px; padding-top: 19px; border-right: 1px solid var(--line); }
-.lanechecks > div { height: 36px; display: flex; align-items: center; justify-content: center; gap: 2px; }
-/* A lane's grip: drag it up or down to move the track; a line shows where it will land. */
-.lanechecks .grip { width: 8px; height: 14px; cursor: grab; touch-action: none; opacity: .5;
-  background: radial-gradient(circle, var(--dim) 1px, transparent 1.3px) 0 0 / 4px 4px; }
-.lanechecks .grip:hover, .lanechecks .grip.dragging { opacity: 1; background-image: radial-gradient(circle, var(--accent) 1px, transparent 1.3px); }
-.lanechecks .grip.dragging { cursor: grabbing; }
+.lanechecks { flex: none; width: 22px; padding-top: 19px; border-right: 1px solid var(--line); }
+.lanechecks > div { height: 36px; display: flex; align-items: center; justify-content: center; }
+/* Where a lane dragged up or down will land. */
 .dropline { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--accent); pointer-events: none; z-index: 1; }
 .dropline[hidden] { display: none; }
 .lanechecks input { margin: 0; cursor: pointer; }
