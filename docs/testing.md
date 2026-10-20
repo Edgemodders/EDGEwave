@@ -74,7 +74,7 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 out of the mix |
 | A2 | The lanes' checkboxes; right-click the generated sound's lane > Only This Track; Into the Game | Track 1's box checks; then only track 3's is checked, saved as `mute` on the others; Into the Game's first row is the named REDmod route, saying no track in the mix is a game sound effect (track 3) |
 | A2 | The splitter: drag it far up, then one lane down; double-click it | The lanes go to one lane, then two; double-click fits every track, as far as the waveform's least height (110 px) allows |
-| A2 | Moving lanes: drag track 3's grip above track 1; right-click the top lane > Move Down; Ctrl+Z | The drop line shows; the order is 1, 3, 2, then 3, 1, 2 after the undo (one edit) |
+| A2 | Moving lanes: drag track 1's clip sideways with a little wobble; drag track 3's lane up above track 1; right-click the top lane > Move Down; Ctrl+Z | The sideways drag moves the clip in time and keeps the order; the drop line shows; track 3 keeps its start; the order is 1, 3, 2, then 3, 1, 2 after the undo (one edit) |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 
@@ -166,7 +166,7 @@ What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 2's finding (s
 10. **Remove.** Remove a track. Expect: its lane goes; Remove is greyed when one track is left.
 11. **Fit.** Make the editor short and narrow. Expect: nothing runs off the bottom; the lanes scroll past four tracks; the panes scroll.
 12. **The splitter** (the owner's request, 2026-10-20). With five or more tracks, drag the bar under the Track bar down, then up; double-click it; with it focused, press the up and down arrows. Expect: the lanes grow and shrink and the waveform takes the rest, never under one lane or past every track, the waveform never under about 110 px; double-click fits every track. Switch to another tab and back, or reload the window: the height stays.
-13. **Moving lanes** (the owner's request, 2026-10-20). With three or more tracks, drag a lane's grip (the dots left of its checkbox) up or down, past the top or bottom edge when the lanes scroll; right-click a lane > **Move Up** and **Move Down**; then Ctrl+Z. Expect: a yellow line shows where the lane will land; the track moves there and stays selected; the lanes' numbers and Into the Game's `Track N` groups follow the new order; each move is one undo.
+13. **Moving lanes** (the owner's request, 2026-10-20). With three or more tracks, drag a lane up or down, from its clip or the empty part beside it, and past the top or bottom edge when the lanes scroll; drag a clip sideways, a little off level; right-click a lane > **Move Up** and **Move Down**; then Ctrl+Z. Expect: up or down, the cursor is an up-down arrow, a yellow line shows where the lane will land, and the track moves there, keeps its start and stays selected; sideways, the clip moves in time and never changes lane; the lanes' numbers and Into the Game's `Track N` groups follow the new order; each move is one undo.
 
 ### A3 Into the game
 

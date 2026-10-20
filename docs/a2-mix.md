@@ -9,7 +9,7 @@ Status: **built 2026-10-16; hand test passed 2026-10-18 but one finding, fixed, 
 | Version 2 of the sound document: tracks, each a source with its own edits, start, gain, pan, rate, in the mix or not (`mute`), and effects; a master with gain and effects. An A1 document opens as one track and is written as version 2 at its next change | `src/doc.ts` |
 | The mix's arithmetic (which tracks are in the mix, where the mix ends, reverb tails), the effects' parameters and the presets, pure, with unit tests | `src/audio/mix.ts`, `test/` |
 | The audio graph: per track the edited clip at its rate, its effects, gain and pan; then the master. Playback and render build the same graph, so what is heard is what is rendered | `webview/graph.ts` |
-| The page: the mix lanes, each with a checkbox at its left (checked, the track is in the mix; right-click a lane for **Only This Track** and **All Tracks**), each with a grip to drag it up or down (and **Move Up** and **Move Down** in the lanes' menu), and the selected track's controls above A1's clip editor, with a splitter between them; Edits, Effects and Master panes below; Render in the Mix bar | `webview/editor.ts`, `media/editor.css` |
+| The page: the mix lanes, each with a checkbox at its left (checked, the track is in the mix; right-click a lane for **Only This Track** and **All Tracks**), each dragged up or down to move it (and **Move Up** and **Move Down** in the lanes' menu), and the selected track's controls above A1's clip editor, with a splitter between them; Edits, Effects and Master panes below; Render in the Mix bar | `webview/editor.ts`, `media/editor.css` |
 | **Add Sound…**: a quick pick over the game's sound effects (REDcode's index, by event name or tag, then the variation), a game file by path, or a sound file | `src/editor.ts` |
 
 | Effect | Parameters |
@@ -60,12 +60,18 @@ The owner's request: the lanes need the height more than a single clip's wavefor
 
 ## Moving lanes (2026-10-20)
 
-The owner's request, from A3's step 8: Into the Game names its groups by track number (the lane, top to bottom), so the order of the lanes matters. Dragging a clip already moves it in time, so a lane moves by its own grip.
+The owner's request, from A3's step 8: Into the Game names its groups by track number (the lane, top to bottom), so the order of the lanes matters. The first build had a grip per lane; the owner asked for the lane itself, as a clip already drags sideways, so the drag's direction decides (the same day).
+
+| You drag a lane | What happens |
+|---|---|
+| Mostly sideways | On the clip: the clip moves in time (as before); the lane stays. On the empty part: nothing |
+| Mostly up or down | From the clip or the empty part: the lane moves. The cursor is an up-down arrow, a yellow line shows where it will land, past the top or bottom edge the lanes scroll. The clip keeps its start |
+| A click, no movement | Selects the track and places the mix cursor |
+
+The first 4 pixels of movement pick the direction, and it holds for the drag: a sideways drag never turns into a move, a move never shifts the clip in time.
 
 | | |
 |---|---|
-| Grip | The dots left of each lane's checkbox; the cursor is a hand over it |
-| Drag | Up or down; a yellow line shows where the lane will land; past the top or bottom edge the lanes scroll |
 | Drop | The track moves there and stays selected; the numbers follow; one edit (Ctrl+Z undoes it) |
 | Menu | Right-click a lane: **Move Up**, **Move Down** |
 | Into the Game | The last choice is kept by sound and event, not by track number, so a move never loses it |
