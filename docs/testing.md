@@ -196,7 +196,16 @@ Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48
 5. **Silence.** **Silence the event `<event>`, every variation, with REDmod**, and pick the type that played in step 4. Expect: `source/customSounds/<event>.wav` is as long as your mix and silent, its entry has that type with gain 1; in the game the event is silent. Pick an event that plays on its own, such as a weapon's equip: an action such as a can dropping from a vending machine plays several events at once, and the others still sound.
 6. **The last choice.** Into the Game again on the same document. Expect: the route you used last is marked **last time** where it is listed. Right-click another game sound's lane > **Only This Track** and open it again: that track comes first, and the last choice stays marked in its own track's group, under **not in the mix**. With only a file (such as a generated sound) checked, the first row is **A REDmod custom sound for an event…**, saying no track in the mix is a game sound effect.
 7. **A voice line.** Into the Game on a voice line's document. Expect: a message that voice lines cannot go in yet, and only the named REDmod route.
-8. **A game sound on a later track** (the owner's finding, 2026-10-19). In a document whose track 1 is not that sound, add a game sound effect with Add Sound, check only its lane (or it and a file you want mixed in), then **Into the Game…**. Expect: the added sound's **Override sound** and its event's REDmod routes, under its track's name, at the top; tracks out of the mix are listed after **Any event**, marked **not in the mix**. Pick its override, Pack and play: you hear the checked tracks as in EDGEwave.
+8. **A game sound on a later track** (the owner's finding, 2026-10-19). Track 1 is the top lane; "later" means the game sound is not in it ([what goes in, and what it replaces](a3-game.html#what-goes-in-and-what-it-replaces)).
+   1. Open a document whose track 1 is not the sound you will replace: a generated sound, a WAV opened with Open Sound in EDGEwave…, or a game sound's document.
+   2. **Add Sound** > a game sound effect that plays on its own, such as a weapon's equip. It lands at the bottom (track 2 or later).
+   3. Right-click its lane > **Only This Track**, or also check a file track to mix in. Make it recognisable (a preset, a fade, the file).
+   4. **Into the Game…**. Expect: at the top, under `Track 2 · <event> · <hash>`, **Override sound `<hash>`**, **Replace the event…** and **Silence the event…**; then **Any event**; then any other game sound's track, marked **not in the mix**.
+   5. Pick its **Override sound**. Expect: a message naming the `.opuspak` written under `source/archive`.
+   6. **Pack** (plain archive layout), install and play the sound a few times. Expect: the checked tracks, as in EDGEwave.
+   7. **The swap.** Check only track 1 (a file) and uncheck the game sound's track. **Into the Game…**. Expect: **Any event** first, saying no track in the mix is a game sound effect; the game sound's group last, **not in the mix**. Pick its **Override sound**, Pack and play: the file alone, in place of the game sound.
+
+   Before playing, take out an earlier REDmod replacement of the same event (its WAV in `source/customSounds` and its `info.json` entry), or turn `redcode.pack.redmod` off: REDmod's sound would play instead of the override. An override is one variation: an event with several may play another one some of the time.
 
 ### V1 Voice tools
 
