@@ -3,10 +3,9 @@
 
 import type { Effect, EffectType, SoundDoc, Track } from "../doc";
 
-/** The tracks heard: the soloed ones when any is soloed, else all; never a muted one. */
+/** The tracks in the mix: those whose lane is checked (out of the mix is saved as mute). */
 export function audible(tracks: readonly Track[]): Track[] {
-  const solo = tracks.some((t) => t.solo && !t.mute);
-  return tracks.filter((t) => !t.mute && (!solo || t.solo));
+  return tracks.filter((t) => !t.mute);
 }
 
 /** Seconds a clip lasts on the mix, at its track's rate. */

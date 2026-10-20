@@ -83,7 +83,11 @@ input[type="checkbox"] { accent-color: var(--accent); }
 .label { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-right: 6px; }
 .mixbar .label { color: var(--accent); }
 .lanes { flex: none; max-height: calc(18px + 4 * 36px + 2px); overflow-y: auto; margin: 6px 12px 0; border: 1px solid var(--line); }
-.lanes canvas { display: block; width: 100%; cursor: grab; touch-action: none; }
+.lanes { display: flex; align-items: flex-start; }
+.lanes canvas { display: block; flex: 1; min-width: 0; width: 100%; cursor: grab; touch-action: none; }
+.lanechecks { flex: none; width: 22px; padding-top: 19px; border-right: 1px solid var(--line); }
+.lanechecks > div { height: 36px; display: flex; align-items: center; justify-content: center; }
+.lanechecks input { margin: 0; cursor: pointer; }
 .trackname { color: var(--accent); margin-right: 8px; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 label.param { display: inline-flex; align-items: center; gap: 4px; color: var(--dim); font-size: 12px; margin-right: 4px; white-space: nowrap; }
 label.param input[type="number"] { width: 52px; }

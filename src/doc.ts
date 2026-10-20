@@ -78,8 +78,8 @@ export interface Track {
   pan: number;
   /** Playback rate: pitch and speed together. 1 when absent. */
   rate?: number;
+  /** Out of the mix: the lane's checkbox is unchecked. */
   mute?: boolean;
-  solo?: boolean;
   effects: Effect[];
 }
 
@@ -184,6 +184,10 @@ export function parseDoc(text: string): SoundDoc {
     t.pan ??= 0;
     t.effects ??= [];
   });
+  // Solo, before 2026-10-19: the tracks it let be heard stay in the mix, the others leave it.
+  const old = doc.tracks as (Track & { solo?: boolean })[];
+  if (old.some((t) => t.solo && !t.mute)) for (const t of old) if (!t.solo) t.mute = true;
+  for (const t of old) delete t.solo;
   doc.master ??= { gain: 0, effects: [] };
   doc.master.effects ??= [];
   if (!doc.render || typeof doc.render.file !== "string") throw new Error("The document's render file is missing");

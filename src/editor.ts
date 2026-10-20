@@ -288,15 +288,13 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
   <button id="render" class="primary" title="Write the mix as a 16-bit WAV, reverb tails included (settings in Master)">Render WAV</button>
   <button id="intoGame" class="primary" title="Put the mix into the REDcode project for the game: override this sound effect, or a REDmod custom sound for an event">Into the Game…</button>
 </div>
-<div class="lanes"><canvas id="mix"></canvas></div>
+<div class="lanes"><div id="laneChecks" class="lanechecks"></div><canvas id="mix"></canvas></div>
 <div class="toolbar track">
   <span class="label">Track</span><span id="trackName" class="mono trackname"></span>
   <label class="param" title="The track's level in the mix, in dB. To change the clip itself, use Apply gain below the waveform">Level <input id="trackGain" type="number" step="0.5" min="-60" max="24"> dB</label>
   <label class="param" title="-1 left, 0 centre, 1 right">Pan <input id="trackPan" type="number" step="0.1" min="-1" max="1"></label>
   <label class="param" title="Playback rate: pitch and speed together (0.25 to 4)">Rate <input id="trackRate" type="number" step="0.05" min="0.25" max="4"></label>
   <label class="param" title="Where the clip starts on the mix; or drag it in the lanes">Start <input id="trackOffset" type="number" step="0.01" min="0"> s</label>
-  <button id="mute" title="Mute this track">Mute</button>
-  <button id="solo" title="Hear only the soloed tracks">Solo</button>
   <button id="removeTrack" title="Remove this track from the mix">Remove</button>
 </div>
 <div class="toolbar">

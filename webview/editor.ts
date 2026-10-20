@@ -244,6 +244,7 @@ function span(c: { audio: Audio; peaks: Peaks }, ch: number, from: number, to: n
 
 const canvas = $<HTMLCanvasElement>("canvas");
 const mixCanvas = $<HTMLCanvasElement>("mix");
+const laneChecks = $("laneChecks");
 const Ruler = 18;
 const Lane = 36;
 /** A lane's label strip above its waveform. */
@@ -393,7 +394,7 @@ function drawMix() {
     // The label in its strip, the waveform below it.
     g.fillStyle = t.id === track()?.id ? k.accent : k.dim;
     g.font = `10px ${k.font}`;
-    const label = `${i + 1} ${sourceLabel(t.source)}${t.mute ? " · muted" : ""}${t.solo ? " · solo" : ""}${t.effects.length ? ` · ${t.effects.length} fx` : ""}`;
+    const label = `${i + 1} ${sourceLabel(t.source)}${t.effects.length ? ` · ${t.effects.length} fx` : ""}`;
     g.fillText(label, Math.max(4, x0 + 4), top + 11);
     if (c) {
       const rate = c.audio.sampleRate * (t.rate ?? 1);
@@ -422,6 +423,37 @@ function drawMix() {
   g.fillRect(Math.round(x(mixCursor)), Ruler + 1, 1, h);
   const played = player?.mode === "mix" ? playPosition() : null;
   if (played !== null) g.fillRect(Math.round(x(played)), 0, 2, h);
+  syncChecks();
+}
+
+// ---- the lanes' checkboxes: checked, the track is in the mix (played, rendered, put into the game) ------
+
+function syncChecks() {
+  if (!doc) return;
+  while (laneChecks.children.length > doc.tracks.length) laneChecks.lastElementChild!.remove();
+  while (laneChecks.children.length < doc.tracks.length) {
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.addEventListener("change", () => {
+      // Read now: the change redraws the lanes, which sets every box from the document.
+      const on = box.checked;
+      const id = doc?.tracks[[...laneChecks.children].indexOf(box.parentElement!)]?.id;
+      if (id) setInMix((t) => (t.id === id ? on : !t.mute));
+    });
+    const row = document.createElement("div");
+    row.append(box);
+    laneChecks.append(row);
+  }
+  doc.tracks.forEach((t, i) => {
+    const box = laneChecks.children[i].firstElementChild as HTMLInputElement;
+    box.checked = !t.mute;
+    box.title = `Track ${i + 1}: ${t.mute ? "not in the mix. Check to put it in" : "in the mix. Uncheck to leave it out"}`;
+  });
+}
+
+/** Puts each track in the mix or leaves it out; out is saved as mute. */
+function setInMix(inMix: (t: Track) => boolean) {
+  change((d) => ({ ...d, tracks: d.tracks.map((t) => ({ ...t, mute: inMix(t) ? undefined : true })) }));
 }
 
 function lengths(): Map<string, number> {
@@ -816,8 +848,6 @@ numberInput("trackGain", (v) => changeTrack((t) => ({ ...t, gain: v })));
 numberInput("trackPan", (v) => changeTrack((t) => ({ ...t, pan: Math.max(-1, Math.min(1, v)) })));
 numberInput("trackRate", (v) => changeTrack((t) => ({ ...t, rate: v > 0 && v !== 1 ? Math.max(0.25, Math.min(4, v)) : undefined })));
 numberInput("trackOffset", (v) => changeTrack((t) => ({ ...t, offset: Math.max(0, v) })));
-on("mute", () => changeTrack((t) => ({ ...t, mute: !t.mute || undefined })));
-on("solo", () => changeTrack((t) => ({ ...t, solo: !t.solo || undefined })));
 on("removeTrack", () => {
   const t = track();
   if (!t || !doc || doc.tracks.length < 2) return;
@@ -1029,8 +1059,6 @@ function refreshPanels() {
   $<HTMLInputElement>("trackPan").value = String(t.pan);
   $<HTMLInputElement>("trackRate").value = String(t.rate ?? 1);
   $<HTMLInputElement>("trackOffset").value = String(t.offset);
-  $("mute").classList.toggle("on", !!t.mute);
-  $("solo").classList.toggle("on", !!t.solo);
   $<HTMLButtonElement>("removeTrack").disabled = doc.tracks.length < 2;
   $("channels").textContent = c && c.channels.length === 1 ? "Stereo" : "Mono";
   $<HTMLButtonElement>("paste").disabled = !clipboard || clipboard.track !== t.id;
@@ -1096,18 +1124,16 @@ const MenuItems: [string, string, () => boolean][] = [
   ["Normalize", "normalize", () => true],
   ["Set loop", "setLoop", () => !!selection],
 ];
-canvas.addEventListener("contextmenu", (ev) => {
-  ev.preventDefault();
-  ev.stopPropagation();
-  if (!clip()) return;
+/** Shows the menu at the pointer: a label, whether it is enabled, and what it does. */
+function showMenu(ev: MouseEvent, items: [string, boolean, () => void][]) {
   menu.replaceChildren(
-    ...MenuItems.map(([label, id, ok]) => {
+    ...items.map(([label, ok, act]) => {
       const b = document.createElement("button");
       b.textContent = label;
-      b.disabled = !ok();
+      b.disabled = !ok;
       b.addEventListener("click", () => {
         hideMenu();
-        $<HTMLButtonElement>(id).click();
+        act();
       });
       return b;
     }),
@@ -1115,6 +1141,25 @@ canvas.addEventListener("contextmenu", (ev) => {
   menu.hidden = false;
   menu.style.left = `${Math.max(0, Math.min(ev.clientX, innerWidth - menu.offsetWidth - 4))}px`;
   menu.style.top = `${Math.max(0, Math.min(ev.clientY, innerHeight - menu.offsetHeight - 4))}px`;
+}
+canvas.addEventListener("contextmenu", (ev) => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  if (!clip()) return;
+  showMenu(ev, MenuItems.map(([label, id, ok]) => [label, ok(), () => $<HTMLButtonElement>(id).click()]));
+});
+// The lanes' menu: right-click a lane or its checkbox.
+mixCanvas.parentElement!.addEventListener("contextmenu", (ev) => {
+  ev.preventDefault();
+  ev.stopPropagation();
+  const tr = doc?.tracks[mixAt(ev).lane];
+  if (!doc || !tr) return;
+  selectTrack(tr.id);
+  const others = doc.tracks.some((t) => t.id !== tr.id && !t.mute);
+  showMenu(ev, [
+    ["Only This Track", !!tr.mute || others, () => setInMix((t) => t.id === tr.id)],
+    ["All Tracks", doc.tracks.some((t) => t.mute), () => setInMix(() => true)],
+  ]);
 });
 document.addEventListener("pointerdown", (e) => {
   if (!menu.contains(e.target as Node)) hideMenu();

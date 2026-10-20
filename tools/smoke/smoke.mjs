@@ -267,11 +267,11 @@ log("override imported", override);
 await sleep(800);
 await key("Escape", "Escape", 27); // the notification
 await run("document.getElementById('intoGame').click()");
-// Both tracks are heard, so the last choice's track (2) comes first, its override marked "last time".
+// Both tracks are in the mix: they come in the mixer's order, the last choice (track 2's override) marked where it is.
 await sleep(1200);
-const firstRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 2).map((r) => r.textContent.trim())`);
+const firstRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 6).map((r) => r.textContent.trim())`);
 log("into the game, second time", JSON.stringify(firstRows));
-const lastFirst = /^Override sound 43/.test(firstRows[0] ?? "") && /last time/.test(firstRows[0] ?? "");
+const lastFirst = /^Override sound 42/.test(firstRows[0] ?? "") && !/last time/.test(firstRows[0]) && firstRows.some((r) => /^Override sound 43/.test(r) && /last time/.test(r));
 await pickFirst("Replace the event smoke_event");
 await pickFirst(""); // 2D
 const info = path.join(T, "proj", "source", "resources", "info.json");
@@ -410,6 +410,38 @@ const voiceOk =
   eleven.filter((r) => r.path === "/v1/voices/add").length === 1 && eleven.filter((r) => r.fmt === "pcm_48000").length === 1;
 if (!voiceOk) finish(false, "the voice tools did not do what they should");
 
+// The lanes' checkboxes: track 1 (left out by Re-Voice) is unchecked; check it. Then right-click the
+// generated sound's lane > Only This Track: a file alone in the mix, so Into the Game offers the named
+// event first, saying why.
+const checks = () => run("return [...document.querySelectorAll('#laneChecks input')].map((b) => b.checked)");
+const checksBefore = await checks();
+await run("document.querySelector('#laneChecks input').click()");
+await sleep(400);
+const checksAfter = await checks();
+await run(`
+  const c = document.getElementById('mix'), r = c.getBoundingClientRect();
+  c.dispatchEvent(new MouseEvent('contextmenu', { clientX: r.left + 40, clientY: r.top + 18 + 1 + 2 * 36 + 18, bubbles: true }));
+  await new Promise((r) => setTimeout(r, 200));
+  [...document.querySelectorAll('.menu button')].find((b) => b.textContent === 'Only This Track').click();`);
+await sleep(400);
+const checksOnly = await checks();
+await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "s", code: "KeyS", windowsVirtualKeyCode: 83, modifiers: 2 });
+await sleep(1200);
+const mutes = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.map((t) => !!t.mute);
+await run("document.getElementById('intoGame').click()");
+await sleep(1500);
+const fileRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 3).map((r) => r.textContent.trim())`);
+await key("Escape", "Escape", 27);
+log("checkboxes", JSON.stringify({ checksBefore, checksAfter, checksOnly, mutes, fileRows }));
+const checksOk =
+  JSON.stringify(checksBefore) === JSON.stringify([false, true, true, true, true, true]) &&
+  JSON.stringify(checksAfter) === JSON.stringify([true, true, true, true, true, true]) &&
+  JSON.stringify(checksOnly) === JSON.stringify([false, false, true, false, false, false]) &&
+  JSON.stringify(mutes) === JSON.stringify([true, true, false, true, true, true]) &&
+  /^\$?\(?.*A REDmod custom sound for an event/.test(fileRows[0] ?? "") && /No track in the mix is a game sound effect \(track 3\)/.test(fileRows[0] ?? "");
+if (!checksOk) finish(false, "the lanes' checkboxes or Only This Track did not set the mix");
+
 // The Sounds view: Project (the open folder) and Recent (opened lately), each listing 42.
 await key("F1", "F1", 112);
 await sleep(600);
@@ -440,4 +472,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the Sounds view" : "render or mix checks failed");

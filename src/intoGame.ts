@@ -1,6 +1,6 @@
-// Into the Game (A3): puts the mix (the tracks heard, with mute and solo) into the open REDcode project,
+// Into the Game (A3): puts the mix (the tracks whose lanes are checked) into the open REDcode project,
 // in a layout the game loads, for REDcode's pack. What it replaces is a separate choice: any game sound
-// effect on a track, the heard ones first, so a mix of a game sound and a file can override that sound.
+// effect on a track, those in the mix first, so a mix of a game sound and a file can override that sound.
 // Two routes, both chosen in a quick pick and remembered in the document (doc.game):
 //
 // - Override one sound effect variation: a 48 kHz WAV with the original's channels, named after the
@@ -35,21 +35,17 @@ type SfxTrack = Track & { source: Extract<Track["source"], { kind: "sfx" }> };
 
 /**
  * The quick pick's items: for each game sound effect on a track, its override and its event's routes,
- * under the track's name. Heard tracks first; among them (and among the rest) the track of the last
- * choice first. The last choice is marked, never moved above a heard track.
+ * under the track's name. The tracks in the mix first, in the mixer's order; then a custom sound for
+ * a named event; then the tracks out of the mix (still targets: a muted game sound can name what a
+ * file in the mix replaces). The last choice is marked where it is, never moved.
  */
 function routes(doc: SoundDoc): Item[] {
-  const heard = new Set(audible(doc.tracks).map((t) => t.id));
-  const sfx = doc.tracks.filter((t): t is SfxTrack => t.source.kind === "sfx");
-  const last = doc.game;
-  const wasLast = (t: SfxTrack) =>
-    !!last && (last.route === "override" ? last.soundHash === t.source.soundHash : last.event === t.source.eventName);
-  const rank = (t: SfxTrack) => (heard.has(t.id) ? 0 : 2) + (wasLast(t) ? 0 : 1);
-  const ordered = [...sfx].sort((a, b) => rank(a) - rank(b));
+  const inMix = new Set(audible(doc.tracks).map((t) => t.id));
+  const sfx = (t: Track): t is SfxTrack => t.source.kind === "sfx";
   const items: Item[] = [];
   const hashes = new Set<number>();
   const events = new Set<string>();
-  for (const t of ordered) {
+  const group = (t: SfxTrack) => {
     const { soundHash, eventName } = t.source;
     const group: Item[] = [];
     if (!hashes.has(soundHash)) {
@@ -70,15 +66,26 @@ function routes(doc: SoundDoc): Item[] {
         { label: `$(mute) Silence the event ${eventName}, every variation, with REDmod`, detail: "The game plays silence in place of the event's sounds: this mix, as long and in the same format, with every sample zeroed.", route: "skip", track: t, event: eventName },
       );
     }
-    if (!group.length) continue;
+    if (!group.length) return;
     const n = doc.tracks.indexOf(t) + 1;
-    items.push({ label: `Track ${n} · ${sourceLabel(t.source)}${heard.has(t.id) ? "" : " (not heard)"}`, kind: vscode.QuickPickItemKind.Separator }, ...group);
-  }
+    items.push({ label: `Track ${n} · ${sourceLabel(t.source)}${inMix.has(t.id) ? "" : " · not in the mix"}`, kind: vscode.QuickPickItemKind.Separator }, ...group);
+  };
+  for (const t of doc.tracks) if (inMix.has(t.id) && sfx(t)) group(t);
+  // Tracks in the mix with no game sound of their own (a file, a generated sound, a voice line).
+  const own = doc.tracks.filter((t) => inMix.has(t.id) && !sfx(t)).map((t) => `track ${doc.tracks.indexOf(t) + 1}`);
+  const none = own.length && !doc.tracks.some((t) => inMix.has(t.id) && sfx(t));
   items.push(
     { label: "Any event", kind: vscode.QuickPickItemKind.Separator },
-    { label: "$(package) A REDmod custom sound for an event…", detail: "Name the audio event the game should play this mix for (REDcode's sound list shows the names).", route: "redmodNamed" },
+    {
+      label: "$(package) A REDmod custom sound for an event…",
+      detail: none
+        ? `No track in the mix is a game sound effect (${own.join(", ")}), so name the audio event the game should play this mix for, or add the sound it replaces as a track.`
+        : "Name the audio event the game should play this mix for (REDcode's sound list shows the names).",
+      route: "redmodNamed",
+    },
   );
-  const chosen = lastItem(items, last);
+  for (const t of doc.tracks) if (!inMix.has(t.id) && sfx(t)) group(t);
+  const chosen = lastItem(items, doc.game);
   if (chosen) chosen.description = [chosen.description, "last time"].filter(Boolean).join(" · ");
   return items;
 }
@@ -96,20 +103,20 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   if (!project) throw new Error("Open a REDcode project first: Into the Game writes into its source folders.");
   if (document.isDirty) await document.save();
   const doc = parseDoc(document.getText());
-  const heard = audible(doc.tracks);
-  if (!heard.length) throw new Error("Every track is muted: Into the Game puts the tracks you hear into the mod.");
+  const inMix = audible(doc.tracks);
+  if (!inMix.length) throw new Error("No track is in the mix: check a track's box in the lanes to put it in.");
 
-  // A voice line heard, and no sound effect to put the mix in place of.
-  if (!heard.some((t) => t.source.kind === "sfx") && heard.some((t) => t.voice || (t.source.kind === "game" && looksLikeVoice(t.source.path)))) {
+  // A voice line in the mix, and no sound effect to put the mix in place of.
+  if (!inMix.some((t) => t.source.kind === "sfx") && inMix.some((t) => t.voice || (t.source.kind === "game" && looksLikeVoice(t.source.path)))) {
     void vscode.window.showInformationMessage(
       "Voice lines cannot go into the game as voice lines yet: a .wem needs Wwise to make, which EDGEwave does not have. A REDmod custom sound can still play this mix for an audio event.",
     );
   }
 
-  const chosen = await vscode.window.showQuickPick(routes(doc), { title: "Into the Game: what should the tracks you hear replace?" });
+  const chosen = await vscode.window.showQuickPick(routes(doc), { title: "Into the Game: what should the mix replace?" });
   if (!chosen?.route) return;
-  // The channels of the sound replaced; for a named event, the first track heard.
-  const channels = { track: (chosen.track ?? heard[0]).id };
+  // The channels of the sound replaced; for a named event, the first track in the mix.
+  const channels = { track: (chosen.track ?? inMix[0]).id };
 
   let game: IntoGame;
   let done: string;

@@ -148,17 +148,28 @@ test("an A1 document (version 1) opens as one track", () => {
   assert.deepEqual(doc.master, { gain: 0, effects: [] });
 });
 
-test("mix: mute and solo choose the tracks heard", () => {
+test("mix: the checked tracks are in the mix; out of it is saved as mute", () => {
   const doc = newDoc({ kind: "sfx", soundHash: 1 }, "x.wav");
   doc.tracks.push(newTrack("t2", { kind: "sfx", soundHash: 2 }), newTrack("t3", { kind: "sfx", soundHash: 3 }));
   assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t1", "t2", "t3"]);
   doc.tracks[1].mute = true;
   assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t1", "t3"]);
-  doc.tracks[2].solo = true;
-  assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t3"]);
-  // A muted solo does not count.
-  doc.tracks[2].mute = true;
-  assert.deepEqual(audible(doc.tracks).map((t) => t.id), ["t1"]);
+});
+
+test("doc: solo, before the checkboxes, opens as the tracks it let be heard", () => {
+  const doc = newDoc({ kind: "sfx", soundHash: 1 }, "x.wav");
+  doc.tracks.push(newTrack("t2", { kind: "sfx", soundHash: 2 }), newTrack("t3", { kind: "sfx", soundHash: 3 }), newTrack("t4", { kind: "sfx", soundHash: 4 }));
+  // t2 soloed, t3 soloed but muted, t4 muted: only t2 was heard.
+  const old = JSON.parse(formatDoc(doc));
+  Object.assign(old.tracks[1], { solo: true });
+  Object.assign(old.tracks[2], { solo: true, mute: true });
+  Object.assign(old.tracks[3], { mute: true });
+  const opened = parseDoc(JSON.stringify(old));
+  assert.deepEqual(audible(opened.tracks).map((t) => t.id), ["t2"]);
+  assert.ok(opened.tracks.every((t) => !("solo" in t)));
+  // No solo: mute alone, as before.
+  const plain = parseDoc(JSON.stringify({ ...old, tracks: old.tracks.map((t: Record<string, unknown>) => ({ ...t, solo: undefined })) }));
+  assert.deepEqual(audible(plain.tracks).map((t) => t.id), ["t1", "t2"]);
 });
 
 test("mix: the end is the latest track's end, at its rate; reverbs add their tail", () => {
