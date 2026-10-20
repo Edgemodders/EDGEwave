@@ -22,7 +22,7 @@ Into the Game makes two separate choices:
 
 A game sound's track in the mixer does two jobs: it can be heard (checked), and it names a sound the mix can replace (always, checked or not). So an unchecked game sound track is only there to say which sound to replace.
 
-**Track numbers.** Track 1 is the top lane in the mixer, whether it is checked or not; the tracks are numbered by their lane, top to bottom, and the number never changes when a box is checked or unchecked. Into the Game names its groups by them (`Track 2 · <event> · <hash>`). Add Sound puts a new track at the bottom.
+**Track numbers.** Track 1 is the top lane in the mixer, whether it is checked or not; the tracks are numbered by their lane, top to bottom, and the number never changes when a box is checked or unchecked. Into the Game names its groups by them (`Track 2 · <event> · <hash>`). Add Sound puts a new track at the bottom; drag a lane's grip, or right-click a lane > **Move Up** or **Move Down**, to change the order ([A2 Mix](a2-mix.html#moving-lanes-2026-10-20)).
 
 For a mix of a generated sound and two game sounds:
 
