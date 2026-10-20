@@ -79,10 +79,10 @@ input:focus, select:focus { outline: 1px solid var(--accent); outline-offset: -1
 label.check { display: flex; align-items: center; gap: 4px; color: var(--dim); font-family: var(--vscode-font-family); }
 input[type="checkbox"] { accent-color: var(--accent); }
 
-/* The mix: a label, the lanes (they scroll past five tracks), the selected track's controls. */
+/* The mix: a label, the lanes (they scroll past four tracks, or past the height the splitter gives them), the selected track's controls. */
 .label { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-right: 6px; }
 .mixbar .label { color: var(--accent); }
-.lanes { flex: none; max-height: calc(18px + 4 * 36px + 2px); overflow-y: auto; margin: 6px 12px 0; border: 1px solid var(--line); }
+.lanes { flex: none; max-height: calc(19px + 4 * 36px + 2px); overflow-y: auto; margin: 6px 12px 0; border: 1px solid var(--line); }
 .lanes { display: flex; align-items: flex-start; }
 .lanes canvas { display: block; flex: 1; min-width: 0; width: 100%; cursor: grab; touch-action: none; }
 .lanechecks { flex: none; width: 22px; padding-top: 19px; border-right: 1px solid var(--line); }
@@ -92,6 +92,12 @@ input[type="checkbox"] { accent-color: var(--accent); }
 label.param { display: inline-flex; align-items: center; gap: 4px; color: var(--dim); font-size: 12px; margin-right: 4px; white-space: nowrap; }
 label.param input[type="number"] { width: 52px; }
 .toolbar.track { border-bottom: 0; }
+/* The splitter between the mix and the clip: drag it to give the lanes more height, or the waveform. */
+.split { flex: none; position: relative; height: 7px; cursor: row-resize; touch-action: none; outline: none; }
+.split::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 1px; background: var(--line); }
+.split::after { content: ""; position: absolute; left: 50%; top: 2px; width: 28px; height: 3px; margin-left: -14px; border-top: 1px solid var(--dim); border-bottom: 1px solid var(--dim); opacity: .6; }
+.split:hover::before, .split:focus-visible::before, .split.dragging::before { background: var(--accent); }
+.split:hover::after, .split:focus-visible::after, .split.dragging::after { border-color: var(--accent); opacity: 1; }
 .fxbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
 ol.effects { margin: 0; padding-left: 0; list-style: none; font-size: 12px; }
 ol.effects li { display: grid; grid-template-columns: auto 84px minmax(0, 1fr) auto; align-items: center; gap: 4px 6px; padding: 3px 0; border-bottom: 1px solid var(--line); }

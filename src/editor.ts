@@ -297,6 +297,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
   <label class="param" title="Where the clip starts on the mix; or drag it in the lanes">Start <input id="trackOffset" type="number" step="0.01" min="0"> s</label>
   <button id="removeTrack" title="Remove this track from the mix">Remove</button>
 </div>
+<div class="split" id="split" role="separator" aria-orientation="horizontal" aria-label="Resize the lanes" tabindex="0" title="Drag to resize the lanes; double-click to fit every track"></div>
 <div class="toolbar">
   <span class="label">Clip</span>
   <span class="transport">

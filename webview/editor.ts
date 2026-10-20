@@ -14,7 +14,9 @@ import { docLabel, sourceKey, sourceLabel, type Curve, type Edit, type Effect, t
 import { buildMix } from "./graph";
 import { setupVoiceTools, voiceToolResult } from "./voice";
 
-declare function acquireVsCodeApi(): { postMessage(m: unknown): void };
+declare function acquireVsCodeApi(): { postMessage(m: unknown): void; getState(): ViewState | undefined; setState(s: ViewState): void };
+/** What the page keeps per editor tab (not in the document): the lanes' height, once the splitter is dragged. */
+type ViewState = { lanesHeight?: number };
 const vscode = acquireVsCodeApi();
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const send = (m: unknown) => vscode.postMessage(m);
@@ -367,6 +369,7 @@ function drawMix() {
   if (!doc) return;
   const h = Ruler + 1 + Lane * doc.tracks.length;
   mixCanvas.style.height = `${h}px`;
+  sizeLanes();
   const w = width(mixCanvas);
   const g = setup(mixCanvas, h);
   const k = colours();
@@ -425,6 +428,69 @@ function drawMix() {
   if (played !== null) g.fillRect(Math.round(x(played)), 0, 2, h);
   syncChecks();
 }
+
+// ---- the splitter: the lanes' height, kept per editor tab --------------------------------------------------
+
+const lanesBox = mixCanvas.parentElement!;
+const split = $("split");
+const wave = $("wave");
+/** The waveform's least height, as in the CSS. */
+const WaveMin = 110;
+let lanesHeight = vscode.getState()?.lanesHeight;
+/** The lanes' height with every track shown, borders included. */
+const lanesFull = () => Ruler + 1 + Lane * (doc?.tracks.length ?? 1) + 2;
+const lanesMin = () => Ruler + 1 + Lane + 2;
+
+/** Until the splitter is dragged, the CSS sizes the lanes (up to four tracks); then its height, never past every track. */
+function sizeLanes() {
+  if (lanesHeight === undefined) {
+    lanesBox.style.height = lanesBox.style.maxHeight = "";
+    return;
+  }
+  const h = `${Math.round(Math.max(lanesMin(), Math.min(lanesHeight, lanesFull())))}px`;
+  if (lanesBox.style.height !== h) lanesBox.style.height = h;
+  lanesBox.style.maxHeight = "none";
+}
+
+/** Sets the lanes to h, as far as every track and the waveform's least height allow, and keeps it. */
+function setLanes(h: number) {
+  const spare = Math.max(0, wave.offsetHeight - WaveMin);
+  const most = Math.min(lanesFull(), lanesBox.offsetHeight + spare);
+  lanesHeight = Math.round(Math.max(lanesMin(), Math.min(h, Math.max(lanesMin(), most))));
+  sizeLanes();
+  vscode.setState({ ...vscode.getState(), lanesHeight });
+}
+
+let splitDrag: { y: number; h: number } | null = null;
+split.addEventListener("pointerdown", (ev) => {
+  if (ev.button !== 0) return;
+  ev.preventDefault();
+  splitDrag = { y: ev.clientY, h: lanesBox.offsetHeight };
+  split.classList.add("dragging");
+  try {
+    split.setPointerCapture(ev.pointerId);
+  } catch {
+    // A synthetic pointer: the drag still works over the splitter.
+  }
+});
+split.addEventListener("pointermove", (ev) => {
+  if (!splitDrag) return;
+  // From the drag's start each time, so the limits never drift.
+  lanesBox.style.height = `${splitDrag.h}px`;
+  setLanes(splitDrag.h + ev.clientY - splitDrag.y);
+});
+const endSplit = () => {
+  splitDrag = null;
+  split.classList.remove("dragging");
+};
+split.addEventListener("pointerup", endSplit);
+split.addEventListener("pointercancel", endSplit);
+split.addEventListener("dblclick", () => setLanes(lanesFull()));
+split.addEventListener("keydown", (ev) => {
+  if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
+  ev.preventDefault();
+  setLanes(lanesBox.offsetHeight + (ev.key === "ArrowDown" ? Lane : -Lane));
+});
 
 // ---- the lanes' checkboxes: checked, the track is in the mix (played, rendered, put into the game) ------
 
