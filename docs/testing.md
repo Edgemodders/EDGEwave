@@ -73,10 +73,11 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
 | V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 out of the mix |
 | A2 | The lanes' checkboxes; right-click the generated sound's lane > Only This Track; Into the Game | Track 1's box checks; then only track 3's is checked, saved as `mute` on the others; Into the Game's first row is the named REDmod route, saying no track in the mix is a game sound effect (track 3) |
+| A2 | The splitter: drag it far up, then one lane down; double-click it | The lanes go to one lane, then two; double-click fits every track, as far as the waveform's least height (110 px) allows |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 
-Last run 2026-10-19: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the Sounds view`).
+Last run 2026-10-20: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; the Sounds view`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -163,6 +164,7 @@ What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 2's finding (s
 9. **Undo and redo.** Ctrl+Z and Ctrl+Y through track moves, effect changes and added tracks.
 10. **Remove.** Remove a track. Expect: its lane goes; Remove is greyed when one track is left.
 11. **Fit.** Make the editor short and narrow. Expect: nothing runs off the bottom; the lanes scroll past four tracks; the panes scroll.
+12. **The splitter** (the owner's request, 2026-10-20). With five or more tracks, drag the bar under the Track bar down, then up; double-click it; with it focused, press the up and down arrows. Expect: the lanes grow and shrink and the waveform takes the rest, never under one lane or past every track, the waveform never under about 110 px; double-click fits every track. Switch to another tab and back, or reload the window: the height stays.
 
 ### A3 Into the game
 

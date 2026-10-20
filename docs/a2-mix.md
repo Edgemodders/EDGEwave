@@ -9,7 +9,7 @@ Status: **built 2026-10-16; hand test passed 2026-10-18 but one finding, fixed, 
 | Version 2 of the sound document: tracks, each a source with its own edits, start, gain, pan, rate, in the mix or not (`mute`), and effects; a master with gain and effects. An A1 document opens as one track and is written as version 2 at its next change | `src/doc.ts` |
 | The mix's arithmetic (which tracks are in the mix, where the mix ends, reverb tails), the effects' parameters and the presets, pure, with unit tests | `src/audio/mix.ts`, `test/` |
 | The audio graph: per track the edited clip at its rate, its effects, gain and pan; then the master. Playback and render build the same graph, so what is heard is what is rendered | `webview/graph.ts` |
-| The page: the mix lanes, each with a checkbox at its left (checked, the track is in the mix; right-click a lane for **Only This Track** and **All Tracks**), and the selected track's controls above A1's clip editor; Edits, Effects and Master panes below; Render in the Mix bar | `webview/editor.ts`, `media/editor.css` |
+| The page: the mix lanes, each with a checkbox at its left (checked, the track is in the mix; right-click a lane for **Only This Track** and **All Tracks**), and the selected track's controls above A1's clip editor, with a splitter between them; Edits, Effects and Master panes below; Render in the Mix bar | `webview/editor.ts`, `media/editor.css` |
 | **Add Sound…**: a quick pick over the game's sound effects (REDcode's index, by event name or tag, then the variation), a game file by path, or a sound file | `src/editor.ts` |
 
 | Effect | Parameters |
@@ -44,3 +44,16 @@ The owner's finding in the A3 hand test: with several tracks soloed, soloing ano
 | In the mix | Not muted, and soloed when any track is | Checked |
 | Control | Mute and Solo in the track bar, for the selected track | The lane's checkbox; right-click a lane: **Only This Track**, **All Tracks** |
 | In the file | `mute`, `solo` | `mute` alone (unchecked). A document with `solo` opens with the tracks it let be heard checked, the rest unchecked, and loses `solo` at its next change |
+
+## The splitter (2026-10-20)
+
+The owner's request: the lanes need the height more than a single clip's waveform does. A bar sits between the Track bar and the Clip bar, where the mix ends and the clip begins.
+
+| | |
+|---|---|
+| Drag | Changes the lanes' height; the Track bar moves with them, the waveform takes the rest |
+| Limits | One lane at least, every track at most; the waveform keeps 110 px |
+| Double-click | Fits every track, as far as the limits allow |
+| Keys | Focus it (Tab), then the up and down arrows: one lane at a time |
+| Kept | Per editor tab, in the webview's state (it survives switching tabs and a reload), not in the document |
+| Never dragged | As before: the lanes grow to four tracks, then scroll |
