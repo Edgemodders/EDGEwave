@@ -12,7 +12,7 @@ Last updated 2026-10-19.
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-19 | Pass |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
-| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-18 | Pass but one finding, fixed; its retest (step 3) pending |
+| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Round 3: steps 12 and 13 pass; step 3's retest and step 6 (checkboxes) pending |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-19 | Round 2: steps 1 to 5 pass (Silence is a silent WAV; `mod_skip` does not silence); step 6's finding fixed (checkboxes in place of Mute and Solo): retest 6, then 7 |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
@@ -134,13 +134,14 @@ What is built: [A1 Edit](a1-edit.html). **Pass** (2026-10-16).
 
 ### A2 Mix
 
-What is built: [A2 Mix](a2-mix.html). **Retest pending** of round 2's finding (step 3).
+What is built: [A2 Mix](a2-mix.html). **Pending:** the retest of round 2's finding (step 3), and step 6 with the checkboxes.
 
 | Round | Date | Steps | Result |
 |---|---|---|---|
 | 1 | 2026-10-16 | 1 to 11 | Every step works, with five findings, all fixed the same day and kept by the smoke test (below) |
 | 2 | 2026-10-18 | 1 to 11, with the five findings | Pass, with one finding, fixed (below) |
-| 3 | | Retest of step 3 with a holocall line and a voice line's WAV | Not run |
+| 3 | 2026-10-20 | 12 (the splitter) and 13 (moving lanes), new at the owner's request; the checkboxes' colours | Pass: "It all works great". Found in the round and fixed: the checkboxes were the browser's white box (now the theme's), and a lane moved by a grip, now by dragging the lane itself |
+| 4 | | Retest of step 3 with a holocall line and a voice line's WAV; step 6 with the checkboxes | Not run |
 
 | Finding (round 1) | Fix |
 |---|---|
