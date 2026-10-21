@@ -431,14 +431,18 @@ await sleep(1200);
 const mutes = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.map((t) => !!t.mute);
 await run("document.getElementById('intoGame').click()");
 await sleep(1500);
-const fileRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 3).map((r) => r.textContent.trim())`);
+const allRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].map((r) => r.textContent.trim())`);
+const fileRows = allRows.slice(0, 3);
+// The last choice (Silence smoke_event, track 1's) is marked in its label and its group's heading, though out of the mix.
+const lastMarked = allRows.some((r) => /^Silence the event smoke_event, every variation, with REDmod · last time/.test(r)) &&
+  allRows.some((r) => /^Override sound 42.*Track 1 · smoke_event · 42 · not in the mix · last time$/.test(r));
 await key("Escape", "Escape", 27);
-log("checkboxes", JSON.stringify({ checksBefore, checksAfter, checksOnly, mutes, fileRows }));
+log("checkboxes", JSON.stringify({ checksBefore, checksAfter, checksOnly, mutes, fileRows, lastMarked }));
 const checksOk =
   JSON.stringify(checksBefore) === JSON.stringify([false, true, true, true, true, true]) &&
   JSON.stringify(checksAfter) === JSON.stringify([true, true, true, true, true, true]) &&
   JSON.stringify(checksOnly) === JSON.stringify([false, false, true, false, false, false]) &&
-  JSON.stringify(mutes) === JSON.stringify([true, true, false, true, true, true]) &&
+  JSON.stringify(mutes) === JSON.stringify([true, true, false, true, true, true]) && lastMarked &&
   /^\$?\(?.*A REDmod custom sound for an event/.test(fileRows[0] ?? "") && /No track in the mix is a game sound effect \(track 3\)/.test(fileRows[0] ?? "");
 if (!checksOk) finish(false, "the lanes' checkboxes or Only This Track did not set the mix");
 

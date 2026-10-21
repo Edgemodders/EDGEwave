@@ -85,8 +85,13 @@ function routes(doc: SoundDoc): Item[] {
     },
   );
   for (const t of doc.tracks) if (!inMix.has(t.id) && sfx(t)) group(t);
+  // Marked in its label and its group's heading: a description is small, dim and cut off first.
   const chosen = lastItem(items, doc.game);
-  if (chosen) chosen.description = [chosen.description, "last time"].filter(Boolean).join(" · ");
+  if (chosen) {
+    chosen.label += " · last time";
+    const heading = items.slice(0, items.indexOf(chosen)).reverse().find((i) => i.kind === vscode.QuickPickItemKind.Separator);
+    if (heading) heading.label += " · last time";
+  }
   return items;
 }
 

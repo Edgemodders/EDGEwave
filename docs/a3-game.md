@@ -48,7 +48,7 @@ Picking **Override sound `<hash>`** under Track 2 then puts the generated sound 
 
 A route is the same whichever group it is picked from: a checked or an unchecked track's **Override sound `<hash>`** writes the same override. **Override sound** replaces that one variation (the sound's hash); **Replace the event** and **Silence the event** (REDmod) act on every variation of the track's event.
 
-The override's WAV takes the channels of the sound it replaces. The choice (with the sound's hash for an override) is kept in the document (`game`) and marked **last time** where it is listed; it is never moved (the owner's findings, 2026-10-19). Changed on 2026-10-19 after the owner's finding: before, the routes came from track 1 only, so a game sound added as a later track could not be overridden. After writing, EDGEwave offers **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
+The override's WAV takes the channels of the sound it replaces. The choice (with the sound's hash for an override) is kept in the document (`game`) and marked **last time** where it is listed, in the row's name and its group's heading; it is never moved (the owner's findings, 2026-10-19). Changed on 2026-10-19 after the owner's finding: before, the routes came from track 1 only, so a game sound added as a later track could not be overridden. After writing, EDGEwave offers **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
 
 **Voice lines** (`.wem`) have no route yet. Into the Game says so and offers the named REDmod route.
 
