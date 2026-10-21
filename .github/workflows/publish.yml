@@ -1,0 +1,78 @@
+# Publishes EDGEwave when its version tag is pushed:
+#   git tag v0.1.0 && git push origin v0.1.0
+# Checks the tag against package.json, typechecks, tests, packages the extension (one .vsix for every
+# platform: EDGEwave has no native parts), publishes to the VS Code Marketplace (VSCE_PAT) and Open VSX
+# (OVSX_PAT), and makes the GitHub release with the vsix, the Nexus Mods zip (tools/nexus-zip.mjs,
+# uploaded to Nexus by hand) and the CHANGELOG section. Both tokens are Edgemodders organisation
+# secrets, shared with REDcode's and EDGEdeck's workflows.
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: The tag matches package.json
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          have=$(node -p "require('./package.json').version")
+          if [ "${have}" != "${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${have}"
+            exit 1
+          fi
+          grep -q "^## ${version} " CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
+          { echo "VERSION=${version}"; echo "VSIX=${GITHUB_WORKSPACE}/dist/edgewave-${version}.vsix"; } >> "$GITHUB_ENV"
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Package
+        id: package
+        run: |
+          mkdir -p dist
+          node_modules/.bin/vsce package --no-dependencies --readme-path README.marketplace.md --out "${VSIX}"
+
+      - name: Nexus zip
+        run: node tools/nexus-zip.mjs
+
+      - name: VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: node_modules/.bin/vsce publish --packagePath "${VSIX}"
+
+      # Each registry is tried even when another one failed; the run still fails if any of them did.
+      - name: Open VSX
+        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "${OVSX_PAT}" ]; then
+            echo "::warning::OVSX_PAT is not set; not published to Open VSX"
+            exit 0
+          fi
+          node_modules/.bin/ovsx publish "${VSIX}" --pat "${OVSX_PAT}"
+
+      - name: GitHub release
+        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(node -e "const s=require('fs').readFileSync('CHANGELOG.md','utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' '));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}")
+          gh release create "${GITHUB_REF_NAME}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" --title "EDGEwave ${VERSION}" --notes "${notes}"

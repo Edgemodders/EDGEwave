@@ -1,20 +1,41 @@
 {
   "name": "edgewave",
   "displayName": "EDGEwave",
-  "description": "The sound studio for Cyberpunk 2077 modding: edit, mix and re-voice the game's sounds and put them into your mod. Part of the EDGE platform, beside REDcode.",
+  "description": "The sound studio for Cyberpunk 2077 modding: edit, mix and re-voice the game's sounds and put them into your mod. Builds on REDcode.",
+  "preview": true,
   "publisher": "edgemodders",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "MIT",
+  "galleryBanner": {
+    "color": "#08090d",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Edgemodders/EDGEwave"
+  },
+  "homepage": "https://edgemodders.github.io/EDGEwave/",
+  "bugs": {
+    "url": "https://github.com/Edgemodders/EDGEwave/issues"
   },
   "engines": {
     "vscode": "^1.90.0",
     "node": ">=20"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Visualization"
+  ],
+  "keywords": [
+    "cyberpunk",
+    "cyberpunk 2077",
+    "modding",
+    "audio",
+    "sound",
+    "redmod",
+    "elevenlabs",
+    "edgewave",
+    "redcode"
   ],
   "icon": "docs/assets/brand/icon.png",
   "main": "./dist/extension.js",
@@ -225,13 +246,19 @@
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p webview/tsconfig.json --noEmit",
     "test": "node esbuild.mjs --tests && node --test \"dist-test/*.test.cjs\"",
-    "smoke": "node tools/smoke/smoke.mjs"
+    "smoke": "node tools/smoke/smoke.mjs",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package": "vsce package --no-dependencies --readme-path README.marketplace.md",
+    "nexus-zip": "node tools/nexus-zip.mjs",
+    "vsix-test": "node tools/vsix-test.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/vscode": "1.80.0",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
+    "ovsx": "^1.3.0",
     "typescript": "~5.9.3"
   }
 }

@@ -1,0 +1,23 @@
+# What the .vsix leaves out: everything but the bundles in dist/, the page's CSS, the icons, the
+# README (README.marketplace.md, by vsce's --readme-path), the CHANGELOG and the LICENSE.
+.github/**
+.vscode/**
+.vscode-test/**
+docs/**
+!docs/assets/brand/icon.png
+nexus/**
+src/**
+test/**
+tools/**
+webview/**
+dist-test/**
+dist/**/*.map
+dist/*.zip
+dist/nexus/**
+node_modules/**
+esbuild.mjs
+tsconfig.json
+**/*.vsix
+CLAUDE.md
+README.md
+.gitignore

@@ -1,13 +1,14 @@
 // Bundles the extension (CommonJS, VS Code's module loader) and the editor page (one browser
 // script). `node esbuild.mjs --watch` rebuilds on change; `--tests` bundles test/*.test.ts for
-// `node --test "dist-test/*.test.cjs"`.
+// `node --test "dist-test/*.test.cjs"`; `--production` (vsce's prepublish) minifies, with no source maps.
 import * as esbuild from "esbuild";
 import * as fs from "node:fs";
 
 const watch = process.argv.includes("--watch");
 const tests = process.argv.includes("--tests");
+const production = process.argv.includes("--production");
 
-const common = { bundle: true, sourcemap: true, logLevel: "info" };
+const common = { bundle: true, sourcemap: !production, minify: production, logLevel: "info" };
 
 const extension = {
   ...common,
