@@ -44,7 +44,7 @@ EDGEwave asks for raw 16-bit PCM (`output_format=pcm_<rate>`) and wraps it as WA
 | `edgewave.elevenlabs.voiceChangerModel` | `eleven_multilingual_sts_v2` | Re-Voice's first model |
 | `edgewave.elevenlabs.baseUrl` | `https://api.elevenlabs.io` | The US, EU, India and Singapore servers, for data residency |
 
-**Verified in the hand test (2026-10-20):** a remix works on an instant clone (the docs do not say which voices can be remixed); a voice's preview (an MP3) plays in VS Code's page. **Still unverified:** that 48 kHz PCM works on the owner's plan (EDGEwave falls back to 24 kHz when refused); how well one game line clones.
+**Verified in the hand test (2026-10-20):** a remix works on an instant clone (the docs do not say which voices can be remixed); a voice's preview (an MP3) plays in VS Code's page; 48 kHz PCM works on the owner's plan (no fallback to 24 kHz; other plans may refuse it, and EDGEwave then falls back). **Still unverified:** how well one game line clones.
 
 ## What is built
 

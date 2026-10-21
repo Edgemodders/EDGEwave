@@ -218,7 +218,7 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 
 | Round | Date | Result |
 |---|---|---|
-| 1 | 2026-10-20 | Steps 1 to 10 pass, no findings. Settled: a voice's preview (an MP3) plays in VS Code's page (step 4); a remix works on an instant clone (step 6). Step 2's rate (48 kHz or 24 kHz on the owner's plan) not reported yet |
+| 1 | 2026-10-20 | Steps 1 to 10 pass, no findings. Settled: a voice's preview (an MP3) plays in VS Code's page (step 4); a remix works on an instant clone (step 6). Step 2: no "refused 48000 Hz" line, so the owner's plan takes 48 kHz |
 
 1. **The key.** In a sound document, click **Generate Sound…**, describe a sound (such as `a heavy metal door slams in a concrete corridor`), **Generate**. Expect: a password box for the key the first time; then **Take 1** in the dialog with a play button, and no new track yet. Change the description, **Generate again**: Take 2 above Take 1; play both. **Add** on the one you want. Expect: the dialog closes; a new track at the mix cursor, selected, with that take. Its WAV is in the document's `.gen` folder; the other take is not saved anywhere.
 2. **The rate.** Output › EDGEwave. Expect: no "refused 48000 Hz" line on a plan that allows 48 kHz; with one, the next tools use 24 kHz. Tell me which.
