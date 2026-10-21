@@ -52,7 +52,7 @@ File description on Nexus:
 1. Edit `description.bbcode` here, commit, push.
 2. Check it: `node tools/check-bbcode.mjs nexus/description.bbcode`.
 3. Paste the whole file into the description field on Nexus and save.
-4. For a new version: upload the release's Nexus zip as the main file with the version from `package.json`, Mod Manager Download off. Archive the old file.
+4. For a new version: upload the release's Nexus zip as the main file with the version from `package.json`, Mod Manager Download off. Archive the old file. Paste the output of `npm run release:notes -- --nexus` into the page's changelog for that version: one plain line per change, from `CHANGELOG.md`.
 
 Keep these in step with the extension (its README and CHANGELOG):
 

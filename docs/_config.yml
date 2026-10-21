@@ -36,5 +36,7 @@ nav:
     url: /testing.html
   - title: Release
     url: /release.html
+  - title: Changelog
+    url: https://github.com/Edgemodders/EDGEwave/blob/main/CHANGELOG.md
   - title: Dev setup
     url: /dev-setup.html

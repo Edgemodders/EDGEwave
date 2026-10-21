@@ -16,7 +16,7 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 ## Steps
 
 1. **Tests.** Every phase in the release has passed its hand test ([Tests](testing.html)); `npm run typecheck`, `npm test` and `npm run smoke` pass.
-2. **Version.** Set `version` in `package.json` (and `npm install`, so `package-lock.json` follows). Add a `## <version> (<date>)` section at the top of `CHANGELOG.md`: the workflow fails without one, and puts it in the GitHub release.
+2. **Version.** Set `version` in `package.json` (and `npm install`, so `package-lock.json` follows). In `CHANGELOG.md`, rename **Unreleased** to `## <version> (<date>)` and start a new empty **Unreleased** above it: the workflow fails without the version's section, and puts it in the GitHub release (`npm run release:notes` prints what it will say).
 3. **Package and test the package.**
    ```powershell
    npm run package      # edgewave-<version>.vsix in the repo folder
@@ -27,7 +27,7 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 5. **Publish** (the owner): Actions > **Publish** > **Run workflow** on `main`.
    - Unticked, it checks, tests and packages, and keeps the `.vsix` and the Nexus zip as the run's artifact. Nothing is published: a dry run.
    - With **Make a release** ticked, it also publishes to the Marketplace and Open VSX and makes the GitHub release `v<version>`, which tags the commit. It stops first if that tag exists (raise the version) or `CHANGELOG.md` has no section for the version.
-6. **Nexus** (the owner): upload the release's Nexus zip as the main file, with **Mod Manager Download** off; update the description from `nexus/description.bbcode` ([nexus/README.md](https://github.com/Edgemodders/EDGEwave/blob/main/nexus/README.md)).
+6. **Nexus** (the owner): upload the release's Nexus zip as the main file, with **Mod Manager Download** off; paste `npm run release:notes -- --nexus` into the version's changelog; update the description from `nexus/description.bbcode` ([nexus/README.md](https://github.com/Edgemodders/EDGEwave/blob/main/nexus/README.md)).
 7. **After:** the README's and the Nexus page's status, and `docs/` where a page says what is released.
 
 ## The packaged test

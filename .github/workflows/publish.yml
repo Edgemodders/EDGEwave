@@ -7,7 +7,8 @@
 #                                               (which tags the commit) with the .vsix, the Nexus zip and
 #                                               the CHANGELOG section. Stops first if that tag exists
 #                                               (raise the version in package.json) or CHANGELOG.md has
-#                                               no section for the version
+#                                               no section for the version (the release notes,
+#                                               tools/release-notes.mjs)
 #
 # One .vsix for every platform: EDGEwave has no native parts. The Nexus zip (tools/nexus-zip.mjs) is
 # uploaded to Nexus by hand. Both tokens are Edgemodders organisation secrets, shared with REDcode's and
@@ -45,7 +46,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(node -p "require('./package.json').version")
-          grep -q "^## ${version} " CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
+          node tools/release-notes.mjs "${version}" --out "${RUNNER_TEMP}/notes.md" || { echo "::error::CHANGELOG.md has no section for ${version}: rename Unreleased first"; exit 1; }
           if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
             if [ "${{ inputs.release }}" = "true" ]; then
               echo "::error::v${version} is released already: raise the version in package.json"
@@ -98,5 +99,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          notes=$(node -e "const s=require('fs').readFileSync('CHANGELOG.md','utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' '));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}")
-          gh release create "v${VERSION}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" --target "${GITHUB_SHA}" --title "EDGEwave ${VERSION}" --notes "${notes}"
+          gh release create "v${VERSION}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" --target "${GITHUB_SHA}" --title "EDGEwave ${VERSION}" --notes-file "${RUNNER_TEMP}/notes.md"

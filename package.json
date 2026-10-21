@@ -250,6 +250,7 @@
     "vscode:prepublish": "node esbuild.mjs --production",
     "package": "vsce package --no-dependencies --readme-path README.marketplace.md",
     "nexus-zip": "node tools/nexus-zip.mjs",
+    "release:notes": "node tools/release-notes.mjs",
     "vsix-test": "node tools/vsix-test.mjs"
   },
   "devDependencies": {
