@@ -47,4 +47,4 @@ It needs the network (the Marketplace). Found while writing it: a `.edgewave` pa
 
 | Version | Date | Notes |
 |---|---|---|
-| 0.1.0 | Not tagged yet | The first release: A1 Edit, A2 Mix, A3 Into the game, V1 Voice tools. Needs REDcode 0.10.0 |
+| 0.1.0 | 2026-10-20 | The first release: A1 Edit, A2 Mix, A3 Into the game, V1 Voice tools. Needs REDcode 0.10.0. On the [Marketplace](https://marketplace.visualstudio.com/items?itemName=edgemodders.edgewave), [Open VSX](https://open-vsx.org/extension/edgemodders/edgewave) and [GitHub](https://github.com/Edgemodders/EDGEwave/releases/tag/v0.1.0); Nexus by hand |
