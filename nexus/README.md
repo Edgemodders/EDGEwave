@@ -28,8 +28,8 @@ The source of EDGEwave's Nexus Mods page lives here, so updates are edits in the
 |---|---|
 | Publish EDGEwave to the Marketplace and Open VSX | The description links `Edgemodders.edgewave` and `edgemodders/edgewave`; they do not exist until then |
 | The four screenshots | The description has placeholders in cyan italics, `(Screenshot N: ...)`. Save each picture in `nexus/images/` (WebP), push, then replace its line with `[img]https://raw.githubusercontent.com/Edgemodders/EDGEwave/main/nexus/images/<name>[/img]` and a one-line caption, as REDcode's page does. Uploading it to the page's Images tab too puts it in the gallery |
-| The STATUS box | It says the A3 and V1 hand tests are under way; change it when they pass |
-| The Nexus zip | `tools/nexus-zip.mjs` and the publish workflow are part of the release work, not built yet (see below) |
+| The STATUS box | Updated 2026-10-20: every part tested by hand. Change it when the preview flag goes |
+| The Nexus zip | `npm run nexus-zip` builds it after `npm run package`; the publish workflow attaches it to the GitHub release ([Release](https://edgemodders.github.io/EDGEwave/release.html)) |
 
 ## The download
 

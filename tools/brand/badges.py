@@ -13,7 +13,7 @@ DIM = "#8a93a8"
 COLORS = {"yellow": "#fcee0a", "cyan": "#19f3ff", "green": "#5dffa1"}
 
 BADGES = [
-    ('status', 'status', 'A2 mix', 'yellow'),
+    ('status', 'status', 'preview', 'yellow'),
     ('redcode', 'builds on', 'REDcode', 'cyan'),
     ('redbridge', 'reads with', 'REDbridge', 'cyan'),
     ('license', 'license', 'MIT', 'green'),

@@ -34,5 +34,7 @@ nav:
     url: /voice-tools.html
   - title: Tests
     url: /testing.html
+  - title: Release
+    url: /release.html
   - title: Dev setup
     url: /dev-setup.html
