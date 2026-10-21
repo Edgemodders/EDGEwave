@@ -127,7 +127,7 @@ async function loadAudio(key: string, data: Uint8Array | Record<string, number>,
   const buf = await ctx.decodeAudioData(copy);
   const audio = { sampleRate: buf.sampleRate, channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c).slice()) };
   const ch = buf.numberOfChannels === 1 ? "mono" : buf.numberOfChannels === 2 ? "stereo" : `${buf.numberOfChannels} ch`;
-  sources.set(key, { audio, info: `${name} · ${codec ?? ""} ${ch} ${buf.sampleRate} Hz` });
+  sources.set(key, { audio, info: `${name} · ${[codec, ch, `${buf.sampleRate} Hz`].filter(Boolean).join(" ")}` });
   refresh();
   const t = track();
   if (t && sourceKey(t.source) === key) fit();
