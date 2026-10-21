@@ -174,9 +174,15 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   await remember(document, doc, game);
   const redmodOff = game.route !== "override" && !vscode.workspace.getConfiguration("redcode").get<boolean>("pack.redmod", false);
   const note = redmodOff ? " REDmod custom sounds need REDcode to pack the mod as a REDmod (the redcode.pack.redmod setting)." : "";
-  const actions = redmodOff ? ["Pack", "Open Setting"] : ["Pack"];
-  const pick = await vscode.window.showInformationMessage(`${done}${note}`, ...actions);
+  // The game reads its sound at start (EDGEwave #4): an override's sound paks crash a running game when
+  // hot-deployed, and REDmod deploys custom sounds when the game starts. So install, then restart.
+  const hear = game.route === "override"
+    ? " To hear it: Pack and Install, then restart the game. Don't hot-deploy it (Pack and Try): a sound archive in Red Hot Tools' hot folder crashes the running game."
+    : " To hear it: Pack and Install, then restart the game; REDmod deploys custom sounds when the game starts.";
+  const actions = redmodOff ? ["Pack and Install", "Pack", "Open Setting"] : ["Pack and Install", "Pack"];
+  const pick = await vscode.window.showInformationMessage(`${done}${note}${hear}`, ...actions);
   if (pick === "Open Setting") await vscode.commands.executeCommand("workbench.action.openSettings", "redcode.pack.redmod");
+  else if (pick === "Pack and Install") await vscode.commands.executeCommand("redcode.packAndInstall");
   else if (pick === "Pack") {
     const r = await api.pack();
     void vscode.window.showInformationMessage(`REDcode packed the mod into ${path.relative(project.dir, r.packedDir) || r.packedDir}.`);

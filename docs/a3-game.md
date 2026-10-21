@@ -48,7 +48,16 @@ Picking **Override sound `<hash>`** under Track 2 then puts the generated sound 
 
 A route is the same whichever group it is picked from: a checked or an unchecked track's **Override sound `<hash>`** writes the same override. **Override sound** replaces that one variation (the sound's hash); **Replace the event** and **Silence the event** (REDmod) act on every variation of the track's event.
 
-The override's WAV takes the channels of the sound it replaces. The choice (with the sound's hash for an override) is kept in the document (`game`) and marked **last time** where it is listed, in the row's name and its group's heading; it is never moved (the owner's findings, 2026-10-19). Changed on 2026-10-19 after the owner's finding: before, the routes came from track 1 only, so a game sound added as a later track could not be overridden. After writing, EDGEwave offers **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
+The override's WAV takes the channels of the sound it replaces. The choice (with the sound's hash for an override) is kept in the document (`game`) and marked **last time** where it is listed, in the row's name and its group's heading; it is never moved (the owner's findings, 2026-10-19). Changed on 2026-10-19 after the owner's finding: before, the routes came from track 1 only, so a game sound added as a later track could not be overridden. After writing, EDGEwave offers **Pack and Install** and **Pack** (REDcode's), and for a REDmod route says when REDcode's `redcode.pack.redmod` setting is off.
+
+**Hearing it in the game** needs a restart ([EDGEwave #4](https://github.com/Edgemodders/EDGEwave/issues/4)). The game reads its sound index once, at start:
+
+| Route | To hear it | Why |
+|---|---|---|
+| Override | Pack and Install, then restart the game | A hot deploy (REDcode's Pack and Try, Red Hot Tools' hot folder) of an archive with the game's sound paks crashes the running game a few seconds later ([REDnode's research](https://edgemodders.github.io/REDnode/world.html#h1-limit-sound-paks-crash-a-swap)). REDnode 0.26.8 or later swaps one safely through its `archives.reload` (game paused, audio held, the sound index read again); REDcode is asked to route Pack and Try through it ([REDcode #11](https://github.com/Edgemodders/REDcode/issues/11)) |
+| Replace or Silence (REDmod) | Pack and Install, then start the game (with `-modded`, as REDcode's Run Game does) | REDmod deploys custom sounds when the game starts |
+
+EDGEwave's message after Into the Game says so, and **Pack and Install** runs REDcode's.
 
 **Voice lines** (`.wem`) have no route yet. Into the Game says so and offers the named REDmod route.
 

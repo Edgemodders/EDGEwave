@@ -14,6 +14,7 @@ How to keep it:
 **Changed**
 
 - Needs REDcode for Cyberpunk 2077 0.10.3 or later.
+- Into the Game says how to hear the result: install the mod and restart the game, since a sound override hot-deployed into a running game crashes it, and REDmod deploys custom sounds at start. It offers **Pack and Install** beside **Pack** ([#4](https://github.com/Edgemodders/EDGEwave/issues/4)).
 
 **Fixed**
 

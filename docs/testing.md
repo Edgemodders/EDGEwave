@@ -211,6 +211,8 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
    6. **Pack** (plain archive layout), install and play the sound a few times. Expect: the checked tracks, as in EDGEwave.
    7. **The swap.** Check only track 1 (a file) and uncheck the game sound's track. **Into the Game…**. Expect: **Any event** first, saying no track in the mix is a game sound effect; the game sound's group last, **not in the mix**. Pick its **Override sound**, Pack and play: the file alone, in place of the game sound.
 
+9. **How to hear it** (EDGEwave #4). Into the Game with an override, then with a REDmod route. Expect: the message ends with how to hear it (Pack and Install, then restart the game; for the override, not to hot-deploy it), with **Pack and Install** and **Pack**. **Pack and Install** runs REDcode's, which says it packed and installed.
+
    Before playing, take out an earlier REDmod replacement of the same event (its WAV in `source/customSounds` and its `info.json` entry), or turn `redcode.pack.redmod` off: REDmod's sound would play instead of the override. An override is one variation: an event with several may play another one some of the time.
 
 ### V1 Voice tools
