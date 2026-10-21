@@ -1,6 +1,6 @@
 # V1 Voice tools
 
-Status: **built 2026-10-18, hand test pending.** Three buttons in the editor's header make new tracks through [ElevenLabs](https://elevenlabs.io), with the modder's own API key. Each use spends ElevenLabs credits. Plan agreed with the owner on 2026-10-18.
+Status: **done 2026-10-20** (built 2026-10-18; hand test passed, [Tests](testing.html#v1-voice-tools)). Three buttons in the editor's header make new tracks through [ElevenLabs](https://elevenlabs.io), with the modder's own API key. Each use spends ElevenLabs credits. Plan agreed with the owner on 2026-10-18.
 
 ## The tools
 
@@ -44,7 +44,7 @@ EDGEwave asks for raw 16-bit PCM (`output_format=pcm_<rate>`) and wraps it as WA
 | `edgewave.elevenlabs.voiceChangerModel` | `eleven_multilingual_sts_v2` | Re-Voice's first model |
 | `edgewave.elevenlabs.baseUrl` | `https://api.elevenlabs.io` | The US, EU, India and Singapore servers, for data residency |
 
-**Unverified until the hand test:** that 48 kHz PCM works on the owner's plan; that a remix works on an instant clone (the docs do not say which voices can be remixed); that a voice's preview (an MP3) plays in VS Code's page; how well one game line clones.
+**Verified in the hand test (2026-10-20):** a remix works on an instant clone (the docs do not say which voices can be remixed); a voice's preview (an MP3) plays in VS Code's page. **Still unverified:** that 48 kHz PCM works on the owner's plan (EDGEwave falls back to 24 kHz when refused); how well one game line clones.
 
 ## What is built
 

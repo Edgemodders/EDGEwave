@@ -15,7 +15,7 @@ The sound studio for Cyberpunk 2077 modding, as a VS Code extension. Part of the
 **[Read the docs](https://edgemodders.github.io/EDGEwave/)** &middot; [Design](https://edgemodders.github.io/EDGEwave/design.html)
 
 > [!NOTE]
-> **Status: A1 Edit done.** Open a sound from REDcode, trim, fade, gain and render it to WAV. A2 Mix (tracks, effects and presets), A3 Into the game (override a sound effect, or a REDmod custom sound) and V1 Voice tools (Generate Sound, Speak Line and Re-Voice through ElevenLabs) are built, hand tests pending.
+> **Status: A1 Edit, A2 Mix, A3 Into the game and V1 Voice tools done.** Open a sound from REDcode, edit it, mix it with other sounds and effects, and put it into your mod: override a sound effect, or replace or silence an event with REDmod. Generate Sound, Speak Line and Re-Voice through ElevenLabs, with your own key. Next: the first release.
 
 REDcode finds and plays a game sound; **Open in EDGEwave** takes it into the studio. There you will edit it, layer and mix it with effects, and put the result into the mod you are making in REDcode, to add or override a game sound. Through ElevenLabs, with your own key: **Generate Sound** from a prompt, **Speak Line** in a voice, and **Re-Voice** a line into another voice; **Translate** is planned. Later, EDGEwave will index all of the game's audio from your own install and search it: sound effects, voice-over with its subtitles, music and radio, with what plays each sound and why.
 

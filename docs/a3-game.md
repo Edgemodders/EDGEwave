@@ -1,6 +1,6 @@
 # A3 Into the game
 
-Status: **built 2026-10-16; hand test round 2 on 2026-10-19: steps 1 to 5 pass, steps 6 to 8 to do** ([Tests](testing.html)). **Into the Game…** puts the mix into the open REDcode project, in a layout the game loads, for REDcode to pack. REDcode's Pack carries the REDmod route's sounds since [REDcode #8](https://github.com/Edgemodders/REDcode/issues/8) (on REDcode main in `0f8ebe3`, 2026-10-16; ships in REDcode 0.10.0).
+Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three rounds, [Tests](testing.html#a3-into-the-game)). **Into the Game…** puts the mix into the open REDcode project, in a layout the game loads, for REDcode to pack. REDcode's Pack carries the REDmod route's sounds since [REDcode #8](https://github.com/Edgemodders/REDcode/issues/8) (on REDcode main in `0f8ebe3`, 2026-10-16; ships in REDcode 0.10.0).
 
 ## The routes
 

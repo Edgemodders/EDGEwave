@@ -1,6 +1,6 @@
 # A2 Mix
 
-Status: **built 2026-10-16; hand test passed 2026-10-18 but one finding, fixed, to retest.** Several sounds on one timeline, each with its own edits and effects, rendered to one WAV.
+Status: **done 2026-10-20** (built 2026-10-16; hand test passed after four rounds, [Tests](testing.html#a2-mix)). Several sounds on one timeline, each with its own edits and effects, rendered to one WAV.
 
 ## What is built
 

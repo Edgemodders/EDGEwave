@@ -8,13 +8,13 @@ Last updated 2026-10-19.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-19 | Pass, 32 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-19 | Pass |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-20 | Pass, 34 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-20 | Pass |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
-| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Round 3: steps 12 and 13 pass; step 3's retest and step 6 (checkboxes) pending |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Round 3: step 6 passes but the last choice's mark, made plainer: retest 6, then 7 and 8. Round 2: steps 1 to 5 pass (Silence is a silent WAV; `mod_skip` does not silence) |
-| [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | Not run | |
+| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Pass, after four rounds |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds |
+| [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-10-20 | Pass, first round |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
 ## Automated
@@ -134,14 +134,14 @@ What is built: [A1 Edit](a1-edit.html). **Pass** (2026-10-16).
 
 ### A2 Mix
 
-What is built: [A2 Mix](a2-mix.html). **Pending:** the retest of round 2's finding (step 3), and step 6 with the checkboxes.
+What is built: [A2 Mix](a2-mix.html). **Passed 2026-10-20**, after four rounds.
 
 | Round | Date | Steps | Result |
 |---|---|---|---|
 | 1 | 2026-10-16 | 1 to 11 | Every step works, with five findings, all fixed the same day and kept by the smoke test (below) |
 | 2 | 2026-10-18 | 1 to 11, with the five findings | Pass, with one finding, fixed (below) |
 | 3 | 2026-10-20 | 12 (the splitter) and 13 (moving lanes), new at the owner's request; the checkboxes' colours | Pass: "It all works great". Found in the round and fixed: the checkboxes were the browser's white box (now the theme's), and a lane moved by a grip, now by dragging the lane itself |
-| 4 | | Retest of step 3 with a holocall line and a voice line's WAV; step 6 with the checkboxes | Not run |
+| 4 | 2026-10-20 | Retest of step 3 with a holocall line and a voice line's WAV; step 6 with the checkboxes | Pass |
 
 | Finding (round 1) | Fix |
 |---|---|
@@ -173,13 +173,13 @@ What is built: [A2 Mix](a2-mix.html). **Pending:** the retest of round 2's findi
 
 What is built, and the research behind the routes: [A3 Into the game](a3-game.html). Steps 1 and 2 are the design's A3 test.
 
-Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48 kHz 16-bit WAV and the game plays it (round 2).
+**Passed 2026-10-20**, after three rounds. Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48 kHz 16-bit WAV and the game plays it (round 2); an override of a later track's sound, from a mix with that track in or out of it (round 3).
 
 | Round | Date | Result |
 |---|---|---|
 | 1 | 2026-10-19 | Before the formal steps, the owner overrode a katana equip sound (track 4 of a mix, soloed), packed, deployed and heard it in the game: **the override works**. Two findings on the way, both fixed the same day (below) |
 | 2 | 2026-10-19 | Steps 1 to 5 pass. Step 4: the game played a REDmod custom sound for `dev_vending_machine_can_falls` (`mod_sfx_room`); REDmod's deploy found the mod and wrote every entry to `mods.json`, with no complaint about the WAVs. Step 5 first seemed to fail: with `mod_skip`, then two silent WAVs, the can still sounded the same. A short ping as its custom sound showed why: a can dropping plays several events layered together. On `w_melee_katana_equip`, one event on its own, the silent WAV silences it and `mod_skip` (by hand, the audible WAV left in place) does not. Gain 0 in `info.json` left a replacement loud. Three findings, fixed the same day (below). Finding events by ear was hard, so the owner asked REDnode for a Sound Tracer ([REDnode #14](https://github.com/Edgemodders/REDnode/issues/14)) |
-| 3 | 2026-10-20 | Step 6 retest with the checkboxes: the tracks in the mix come first, as expected; the last choice, in a group out of the mix, did not seem marked. It was, as the row's small dim description; now in the row's name and its group's heading (below). Retest 6, then 7 and 8 |
+| 3 | 2026-10-20 | Step 6 retest with the checkboxes: the tracks in the mix come first, as expected; the last choice, in a group out of the mix, did not seem marked. It was, as the row's small dim description; now in the row's name and its group's heading (below). Then, on that build, steps 6, 7 and 8 (with the swap) pass. **A3 passes** |
 
 | Finding (round 1) | Fix |
 |---|---|
@@ -214,7 +214,11 @@ Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48
 
 ### V1 Voice tools
 
-What is built: [V1 Voice tools](voice-tools.html). **Not run yet.** Needs an ElevenLabs account and API key; each step spends credits (a few seconds of audio each). Steps 2, 4 and 5 settle what is still unverified: 48 kHz on your plan, a voice preview playing, a remix of a clone.
+What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first round. Needs an ElevenLabs account and API key; each step spends credits (a few seconds of audio each).
+
+| Round | Date | Result |
+|---|---|---|
+| 1 | 2026-10-20 | Steps 1 to 10 pass, no findings. Settled: a voice's preview (an MP3) plays in VS Code's page (step 4); a remix works on an instant clone (step 6). Step 2's rate (48 kHz or 24 kHz on the owner's plan) not reported yet |
 
 1. **The key.** In a sound document, click **Generate Sound…**, describe a sound (such as `a heavy metal door slams in a concrete corridor`), **Generate**. Expect: a password box for the key the first time; then **Take 1** in the dialog with a play button, and no new track yet. Change the description, **Generate again**: Take 2 above Take 1; play both. **Add** on the one you want. Expect: the dialog closes; a new track at the mix cursor, selected, with that take. Its WAV is in the document's `.gen` folder; the other take is not saved anywhere.
 2. **The rate.** Output › EDGEwave. Expect: no "refused 48000 Hz" line on a plan that allows 48 kHz; with one, the next tools use 24 kHz. Tell me which.
