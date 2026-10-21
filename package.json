@@ -167,7 +167,7 @@
       "view/item/context": [
         {
           "command": "edgewave.open",
-          "when": "view == redcode.project && viewItem =~ /^projectFile/",
+          "when": "view == redcode.project && viewItem =~ /^projectFile\\.sound/",
           "group": "edgewave@1"
         },
         {

@@ -27,7 +27,7 @@ fs.writeFileSync(
     "",
     "This is a VS Code extension, not a game mod. Do not install it with Vortex.",
     "",
-    "It needs REDcode for Cyberpunk 2077 (0.10.0 or later), also a VS Code extension:",
+    "It needs REDcode for Cyberpunk 2077 (0.10.3 or later), also a VS Code extension:",
     "https://www.nexusmods.com/cyberpunk2077/mods/35356",
     "",
     "Install:",

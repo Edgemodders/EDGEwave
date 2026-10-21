@@ -11,6 +11,14 @@ How to keep it:
 
 ## Unreleased
 
+**Changed**
+
+- Needs REDcode for Cyberpunk 2077 0.10.3 or later.
+
+**Fixed**
+
+- Open Sound in EDGEwave… in REDcode's Project view shows on sound files only (`.wem`, `.wav`, `.ogg`, `.opus`, `.mp3`, `.flac`), not on every file such as an `.mlsetup` ([#6](https://github.com/Edgemodders/EDGEwave/issues/6)).
+
 ## 0.1.0 (2026-10-20)
 
 The first release, as a preview. Needs REDcode for Cyberpunk 2077 0.10.0 or later and VS Code 1.90 or later. Every part below passed its hand test, in the game where it applies ([Tests](https://edgemodders.github.io/EDGEwave/testing.html)).

@@ -22,7 +22,7 @@ npm run smoke       # VS Code with a stand-in REDcode, driven end to end (downlo
 
 What each test checks, and the hand tests: [Tests](testing.html).
 
-Press **F5** with the repository open in VS Code to run the extension in an Extension Development Host: **Run EDGEwave** in `.vscode/launch.json` builds first. EDGEwave needs REDcode for Cyberpunk 2077 0.10.0 or later, installed in your VS Code (the Development Host uses it); **Run EDGEwave with REDcode main** loads REDcode from `../REDcode` beside it instead (build REDcode first), to try EDGEwave against REDcode's unreleased work. The **Check** workflow typechecks and builds every push to `main`; releasing is on [Release](release.html).
+Press **F5** with the repository open in VS Code to run the extension in an Extension Development Host: **Run EDGEwave** in `.vscode/launch.json` builds first. EDGEwave needs REDcode for Cyberpunk 2077 0.10.3 or later (0.10.0 for all but the Project view's Open Sound in EDGEwave…), installed in your VS Code (the Development Host uses it); **Run EDGEwave with REDcode main** loads REDcode from `../REDcode` beside it instead (build REDcode first), to try EDGEwave against REDcode's unreleased work. The **Check** workflow typechecks and builds every push to `main`; releasing is on [Release](release.html).
 
 ## Git identity
 

@@ -14,7 +14,7 @@ EDGEwave builds on [REDcode for Cyberpunk 2077](https://marketplace.visualstudio
 
 **What you need**
 - Windows, and Cyberpunk 2077 (Steam, GOG or Epic).
-- REDcode 0.10.0 or later, set up with its REDbridge (REDcode offers to download it).
+- REDcode 0.10.3 or later, set up with its REDbridge (REDcode offers to download it).
 - VS Code 1.90 or later.
 - For the voice tools only: an [ElevenLabs](https://elevenlabs.io) account and API key. Each use spends your ElevenLabs credits.
 

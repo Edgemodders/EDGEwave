@@ -131,7 +131,7 @@ What is built: [A1 Edit](a1-edit.html). **Pass** (2026-10-16).
 8. **Reopen.** Close the editor and click **Open in EDGEwave** on the same sound again. Expect: the same document, with its edits.
 9. **The Sounds view.** Click the EDGEwave icon in the activity bar. Expect: the documents from the steps above, each opening in the editor; with none, the Browse Game Sounds and Open Sound… buttons.
 10. **Fit.** Make the editor short (drag the panel up) and narrow. Expect: the waveform shrinks, the panes scroll, nothing runs off the bottom.
-11. **A file.** Right-click a `.wav` or `.ogg` in REDcode's Project view, or in the Explorer, > **Open Sound in EDGEwave…**. Expect: a document beside it, rendering `<name>.edit.wav` for a `.wav`. In the Project view the entry shows on every file (VS Code gives a view's menu no file extension); on a file that is not a sound it says so.
+11. **A file.** Right-click a `.wav` or `.ogg` in REDcode's Project view, or in the Explorer, > **Open Sound in EDGEwave…**. Expect: a document beside it, rendering `<name>.edit.wav` for a `.wav`. In the Project view the entry shows on sound files only (`.wem`, `.wav`, `.ogg`, `.opus`, `.mp3`, `.flac`), by REDcode 0.10.3's `projectFile.sound` kind (EDGEwave #6; VS Code gives a view's menu no file extension, so the kind is how it tells). Right-click a `.mlsetup` or a `.mesh` there: no EDGEwave entry.
 
 ### A2 Mix
 
