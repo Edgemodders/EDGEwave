@@ -11,6 +11,10 @@ How to keep it:
 
 ## Unreleased
 
+**New**
+
+- Into the Game: **As a REDnode sound**. A REDnode package plays the mix where its code calls `audio.play`, beside the game's sound, following the game's volume sliders. No REDmod and no `.wem`, so voice lines too. EDGEwave writes the WAV into a package's `sounds` folder and its `rednode-app.json`, or makes a new package, in the project or in the game folder, where REDnode plays it without a restart ([#2](https://github.com/Edgemodders/EDGEwave/issues/2), [how](https://edgemodders.github.io/EDGEwave/a3-game.html#as-a-rednode-sound)).
+
 **Changed**
 
 - Needs REDcode for Cyberpunk 2077 0.10.3 or later.

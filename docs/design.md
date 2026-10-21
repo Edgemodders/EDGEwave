@@ -109,6 +109,7 @@ Found on 2026-10-15 in WolvenKit's source (REDbridge's `external/WolvenKit`):
 | Sound effect, in an `.opuspak` | A WAV named after the sound's hash, encoded with `opusenc.exe` into a copy of the pack and a new `sfx_container.opusinfo` in the mod. REDbridge 0.9.0's `sound.importWavs` does it (over WolvenKit's `OpusTools`, REDbridge #6), and REDcode's Import calls it. Mods made this way do not combine: each carries the one shared index | Built in A3; untested in the game |
 | An audio event, by name | REDmod custom sounds: the WAV in the mod's `customSounds` folder and an entry in its `info.json`, which the game plays for the event (or skips). Works beside other mods; drops the event's own Wwise logic | Built in A3; REDcode's pack must carry it (REDcode #8) |
 | Voice line or music, a `.wem` | Modders re-encode with Wwise (unverified details); nothing here makes a `.wem` | No route yet |
+| A sound played by code, beside the game's | A REDnode package's own sound: the WAV in its folder and its `rednode-app.json`'s `sounds`; its code calls `audio.play` (REDnode's Sound API, S1) | Built 2026-10-21 ([EDGEwave #2](https://github.com/Edgemodders/EDGEwave/issues/2)). A2's effect objects are a contract with REDnode's S3 |
 
 Updated on 2026-10-16; the routes, the research and its sources are on [A3 Into the game](a3-game.html).
 
@@ -193,7 +194,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | **V1 Voice tools** | Generate Sound, Speak Line and Re-Voice through ElevenLabs: the client, the key in secret storage, the clone consent, the forms with previews, the `made` record | A generated sound, a spoken line and a re-voiced game line, each a track that renders |
 | **A4 Index** | REDbridge bank methods; the index; the query language; search with fields, filters and paging; details with links | A search for an event name finds its sounds, switches and parameters |
 | **A5 Voices and objects** | Subtitles and scenes; TweakDB objects and radios; V's gender filter | A line of dialogue is found by its text and opened in the studio |
-| **A6 EDGE** | MCP tools for agents; play an event in the running game through REDnode; a REDnode package's own sounds once its Sound API exists | An agent finds and edits a sound; an event plays in the running game from EDGEwave |
+| **A6 EDGE** | MCP tools for agents; play an event in the running game through REDnode; a REDnode package's own sounds (the Into the Game route is built, EDGEwave #2; effects that change in the game wait for REDnode's S3) | An agent finds and edits a sound; an event plays in the running game from EDGEwave |
 
 ## Research
 

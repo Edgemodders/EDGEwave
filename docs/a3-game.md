@@ -1,6 +1,6 @@
 # A3 Into the game
 
-Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three rounds, [Tests](testing.html#a3-into-the-game)). **Into the Game…** puts the mix into the open REDcode project, in a layout the game loads, for REDcode to pack. REDcode's Pack carries the REDmod route's sounds since [REDcode #8](https://github.com/Edgemodders/REDcode/issues/8) (on REDcode main in `0f8ebe3`, 2026-10-16; ships in REDcode 0.10.0).
+Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three rounds, [Tests](testing.html#a3-into-the-game)). Added 2026-10-21, hand test pending: how to hear the result (EDGEwave #4) and the **As a REDnode sound** route (EDGEwave #2). **Into the Game…** puts the mix into the open REDcode project, in a layout the game loads, for REDcode to pack. REDcode's Pack carries the REDmod route's sounds since [REDcode #8](https://github.com/Edgemodders/REDcode/issues/8) (on REDcode main in `0f8ebe3`, 2026-10-16; ships in REDcode 0.10.0).
 
 ## The routes
 
@@ -10,6 +10,7 @@ Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three roun
 | **Replace the event `<event>`, every variation, with REDmod** | An audio event by name, every variation: one WAV for all of them | The WAV in `source/customSounds/<event>.wav`, and an entry in `source/resources/info.json`'s `customSounds`, as WolvenKit's Sound Modding tool writes them. If that WAV is there already and this document did not write it last, EDGEwave asks before replacing it | Yes. The event's own Wwise logic (parameters, switches, effects such as slow-motion processing) is dropped |
 | **Silence the event `<event>`, every variation, with REDmod** | An audio event by name | The mix rendered as for a replacement (48 kHz, the target sound's channels, the mix's length) with every sample zeroed, as `source/customSounds/<event>.wav`; its entry has the type you pick, at gain 1. Silent in the game (the katana equip). Not `mod_skip`: see below | Yes |
 | **A REDmod custom sound for an event…** | Any mix, for an event named by hand | As Replace | Yes |
+| **As a REDnode sound, played from a package's code…** ([EDGEwave #2](https://github.com/Edgemodders/EDGEwave/issues/2)) | Any mix, voice lines too. Replaces nothing: a REDnode package plays it where its code calls `audio.play` | The mix at 48 kHz as `sounds/<name>.wav` in a REDnode package, and its entry in the package's `rednode-app.json` `sounds` with the category you pick. See [As a REDnode sound](#as-a-rednode-sound) | Yes: each package plays its own sounds |
 
 ## What goes in, and what it replaces
 
@@ -61,6 +62,29 @@ EDGEwave's message after Into the Game says so, and **Pack and Install** runs RE
 
 **Voice lines** (`.wem`) have no route yet. Into the Game says so and offers the named REDmod route.
 
+## As a REDnode sound
+
+Built 2026-10-21 for [EDGEwave #2](https://github.com/Edgemodders/EDGEwave/issues/2), at REDnode's request. REDnode's Sound API (S1 Play, passed in game with REDnode 0.24.1) plays a package's own WAV, OGG, MP3 and FLAC files beside the game's sound. They follow the game's volume sliders and pause in menus. The sounds need no REDmod, no pack step and no `.wem`, so this route takes a voice line too. It replaces nothing: the sound plays when the package's code calls it. REDnode's docs: [Your own sounds](https://edgemodders.github.io/REDnode/overlay-apps.html#your-own-sounds).
+
+| Step | What EDGEwave asks and does |
+|---|---|
+| The package | The REDnode packages it finds (a folder with a `rednode-app.json` that has an `id`), the last one first and marked: in the project under `source/resources/red4ext/plugins/REDnode/apps/`, and in the game folder's `red4ext/plugins/REDnode/apps/` when REDnode is installed there. Or **New package in the project…** or **New package in the game folder…**, with an id (lower case, digits, dashes; the mod's name by default) |
+| The name | What the code plays it by, `audio.play(name)`, and the file's name: `sounds/<name>.wav`. The document's name by default, then last time's. If the package has that sound and this document did not write it last time, EDGEwave asks before replacing it |
+| The slider | `sfx` (Sound effects), `dialogue` (Dialogue) or `music` (Music): Dialogue first when a voice line is in the mix, then last time's |
+| Writes | The mix at 48 kHz, with the first track in the mix's channels (REDnode plays any rate and mixes in stereo), as `sounds/<name>.wav`; the manifest's `sounds.<name>` as `{ "file": "sounds/<name>.wav", "category": ... }`, keeping settings set there by hand (`volume`, `loop` and so on). A new package also gets its manifest (`id`, `name`, `version`, `description`, `main: "mod.mjs"`, `open: true`, so it starts when it appears) and a `mod.mjs` that plays the sound once, to build on |
+| Then | A message with the line that plays it, **Copy Code** (`import { audio } from 'rednode'; await audio.play("<name>");`), **Open Manifest**, and for a package in the project **Pack and Install** |
+
+Where the package is decides how it gets into the game:
+
+| Package | Into the game | Ships with the mod |
+|---|---|---|
+| In the project, `source/resources/red4ext/plugins/REDnode/apps/<id>/` | REDcode's Pack copies every file under `source/resources` to the same path under `packed` (REDcode's `pack.ts`), so Pack and Install puts it in the game folder | Yes |
+| In the game folder | At once: REDnode watches its apps folders while it runs, so a new package starts and a changed manifest restarts its package, without restarting the game | No: for trying a sound out |
+
+The choice is kept in the document (`game`: `{ route: "rednode", package, sound, category }`, the package relative to the project's folder when it is in it). Unverified in the game: that REDnode starts a package Pack and Install puts in its apps folder while the game runs, as it does one made there.
+
+**Later, with REDnode's S3:** S3's `effects` setting will take A2's effect objects as they are (`{ type: "lowpass", hz, q }`, `{ type: "reverb", seconds, mix }` and so on, `Effect` in `src/doc.ts`), with A2's preset names and values. This route could then write the chain into the manifest instead of baking it into the WAV, so the effect can change while the game runs. So the effect objects' shape is a contract with REDnode: tell REDnode when it changes.
+
 ## The REDmod types
 
 From the REDmodding wiki:
@@ -111,6 +135,7 @@ So Silence writes a silent WAV, as modders do, and never `mod_skip`. An older `m
 | Part | Where |
 |---|---|
 | The routes, the quick picks, writing the files, REDcode's Import and Pack | `src/intoGame.ts` |
+| The REDnode route's manifest edits, names and sample code (pure, `test/rednode.test.ts`) | `src/rednode.ts` |
 | REDmod's types and the `info.json` update, pure, with unit tests | `src/redmod.ts`, `test/` |
 | The document's `game` (the last choice) | `src/doc.ts` |
 | **Into the Game…** in the Mix bar; the page renders the mix at the format a route asks for | `src/editor.ts`, `webview/editor.ts` |

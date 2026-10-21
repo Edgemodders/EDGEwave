@@ -8,13 +8,13 @@ Last updated 2026-10-19.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-20 | Pass, 34 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-20 | Pass |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-21 | Pass, 41 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-21 | Pass |
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-10-20 | Pass: `edgewave-0.1.0.vsix` with REDcode 0.10.2 |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Pass, after four rounds |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds; steps 9 and 10 (2026-10-21) to test |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-10-20 | Pass, first round |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
@@ -74,12 +74,13 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | V1 | Speak Line in track 1's voice | VS Code's consent modal (clicked); one clone; track 5, `made.from` track 1 |
 | V1 | Re-Voice by description | Two remix previews, the same clone reused; the pick saved, then speech-to-speech; track 6 at track 1's start, track 1 out of the mix |
 | A2 | The lanes' checkboxes; right-click the generated sound's lane > Only This Track; Into the Game | Track 1's box checks; then only track 3's is checked, saved as `mute` on the others; Into the Game's first row is the named REDmod route, saying no track in the mix is a game sound effect (track 3); the last choice, track 1's Silence, is marked in its label and its group's heading, out of the mix |
+| A3 | Into the Game > As a REDnode sound > New package in the project, the defaults | `source/resources/red4ext/plugins/REDnode/apps/smoke/` with `rednode-app.json` (`main`, `open`, `sounds.42` as `sounds/42.wav`, `sfx`), `mod.mjs` playing it, and `sounds/42.wav` at 48 kHz; the document's `game` is the REDnode route |
 | A2 | The splitter: drag it far up, then one lane down; double-click it | The lanes go to one lane, then two; double-click fits every track, as far as the waveform's least height (110 px) allows |
 | A2 | Moving lanes: drag track 1's clip sideways with a little wobble; drag track 3's lane up above track 1; right-click the top lane > Move Down; Ctrl+Z | The sideways drag moves the clip in time and keeps the order; the drop line shows; track 3 keeps its start; the order is 1, 3, 2, then 3, 1, 2 after the undo (one edit) |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 
-Last run 2026-10-20: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view`).
+Last run 2026-10-21: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view`).
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -174,7 +175,7 @@ What is built: [A2 Mix](a2-mix.html). **Passed 2026-10-20**, after four rounds.
 
 What is built, and the research behind the routes: [A3 Into the game](a3-game.html). Steps 1 and 2 are the design's A3 test.
 
-**Passed 2026-10-20**, after three rounds. Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48 kHz 16-bit WAV and the game plays it (round 2); an override of a later track's sound, from a mix with that track in or out of it (round 3).
+**Passed 2026-10-20**, after three rounds. Verified: the game plays an override (round 1), and REDmod accepts EDGEwave's 48 kHz 16-bit WAV and the game plays it (round 2); an override of a later track's sound, from a mix with that track in or out of it (round 3). Added 2026-10-21, not yet tested by hand: step 9 (how to hear it, EDGEwave #4) and step 10 (As a REDnode sound, EDGEwave #2).
 
 | Round | Date | Result |
 |---|---|---|
@@ -212,6 +213,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
    7. **The swap.** Check only track 1 (a file) and uncheck the game sound's track. **Into the Game…**. Expect: **Any event** first, saying no track in the mix is a game sound effect; the game sound's group last, **not in the mix**. Pick its **Override sound**, Pack and play: the file alone, in place of the game sound.
 
 9. **How to hear it** (EDGEwave #4). Into the Game with an override, then with a REDmod route. Expect: the message ends with how to hear it (Pack and Install, then restart the game; for the override, not to hot-deploy it), with **Pack and Install** and **Pack**. **Pack and Install** runs REDcode's, which says it packed and installed.
+10. **As a REDnode sound** (EDGEwave #2). Needs REDnode in the game. On a document with a voice line in the mix: **Into the Game…** > **As a REDnode sound…** > **New package in the game folder…**, id `edgewave-test`, keep the name, **Dialogue** (offered first). Expect: `red4ext/plugins/REDnode/apps/edgewave-test/` with `rednode-app.json` (the sound under `sounds`, category `dialogue`), `mod.mjs` and `sounds/<name>.wav`. With the game running and a save loaded, the new package starts and plays the line once; the Dialogue slider changes its volume. Change the mix and do the same again: no question, and the package restarts with the new sound. Then **New package in the project…**: the same under `source/resources/red4ext/plugins/REDnode/apps/<id>/`; **Pack and Install** puts it in the game folder and it plays (while the game runs, or after a restart). Delete the test packages from the game folder after.
 
    Before playing, take out an earlier REDmod replacement of the same event (its WAV in `source/customSounds` and its `info.json` entry), or turn `redcode.pack.redmod` off: REDmod's sound would play instead of the override. An override is one variation: an event with several may play another one some of the time.
 

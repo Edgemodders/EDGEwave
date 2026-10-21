@@ -446,6 +446,30 @@ const checksOk =
   /^\$?\(?.*A REDmod custom sound for an event/.test(fileRows[0] ?? "") && /No track in the mix is a game sound effect \(track 3\)/.test(fileRows[0] ?? "");
 if (!checksOk) finish(false, "the lanes' checkboxes or Only This Track did not set the mix");
 
+// As a REDnode sound (EDGEwave #2): no package yet and no game folder, so New package in the project,
+// its id from the mod's name, the sound named after the document, Sound effects (no voice in the mix).
+await run("document.getElementById('intoGame').click()");
+await pickFirst("As a REDnode sound");
+await pickFirst(""); // New package in the project…
+await pickFirst(""); // id: smoke
+await pickFirst(""); // name: 42
+await pickFirst(""); // Sound effects
+const pkgDir = path.join(T, "proj", "source", "resources", "red4ext", "plugins", "REDnode", "apps", "smoke");
+const pkgWav = path.join(pkgDir, "sounds", "42.wav");
+for (let i = 0; i < 20 && !fs.existsSync(pkgWav); i++) await sleep(500);
+await sleep(800);
+await key("Escape", "Escape", 27); // the notification
+const pkgManifest = fs.existsSync(path.join(pkgDir, "rednode-app.json")) ? JSON.parse(fs.readFileSync(path.join(pkgDir, "rednode-app.json"), "utf8")) : null;
+const pkgGame = JSON.parse(fs.readFileSync(docFile, "utf8")).game;
+log("REDnode sound", JSON.stringify({ pkgManifest, pkgGame, wav: fs.existsSync(pkgWav) ? wavFormat(pkgWav) : null }));
+const rednodeOk =
+  pkgManifest?.id === "smoke" && pkgManifest.main === "mod.mjs" && pkgManifest.open === true &&
+  JSON.stringify(pkgManifest.sounds) === JSON.stringify({ 42: { file: "sounds/42.wav", category: "sfx" } }) &&
+  fs.existsSync(path.join(pkgDir, "mod.mjs")) && /audio\.play\("42"\)/.test(fs.readFileSync(path.join(pkgDir, "mod.mjs"), "utf8")) &&
+  wavFormat(pkgWav).rate === 48000 &&
+  pkgGame?.route === "rednode" && pkgGame.sound === "42" && pkgGame.category === "sfx" && pkgGame.package === path.join("source", "resources", "red4ext", "plugins", "REDnode", "apps", "smoke");
+if (!rednodeOk) finish(false, "As a REDnode sound did not write the package");
+
 // The splitter under the track bar: six tracks show four until it is dragged; drag far up to the
 // one-lane least, then one lane down; double-click fits every track, as far as the waveform's least height allows.
 const lanesH = () => run("return document.querySelector('.lanes').offsetHeight");
@@ -549,4 +573,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view" : "render or mix checks failed");

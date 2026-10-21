@@ -97,7 +97,9 @@ export type IntoGame =
   /** A REDmod custom sound: the game plays the render for this event (all its variations), as type. */
   | { route: "redmod"; event: string; type: string; gain: number; pitch: number }
   /** A REDmod custom sound that silences this event: the render with its samples zeroed, as type (absent before 2026-10-19: mod_skip). */
-  | { route: "skip"; event: string; type?: string };
+  | { route: "skip"; event: string; type?: string }
+  /** A REDnode package's own sound (EDGEwave #2): the render as sounds/<sound>.wav in the package (relative to the project's folder when in it), in its manifest with the category. */
+  | { route: "rednode"; package: string; sound: string; category: string };
 
 export interface SoundDoc {
   edgewave: 2;
