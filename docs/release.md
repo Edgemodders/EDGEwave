@@ -1,6 +1,6 @@
 # Release
 
-How a version of EDGEwave goes out: to the VS Code Marketplace and Open VSX by the **Publish** workflow, and to Nexus Mods by hand. The first release is 0.1.0, as a preview (`"preview": true` in `package.json`).
+How a version of EDGEwave goes out: to the VS Code Marketplace and Open VSX by the **Publish** workflow, run by hand from the Actions tab as REDnode's Release workflow is, and to Nexus Mods by hand. The first release is 0.1.0, as a preview (`"preview": true` in `package.json`).
 
 ## What ships
 
@@ -8,7 +8,7 @@ How a version of EDGEwave goes out: to the VS Code Marketplace and Open VSX by t
 |---|---|---|
 | VS Code Marketplace | `edgemodders.edgewave`, which installs `edgemodders.redcode-cyberpunk` with it | `vsce publish` in the workflow (`VSCE_PAT`) |
 | Open VSX | `edgemodders/edgewave` | `ovsx publish` in the workflow (`OVSX_PAT`) |
-| GitHub release | The `.vsix`, the Nexus zip and the version's CHANGELOG section | `gh release create` in the workflow |
+| GitHub release `v<version>` | The `.vsix`, the Nexus zip and the version's CHANGELOG section; it tags the commit | `gh release create` in the workflow |
 | Nexus Mods | `EDGEwave-<version>-nexus.zip`: the `.vsix`, `README.txt`, `LICENSE.txt` | `tools/nexus-zip.mjs`; uploaded by hand ([nexus/README.md](https://github.com/Edgemodders/EDGEwave/blob/main/nexus/README.md)) |
 
 The `.vsix` is one file for every platform: EDGEwave has no native parts and no runtime dependencies. It holds the two bundles in `dist/` (minified, no source maps: `node esbuild.mjs --production`, vsce's prepublish), `media/editor.css`, the icons, the Marketplace README (`README.marketplace.md`, through `--readme-path`), the CHANGELOG and the LICENSE; `.vscodeignore` leaves out the rest. The repo's own `README.md` stays the GitHub page.
@@ -24,7 +24,9 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
    npm run nexus-zip    # dist/EDGEwave-<version>-nexus.zip
    ```
 4. **Commit and push** to `main`.
-5. **Tag** (the owner): `git tag v<version>` and `git push origin v<version>`. The **Publish** workflow checks that the tag matches `package.json` and has a CHANGELOG section, typechecks, tests, packages, publishes to both stores and makes the GitHub release.
+5. **Publish** (the owner): Actions > **Publish** > **Run workflow** on `main`.
+   - Unticked, it checks, tests and packages, and keeps the `.vsix` and the Nexus zip as the run's artifact. Nothing is published: a dry run.
+   - With **Make a release** ticked, it also publishes to the Marketplace and Open VSX and makes the GitHub release `v<version>`, which tags the commit. It stops first if that tag exists (raise the version) or `CHANGELOG.md` has no section for the version.
 6. **Nexus** (the owner): upload the release's Nexus zip as the main file, with **Mod Manager Download** off; update the description from `nexus/description.bbcode` ([nexus/README.md](https://github.com/Edgemodders/EDGEwave/blob/main/nexus/README.md)).
 7. **After:** the README's and the Nexus page's status, and `docs/` where a page says what is released.
 

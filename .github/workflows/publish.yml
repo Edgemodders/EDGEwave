@@ -1,15 +1,27 @@
-# Publishes EDGEwave when its version tag is pushed:
-#   git tag v0.1.0 && git push origin v0.1.0
-# Checks the tag against package.json, typechecks, tests, packages the extension (one .vsix for every
-# platform: EDGEwave has no native parts), publishes to the VS Code Marketplace (VSCE_PAT) and Open VSX
-# (OVSX_PAT), and makes the GitHub release with the vsix, the Nexus Mods zip (tools/nexus-zip.mjs,
-# uploaded to Nexus by hand) and the CHANGELOG section. Both tokens are Edgemodders organisation
-# secrets, shared with REDcode's and EDGEdeck's workflows.
+# Builds EDGEwave's .vsix and Nexus Mods zip, and publishes a release, as REDnode's Release workflow does:
+#
+#   Run workflow (Actions tab)                  checks, tests and packages; keeps the .vsix and the Nexus
+#                                               zip as the run's artifact. Publishes nothing
+#   Run workflow, "Make a release" ticked       also publishes to the VS Code Marketplace (VSCE_PAT) and
+#                                               Open VSX (OVSX_PAT), and makes the GitHub release v<version>
+#                                               (which tags the commit) with the .vsix, the Nexus zip and
+#                                               the CHANGELOG section. Stops first if that tag exists
+#                                               (raise the version in package.json) or CHANGELOG.md has
+#                                               no section for the version
+#
+# One .vsix for every platform: EDGEwave has no native parts. The Nexus zip (tools/nexus-zip.mjs) is
+# uploaded to Nexus by hand. Both tokens are Edgemodders organisation secrets, shared with REDcode's and
+# EDGEdeck's workflows. Release gate: make a release only after every hand test of the phases in it has
+# passed (docs/testing.md).
 name: Publish
 
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Make a release (publishes to the Marketplace and Open VSX, and tags this commit v<version>). Only after every hand test has passed
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -28,15 +40,19 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: The tag matches package.json
+      - name: The version, its CHANGELOG section, and no release of it yet
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          have=$(node -p "require('./package.json').version")
-          if [ "${have}" != "${version}" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${have}"
-            exit 1
-          fi
+          version=$(node -p "require('./package.json').version")
           grep -q "^## ${version} " CHANGELOG.md || { echo "::error::CHANGELOG.md has no section for ${version}"; exit 1; }
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
+            if [ "${{ inputs.release }}" = "true" ]; then
+              echo "::error::v${version} is released already: raise the version in package.json"
+              exit 1
+            fi
+            echo "::warning::v${version} is released already; this run only packages"
+          fi
           { echo "VERSION=${version}"; echo "VSIX=${GITHUB_WORKSPACE}/dist/edgewave-${version}.vsix"; } >> "$GITHUB_ENV"
 
       - run: npm ci
@@ -52,14 +68,22 @@ jobs:
       - name: Nexus zip
         run: node tools/nexus-zip.mjs
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: edgewave-${{ env.VERSION }}
+          path: |
+            dist/edgewave-${{ env.VERSION }}.vsix
+            dist/EDGEwave-${{ env.VERSION }}-nexus.zip
+
       - name: VS Code Marketplace
+        if: ${{ inputs.release }}
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: node_modules/.bin/vsce publish --packagePath "${VSIX}"
 
       # Each registry is tried even when another one failed; the run still fails if any of them did.
       - name: Open VSX
-        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
+        if: ${{ inputs.release && !cancelled() && steps.package.outcome == 'success' }}
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
@@ -70,9 +94,9 @@ jobs:
           node_modules/.bin/ovsx publish "${VSIX}" --pat "${OVSX_PAT}"
 
       - name: GitHub release
-        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
+        if: ${{ inputs.release && !cancelled() && steps.package.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           notes=$(node -e "const s=require('fs').readFileSync('CHANGELOG.md','utf8');const m=s.split(/^## /m).find(p=>p.startsWith(process.argv[1]+' '));console.log(m?m.split('\n').slice(1).join('\n').trim():'')" "${VERSION}")
-          gh release create "${GITHUB_REF_NAME}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" --title "EDGEwave ${VERSION}" --notes "${notes}"
+          gh release create "v${VERSION}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" --target "${GITHUB_SHA}" --title "EDGEwave ${VERSION}" --notes "${notes}"
