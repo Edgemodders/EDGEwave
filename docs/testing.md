@@ -2,7 +2,7 @@
 
 Every test run on EDGEwave so far: how to run it again, what to expect, and what it showed. Each phase ends with a hand test by the owner ([design, "Phases"](design.html#phases)); new tests are added here when they are first run.
 
-Last updated 2026-10-19.
+Last updated 2026-10-23.
 
 ## At a glance
 
@@ -12,6 +12,7 @@ Last updated 2026-10-19.
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-21 | Pass |
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-10-20 | Pass: `edgewave-0.1.0.vsix` with REDcode 0.10.2 |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
+| [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Pass, after four rounds |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds; steps 9 and 10 (2026-10-21) to test |
@@ -97,6 +98,19 @@ Run on 2026-10-15 with a game voice line (Ogg Vorbis, exported by REDbridge) and
 | `MediaRecorder` | WebM Opus only | Not checked |
 
 The owner's retest of REDcode's player found the same on 2026-10-15; REDcode 0.8.0 decodes Opus in the extension and serves WAV.
+
+### Spike: WAV to `.wem` with Wwise
+
+Run 2026-10-23 for [V2 Voice a quest](voice-lines.html#the-wem-spike), which has the commands and the full results. Needs Wwise 2023.1.14 from Audiokinetic's Launcher.
+
+1. Make a mono 48 kHz 16-bit WAV (a tone, or Windows' voice: `System.Speech`'s `SpeechSynthesizer` with `SpeechAudioFormatInfo(48000, Sixteen, Mono)`).
+2. `WwiseConsole.exe create-new-project <dir>\p.wproj`, then `convert-external-source <dir>\p.wproj --platform Windows --source-file <list>.wsources --output <out> --no-wwise-dat`, the list naming the WAV with `Conversion="Vorbis Quality High"`.
+3. Read the `.wem`'s RIFF chunks and compare them with a game voice line's (extracted to a temporary folder; never kept or committed).
+4. Put the `.wem` under a folder's `source/archive` and export it with REDcode's `project_export`: it decodes to Ogg.
+
+Expect: codec `0xFFFF`, 1 channel, 48,000 Hz, `fmt ` 66 bytes, then `hash` and `data`, as the game's line; the Ogg as long as the WAV.
+
+Last result (2026-10-23): all as expected, 0.5 s per conversion. 2025.1.7 makes the same audio (only the `hash` chunk differs). Not yet heard in the game.
 
 ## Hand tests
 
