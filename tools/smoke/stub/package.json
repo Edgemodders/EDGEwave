@@ -1,2 +1,3 @@
 { "name": "redcode-cyberpunk", "publisher": "edgemodders", "version": "0.9.0-stub", "engines": { "vscode": "^1.80.0" },
-  "main": "./extension.js", "activationEvents": ["onStartupFinished"] }
+  "main": "./extension.js", "activationEvents": ["onStartupFinished"],
+  "contributes": { "commands": [{ "command": "smoke.api", "title": "Smoke: EDGEwave API" }, { "command": "smoke.voiceLines", "title": "Smoke: Voice Lines" }] } }

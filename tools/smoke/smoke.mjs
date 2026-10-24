@@ -21,6 +21,8 @@ const T = path.join(os.tmpdir(), "ewsmoke");
 fs.rmSync(path.join(T, "ud"), { recursive: true, force: true });
 fs.rmSync(path.join(T, "proj"), { recursive: true, force: true });
 fs.rmSync(path.join(T, "imported.json"), { force: true });
+for (const f of ["api.json", "voiceLines.json", "home"]) fs.rmSync(path.join(T, f), { recursive: true, force: true });
+fs.mkdirSync(path.join(T, "game"), { recursive: true });
 fs.mkdirSync(path.join(T, "proj", "source", "raw"), { recursive: true });
 fs.cpSync(path.join(here, "stub"), path.join(T, "stub"), { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -70,7 +72,8 @@ fs.mkdirSync(path.join(T, "ud", "User"), { recursive: true });
 fs.writeFileSync(path.join(T, "ud", "User", "settings.json"), JSON.stringify({ "edgewave.elevenlabs.baseUrl": `http://127.0.0.1:${elevenServer.address().port}`, "window.dialogStyle": "custom" }));
 
 const exe = await downloadAndUnzipVSCode({ version: "stable", cachePath: path.join(T, "vsc") });
-const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+// EDGEwave's own folder (the event index, the MCP server) in the smoke folder, never the modder's.
+const env = { ...process.env, EDGEWAVE_HOME: path.join(T, "home") }; delete env.ELECTRON_RUN_AS_NODE;
 const code = spawn(exe, ["--new-window", "--user-data-dir", path.join(T, "ud"), "--extensions-dir", path.join(T, "ex"), "--disable-extensions",
   "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339", "--force-device-scale-factor=1.5",
   "--skip-welcome", "--skip-release-notes", "--disable-workspace-trust", path.join(T, "proj")], { env, stdio: "ignore" });
@@ -543,6 +546,71 @@ const offsetKept = JSON.parse(fs.readFileSync(docFile, "utf8")).tracks.find((t) 
 const moveOk = sidewaysOk && dropShown === true && offsetKept && o1 === [a0, c0, b0, ...rest0].join() && o2 === [c0, a0, b0, ...rest0].join() && o0 !== o1;
 if (!moveOk) finish(false, "moving lanes did not reorder the tracks");
 
+// EDGEwave's API, called by the stand-in REDcode as EDGEquest does (#7): the game's sound events from the
+// bridge's eventsmetadata.json, hearing one (the preview), a music cue (a reason), a custom sound.
+const command = async (title) => {
+  await key("F1", "F1", 112);
+  await sleep(600);
+  await cdp("Input.insertText", { text: title });
+  await sleep(800);
+  await key("Enter", "Enter", 13);
+};
+const waitFile = async (f, n = 40) => { for (let i = 0; i < n && !fs.existsSync(f); i++) await sleep(500); return fs.existsSync(f); };
+await command("Smoke: EDGEwave API");
+if (!(await waitFile(path.join(T, "api.json")))) finish(false, "the API calls never finished");
+const apiOut = JSON.parse(fs.readFileSync(path.join(T, "api.json"), "utf8"));
+log("api", JSON.stringify(apiOut));
+const customWav = path.join(T, "proj", "source", "customSounds", "edgewave_smoke_knock.wav");
+const infoNow = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "resources", "info.json"), "utf8"));
+const apiOk = apiOut.apiVersion === 1 && !apiOut.error
+  && apiOut.events.map((e) => e.name).join() === "smoke_event,smoke_second,mus_smoke_01_START" && apiOut.events[0].sounds?.join() === "42" && apiOut.events[0].quest === true
+  && apiOut.music.map((e) => e.name).join() === "mus_smoke_01_START" && apiOut.music[0].loops === true
+  && apiOut.play.ok === true && apiOut.play.variations === 1 && apiOut.playMusic.ok === false && /music cue/.test(apiOut.playMusic.reason)
+  && apiOut.custom.event === "edgewave_smoke_knock" && apiOut.custom.type === "mod_sfx_low_occlusion" && fs.existsSync(customWav) && fs.readFileSync(customWav).readUInt32LE(24) === 48000
+  && infoNow.customSounds.some((c) => c.name === "edgewave_smoke_knock" && c.file === "edgewave_smoke_knock.wav")
+  && apiOut.status === undefined && fs.existsSync(path.join(T, "home", "events.json"));
+if (!apiOk) finish(false, "EDGEwave's sound event calls did not answer as expected");
+
+// V2 Voice Lines (#5): the stub hands over a quest's two lines; pick the voices (V's two, Judy's), Generate
+// All against the stand-in ElevenLabs (24 kHz, eleven_v3, Judy's say with its tags), then close the panel.
+const elevenBefore = eleven.length;
+await command("Smoke: Voice Lines");
+let vl;
+for (let i = 0; i < 40 && !vl; i++) {
+  for (const c of contexts.filter((c) => c.origin.startsWith("vscode-webview"))) {
+    try { if (await evalIn(c, "!!document.getElementById('lines') && !!document.getElementById('voices') && document.querySelectorAll('.line').length === 2")) { vl = c; break; } } catch {}
+  }
+  if (!vl) await sleep(500);
+}
+if (!vl) finish(false, "the Voice Lines panel never appeared");
+const vrun = (js) => evalIn(vl, `(async () => { ${js} })()`);
+await vrun("document.querySelector('#voices select').dispatchEvent(new FocusEvent('focus'))");
+for (let i = 0; i < 20; i++) { if (await vrun("return document.querySelector('#voices select').options.length > 1")) break; await sleep(300); }
+for (let n = 0; n < 3; n++) {
+  await vrun(`const s = [...document.querySelectorAll('#voices select')][${n}]; s.value = 'v_smoke'; s.dispatchEvent(new Event('change'));`);
+  await sleep(500);
+}
+const picked = await vrun("return [...document.querySelectorAll('#voices select')].map((s) => s.value)");
+await vrun("document.getElementById('generate').click()");
+let vmeta = "";
+for (let i = 0; i < 40; i++) { vmeta = await vrun("return document.getElementById('meta').textContent"); if (vmeta.includes("2 voiced")) break; await sleep(500); }
+const vshot = await cdp("Page.captureScreenshot", { format: "png" });
+fs.writeFileSync(path.join(T, "voiceLines.png"), Buffer.from(vshot.data, "base64"));
+const record = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "raw", "edgewave", "voice", "smoke_quest", "voice.json"), "utf8"));
+const tts = eleven.slice(elevenBefore).filter((r) => r.path.startsWith("/v1/text-to-speech/") && r.fmt === "pcm_24000").map((r) => JSON.parse(r.body));
+log("voice lines", JSON.stringify({ picked, vmeta, tts, record }));
+const vLine = record.lines["1234567890123456789"], jLine = record.lines["42"];
+const takeWav = jLine && fs.readFileSync(path.join(T, "proj", jLine.female));
+await command("View: Close Editor");
+const closed = await waitFile(path.join(T, "voiceLines.json"), 20);
+const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 voiced")
+  && vLine?.female === "source/raw/edgewave/voice/smoke_quest/v_smoke_quest_f_112210f47de98115.wav" && vLine?.male?.endsWith("v_smoke_quest_m_112210f47de98115.wav")
+  && jLine?.female?.endsWith("judy_smoke_quest_f_000000000000002a.wav") && !jLine.male && jLine.say === "[softly] You... came back." && jLine.model === "eleven_v3"
+  && record.archiveDir === "mod/smoke/smoke_quest/vo" && record.voices.V?.female === "v_smoke" && record.voices.Judy === "v_smoke"
+  && tts.length === 3 && tts.every((b) => b.model_id === "eleven_v3") && tts.some((b) => b.text === "[softly] You... came back.")
+  && takeWav?.readUInt32LE(24) === 24000 && closed && JSON.parse(fs.readFileSync(path.join(T, "voiceLines.json"), "utf8")).lines["42"];
+if (!vlOk) finish(false, "Voice Lines did not voice the quest's lines as expected");
+
 // The Sounds view: Project (the open folder) and Recent (opened lately), each listing 42.
 await key("F1", "F1", 112);
 await sleep(600);
@@ -573,4 +641,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view" : "render or mix checks failed");

@@ -102,7 +102,8 @@ export class VoiceTools {
     void vscode.window.showInformationMessage("EDGEwave: the ElevenLabs API key is cleared.");
   }
 
-  private async client(): Promise<ElevenLabs> {
+  /** The ElevenLabs client with the modder's key; asks for the key when there is none. */
+  async client(): Promise<ElevenLabs> {
     const k = await this.key();
     if (!k) throw new Error("No ElevenLabs API key. EDGEwave: Set ElevenLabs API Key adds one.");
     return new ElevenLabs(k, this.config().base);

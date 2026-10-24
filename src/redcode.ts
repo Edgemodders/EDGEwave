@@ -46,11 +46,17 @@ export interface ProjectRef {
   packed: string;
 }
 
+/** The part of REDcode's REDbridge client EDGEwave uses: its methods mirror REDbridge's JSON-RPC methods. */
+export interface BridgeClient {
+  /** cr2w.toJson: a game file as WolvenKit JSON, written to outFile. */
+  toJson(path: string, outFile?: string): Promise<{ file?: string; bytes?: number; json?: unknown }>;
+}
+
 export interface REDcodeApi {
   readonly apiVersion: 1;
   readonly version: string;
-  /** REDcode's REDbridge client; EDGEwave does not use it directly yet. */
-  bridge(): unknown;
+  /** REDcode's REDbridge client, or undefined when it is not running. EDGEwave uses only toJson (cr2w.toJson), for the game's event list. */
+  bridge(): BridgeClient | undefined;
   gamePath(): string | undefined;
   project(): ProjectRef | undefined;
   readonly onDidChangeProject: vscode.Event<ProjectRef | undefined>;

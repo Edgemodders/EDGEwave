@@ -1,5 +1,5 @@
-// Bundles the extension (CommonJS, VS Code's module loader) and the editor page (one browser
-// script). `node esbuild.mjs --watch` rebuilds on change; `--tests` bundles test/*.test.ts for
+// Bundles the extension (CommonJS, VS Code's module loader), the editor and Voice Lines pages (browser
+// scripts) and the MCP server. `node esbuild.mjs --watch` rebuilds on change; `--tests` bundles test/*.test.ts for
 // `node --test "dist-test/*.test.cjs"`; `--production` (vsce's prepublish) minifies, with no source maps.
 import * as esbuild from "esbuild";
 import * as fs from "node:fs";
@@ -29,6 +29,20 @@ const page = {
   outfile: "dist/editor.js",
 };
 
+const voiceLinesPage = { ...page, entryPoints: ["webview/voiceLines.ts"], outfile: "dist/voiceLines.js" };
+
+// The MCP server for assistants: one file, run by Node 20 (or VS Code's binary as Node); src/mcp.ts installs it.
+const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+const mcp = {
+  ...common,
+  platform: "node",
+  format: "cjs",
+  target: "node20",
+  entryPoints: ["src/mcp/server.ts"],
+  outfile: "dist/mcp/edgewave-mcp.cjs",
+  define: { __VERSION__: JSON.stringify(version) },
+};
+
 const testBuild = {
   ...common,
   platform: "node",
@@ -41,5 +55,5 @@ const testBuild = {
 };
 
 if (tests) await esbuild.build(testBuild);
-else if (watch) await Promise.all([extension, page].map(async (o) => (await esbuild.context(o)).watch()));
-else await Promise.all([extension, page].map((o) => esbuild.build(o)));
+else if (watch) await Promise.all([extension, page, voiceLinesPage, mcp].map(async (o) => (await esbuild.context(o)).watch()));
+else await Promise.all([extension, page, voiceLinesPage, mcp].map((o) => esbuild.build(o)));

@@ -47,9 +47,19 @@
     "commands": [
       {
         "command": "edgewave.open",
-        "title": "Open Sound in EDGEwave\u2026",
+        "title": "Open Sound in EDGEwave…",
         "category": "EDGEwave",
         "icon": "$(add)"
+      },
+      {
+        "command": "edgewave.voiceLines",
+        "title": "Voice Lines…",
+        "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.connectAssistant",
+        "title": "Connect an Assistant (MCP)…",
+        "category": "EDGEwave"
       },
       {
         "command": "edgewave.openSound",
@@ -76,7 +86,7 @@
       },
       {
         "command": "edgewave.openFolder",
-        "title": "Open Folder\u2026",
+        "title": "Open Folder…",
         "category": "EDGEwave",
         "icon": "$(folder-opened)"
       },
@@ -101,7 +111,14 @@
       "properties": {
         "edgewave.elevenlabs.sampleRate": {
           "type": "number",
-          "enum": [48000, 44100, 32000, 24000, 22050, 16000],
+          "enum": [
+            48000,
+            44100,
+            32000,
+            24000,
+            22050,
+            16000
+          ],
           "default": 48000,
           "markdownDescription": "The sample rate the voice tools ask ElevenLabs for (as 16-bit PCM). 44100 needs ElevenLabs' Pro plan. If your plan refuses a rate, EDGEwave uses 24000 from then on."
         },
@@ -114,6 +131,11 @@
           "type": "string",
           "default": "eleven_multilingual_sts_v2",
           "markdownDescription": "The speech-to-speech model Re-Voice starts with."
+        },
+        "edgewave.voiceLines.model": {
+          "type": "string",
+          "default": "eleven_v3",
+          "markdownDescription": "The ElevenLabs model Voice Lines speaks a quest's lines with. `eleven_v3` reads the delivery tags (`[softly]`, `[sighs]`) in a line's `say`; other models get them removed. The MCP tool `voice_lines` uses it too."
         },
         "edgewave.elevenlabs.baseUrl": {
           "type": "string",
@@ -197,6 +219,12 @@
         }
       ]
     },
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "edgewave.mcp",
+        "label": "EDGEwave"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "edgewave.sound",
@@ -237,7 +265,7 @@
     "viewsWelcome": [
       {
         "view": "edgewave.sounds",
-        "contents": "No sound documents yet, in this folder or opened lately.\nOpen a game sound from REDcode's sound list with Open in EDGEwave, or open a sound file.\n[Browse Game Sounds](command:redcode.browseSounds)\n[Open Sound\u2026](command:edgewave.open)"
+        "contents": "No sound documents yet, in this folder or opened lately.\nOpen a game sound from REDcode's sound list with Open in EDGEwave, or open a sound file.\n[Browse Game Sounds](command:redcode.browseSounds)\n[Open Sound…](command:edgewave.open)"
       }
     ]
   },
@@ -254,12 +282,14 @@
     "vsix-test": "node tools/vsix-test.mjs"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/node": "^24.0.0",
     "@types/vscode": "1.80.0",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "ovsx": "^1.3.0",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "zod": "^3.25.76"
   }
 }

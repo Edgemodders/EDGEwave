@@ -1,7 +1,10 @@
 // A stand-in for REDcode's API version 1 (edgemodders.redcode-cyberpunk) for tools/smoke/smoke.mjs:
 // a project in the smoke folder and two sound effect events: smoke_event (sound 42, a 2 s 440 Hz stereo
 // tone) and smoke_second (sounds 43, 1.5 s at 660 Hz, and 44, 0.5 s at 880 Hz, both mono).
-// Opens sound 42 in EDGEwave three seconds after startup.
+// Opens sound 42 in EDGEwave three seconds after startup. Its bridge's toJson gives a small
+// eventsmetadata.json (smoke_event, smoke_second and a music cue). Two commands call EDGEwave's own API as
+// EDGEquest does: Smoke: EDGEwave API (sound events, hearing one, a custom sound; the results in api.json) and
+// Smoke: Voice Lines (a quest's two lines; voiceLines.json when the panel closes).
 const vscode = require("vscode");
 const path = require("path");
 const T = path.resolve(__dirname, "..");
@@ -13,10 +16,43 @@ function tone(seconds, rate, ch, hz = 440) {
   for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) b.writeInt16LE(Math.round(0.5 * 32767 * Math.sin(2 * Math.PI * hz * i / rate)), 44 + (i * ch + c) * 2);
   return b;
 }
-exports.activate = () => {
+const cn = (s) => ({ $type: "CName", $storage: "string", $value: s });
+const metaEvent = (name, wwiseId, tags, loop = 0) => ({ $type: "audioAudioEventMetadataArrayElement", isLooping: loop, minDuration: 1, maxDuration: 2, redId: cn(name), tags: tags.map(cn), wwiseId });
+const metadata = { Data: { RootChunk: { $type: "JsonResource", root: { Data: { $type: "audioAudioEventArray", events: [
+  metaEvent("smoke_event", 7, ["sfx_quest_events"]), metaEvent("smoke_second", 8, ["smoke"]), metaEvent("mus_smoke_01_START", 9, ["music_quests_events", "quest_music_start"], 1),
+] } } } } };
+exports.activate = (context) => {
+  const fs = require("fs");
   const p = path.join(T, "proj");
+  const edgewave = async () => { const e = vscode.extensions.getExtension("edgemodders.edgewave"); return e.isActive ? e.exports : e.activate(); };
+  context.subscriptions.push(
+    vscode.commands.registerCommand("smoke.api", async () => {
+      const api = await edgewave();
+      const out = { apiVersion: api.apiVersion };
+      try {
+        out.events = await api.soundEvents({ query: "smoke" });
+        out.music = await api.soundEvents({ music: true });
+        out.play = await api.playEvent({ name: "smoke_event" });
+        out.playMusic = await api.playEvent({ name: "mus_smoke_01_START" });
+        fs.writeFileSync(path.join(T, "knock.wav"), tone(0.5, 24000, 1, 300));
+        out.custom = await api.customSound({ wav: path.join(T, "knock.wav"), name: "Smoke Knock" });
+        out.status = await api.voiceStatus("smoke_quest");
+      } catch (e) { out.error = e.message; }
+      fs.writeFileSync(path.join(T, "api.json"), JSON.stringify(out, null, 2));
+    }),
+    vscode.commands.registerCommand("smoke.voiceLines", async () => {
+      const api = await edgewave();
+      const lines = [
+        { id: "1234567890123456789", scene: "at_the_door", speaker: "V", text: "Open up." },
+        { id: "42", scene: "at_the_door", speaker: "Judy", text: "You came back.", say: "[softly] You... came back.", direction: "Quiet, surprised." },
+      ];
+      const r = await api.voiceLines({ quest: "smoke_quest", lines, archiveDir: "mod/smoke/smoke_quest/vo" });
+      fs.writeFileSync(path.join(T, "voiceLines.json"), JSON.stringify(r, null, 2));
+    }),
+  );
   const api = {
-    apiVersion: 1, version: "0.9.0-stub", bridge: () => undefined, gamePath: () => undefined,
+    apiVersion: 1, version: "0.9.0-stub", gamePath: () => path.join(T, "game"),
+    bridge: () => ({ toJson: async (gamePath, outFile) => { require("fs").writeFileSync(outFile, JSON.stringify(metadata)); return { file: outFile, bytes: 1 }; } }),
     project: () => ({ name: "Smoke", modName: "Smoke", file: path.join(p, "Smoke.cpmodproj"), dir: p, archive: path.join(p, "source", "archive"), raw: path.join(p, "source", "raw"), resources: path.join(p, "source", "resources"), packed: path.join(p, "packed") }),
     onDidChangeProject: new vscode.EventEmitter().event,
     soundIndex: async () => ({ count: 3, events: [{ hash: 7, name: "smoke_event", tags: [], sounds: [42] }, { hash: 8, name: "smoke_second", tags: ["smoke"], sounds: [43, 44] }] }),
