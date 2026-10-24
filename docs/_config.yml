@@ -34,6 +34,8 @@ nav:
     url: /voice-tools.html
   - title: V2 Voice a quest
     url: /voice-lines.html
+  - title: API and MCP
+    url: /api.html
   - title: Tests
     url: /testing.html
   - title: Release

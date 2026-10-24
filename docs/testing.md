@@ -2,14 +2,15 @@
 
 Every test run on EDGEwave so far: how to run it again, what to expect, and what it showed. Each phase ends with a hand test by the owner ([design, "Phases"](design.html#phases)); new tests are added here when they are first run.
 
-Last updated 2026-10-23.
+Last updated 2026-10-24.
 
 ## At a glance
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V1 | 2026-10-21 | Pass, 41 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V1 | 2026-10-21 | Pass |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-10-24 | Pass, 51 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-10-24 | Pass |
+| [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-10-20 | Pass: `edgewave-0.1.0.vsix` with REDcode 0.10.2 |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
@@ -17,6 +18,7 @@ Last updated 2026-10-23.
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Pass, after four rounds |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds; steps 9 and 10 (2026-10-21) to test |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-10-20 | Pass, first round |
+| [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | | To run |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
 ## Automated
@@ -50,7 +52,7 @@ npm run build
 npm run smoke
 ```
 
-Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png`, `intogame.png`, `takes.png` and `revoice.png` to `%TEMP%\ewsmoke`.
+Downloads VS Code stable once (cached in `%TEMP%\ewsmoke`), and runs it at 150% scaling with EDGEwave, a stand-in REDcode (`tools/smoke/stub`) and a stand-in ElevenLabs (a local server in `smoke.mjs`, which refuses 48 kHz as a plan without it would). The stub serves generated tones, so no game or REDbridge is needed: sound 42 (2 s stereo, 440 Hz, event `smoke_event`) and sound 43 (1.5 s mono, 660 Hz, event `smoke_second`). The script drives the editor page over the DevTools protocol, including VS Code's own quick picks and Ctrl+Z, then checks the files written. It writes `editor.png`, `mix.png`, `intogame.png`, `takes.png`, `revoice.png` and `voiceLines.png` to `%TEMP%\ewsmoke`. EDGEwave's own folder (`EDGEWAVE_HOME`) is `%TEMP%\ewsmoke\home` there, so the modder's event index is never touched. The stub's bridge gives a small `eventsmetadata.json` (`smoke_event`, `smoke_second`, `mus_smoke_01_START`), and two stub commands call EDGEwave's API as EDGEquest does.
 
 To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the script does this for the VS Code it starts). Keep the temp path short: VS Code's files pass Windows' 260-character limit otherwise.
 
@@ -80,6 +82,8 @@ To run it from a terminal inside VS Code, unset `ELECTRON_RUN_AS_NODE` (the scri
 | A2 | Moving lanes: drag track 1's clip sideways with a little wobble; drag track 3's lane up above track 1; right-click the top lane > Move Down; Ctrl+Z | The sideways drag moves the clip in time and keeps the order; the drop line shows; track 3 keeps its start; the order is 1, 3, 2, then 3, 1, 2 after the undo (one edit) |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
+| V2 | The API, from the stub: `soundEvents`, `playEvent`, `customSound` | The events from the bridge's file, `smoke_event` with its sound 42 and the quest tag, the music cue as music and looping; `smoke_event` plays in the Hear panel, the music cue gives a reason; `edgewave_smoke_knock.wav` at 48 kHz and its `info.json` entry as `mod_sfx_low_occlusion`; the index in the smoke's own EDGEwave folder |
+| V2 | Voice Lines, from the stub's `voiceLines` (V and Judy, Judy with `say` and `direction`) | The panel with 2 lines; three voices picked (V's two, Judy's); Generate All voices both: three requests at 24 kHz with `eleven_v3`, Judy's text `[softly] You... came back.`; `voice.json` with V's `_f_` and `_m_` takes named by the id in hex, Judy's one take, the voices and `archiveDir`; closing the panel resolves `voiceLines` with the record |
 
 Last run 2026-10-21: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view`).
 
@@ -111,6 +115,18 @@ Run 2026-10-23 for [V2 Voice a quest](voice-lines.html#the-wem-spike), which has
 Expect: codec `0xFFFF`, 1 channel, 48,000 Hz, `fmt ` 66 bytes, then `hash` and `data`, as the game's line; the Ogg as long as the WAV.
 
 Last result (2026-10-23): all as expected, 0.5 s per conversion. 2025.1.7 makes the same audio (only the `hash` chunk differs). Not yet heard in the game.
+
+### MCP server over stdio
+
+Run 2026-10-24. A script starts `dist/mcp/edgewave-mcp.cjs` with Node, with `LOCALAPPDATA` pointing at a temporary folder holding an event index built from the game's `eventsmetadata.json` (a temporary copy, not kept), and talks MCP over stdin and stdout.
+
+| Check | Expected | Result |
+|---|---|---|
+| `tools/list` | `voice_lines`, `voice_status` (read only), `voice_voices` (read only), `sound_events` (read only), `sound_custom`; no ask-first flag | Pass |
+| `sound_events` `{ query: "dex", music: true }` | `mus_q001_v_meets_dex_01_START_intro_dialogue_choice`, `..._02_take_the_chip` | Pass |
+| `voice_lines` with no key | "No ElevenLabs API key..." and how to give one | Pass |
+| `voice_status` with one line | `none` | Pass |
+| `sound_custom` on a 48 kHz WAV | `edgewave_test_knock`, `mod_sfx_low_occlusion`, the WAV and the `info.json` entry | Pass |
 
 ## Hand tests
 
@@ -249,6 +265,22 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 8. **Into the game.** Into the Game on a document with a Re-Voiced line (the named REDmod route, as for any voice line). Expect: the render at 48 kHz, as for any mix.
 9. **Clean up.** **EDGEwave: ElevenLabs Voices Made by EDGEwave…**: the clone and the saved remix are listed; delete them. Expect: they are gone from your ElevenLabs account's voices.
 10. **Errors.** **EDGEwave: Set ElevenLabs API Key** with a wrong key, then Generate Sound. Expect: the dialog shows ElevenLabs' message (such as "Invalid API key"), nothing is added. Set the right key again.
+
+### V2 Voice a quest
+
+What is built: [V2 Voice a quest](voice-lines.html) and [API and MCP](api.html). Not run yet. Needs EDGEquest with its Storyboard's Generate buttons, a quest with a few lines (some by V, one with `say` tags), and an ElevenLabs key; each line spends credits.
+
+1. **From EDGEquest.** In the Storyboard, **Generate** on a scene. Expect: **Voice Lines: <quest>** opens with the scene's lines, V's with F and M takes, all "no take".
+2. **Voices.** Pick V's female and male voices and one for each other speaker; ▶ plays each voice's sample. Expect: the picks stay after closing and reopening (they are in `voice.json`).
+3. **Generate All.** Expect: the header counts up, each line turns "voiced", ▶ plays each take. Output › EDGEwave lists each line. `source/raw/edgewave/voice/<quest>/` has `v_<quest>_f_<hex>.wav`, `..._m_...`, the others' `_f_` takes, and `voice.json`.
+4. **Tags.** On the line with `say` tags: the take follows them on `eleven_v3` (a whisper, a sigh). Change the model to `eleven_multilingual_v2` and **Regenerate** it: spoken without the tags, and no "softly" read out loud.
+5. **EDGEquest sees it.** The Storyboard's lines show as voiced; the scene's `voice/<scene>` checklist item ticks once all its lines are. Change a line's text in the story: it shows as changed in both.
+6. **One line.** EDGEquest's **Regenerate** on one line. Expect: the panel shows that line; only it is redone; **Previous** swaps back to the old take, and again to the new.
+7. **A recording.** **Use a file…** on a take with an MP3 or a WAV. Expect: the take plays your recording; the file is a 48 kHz mono WAV.
+8. **Studio.** **Studio** on a take: it opens in the editor; trim it and Render. Expect: ▶ in the panel plays the trimmed take. Then **Regenerate** the line: the new take is kept, and the studio document now renders the previous take (`<name>.previous.edgewave`).
+9. **Sound events.** Through EDGEquest's Music and Sound pickers (`soundEvents`): search `dex`, then `airdrop`. Expect: the first time, "reading the game's sound events" in the status bar; the `mus_q001` cues; `sa_airdrop_package_land`. Play `sa_airdrop_package_land`: the Hear panel plays it. Play a music cue: a reason, not a sound.
+10. **A custom sound.** From EDGEquest, make a sound into an event (or with `sound_custom`). Expect: `source/customSounds/edgewave_<name>.wav` and its `info.json` entry. In the game, with EDGEquest's test quest posting it from a phase and from a scene: heard or not; tell me which.
+11. **An assistant.** **EDGEwave: Connect an Assistant (MCP)…** > Connect Claude Code, with the key. In a new Claude Code session, ask it to voice a quest's lines with EDGEwave. Expect: it calls `voice_lines` without asking first, and the takes appear as in step 3.
 
 ### Sounds view: Project and Recent
 
