@@ -1,6 +1,6 @@
 # EDGEwave design
 
-Status: **draft 2, 2026-10-14.** A1 Edit is done (2026-10-16): see [A1 Edit](a1-edit.html). A2 Mix and A3 Into the game are built (2026-10-16), hand tests pending: see [A2 Mix](a2-mix.html) and [A3 Into the game](a3-game.html).
+Status: **draft 2, 2026-10-14.** A1 Edit, A2 Mix, A3 Into the game and V1 Voice tools are done and released in 0.1.0 (2026-10-20): see [A1 Edit](a1-edit.html), [A2 Mix](a2-mix.html), [A3 Into the game](a3-game.html) and [V1 Voice tools](voice-tools.html). V2 Voice a quest is built, hand test pending: see [V2 Voice a quest](voice-lines.html) and [API and MCP](api.html).
 
 EDGEwave is the sound studio of the EDGE platform: a VS Code extension where a Cyberpunk 2077 modder edits, mixes and re-voices sounds and puts them into a mod. It works beside [REDcode](https://github.com/Edgemodders/REDcode), which owns the mod project and the quick lookup of game sounds, and reads the game through REDbridge.
 
@@ -181,7 +181,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | **EDGEwave** (this repository, TypeScript) | The studio (custom editor, Web Audio), `edgewave.openSound`, later the index and its browser, and MCP tools |
 | **REDcode** | Owns the mod project; finds and plays game sounds; supplies sources and imports and packs renders, through its exported API |
 | **REDbridge** (GPL-3.0, its own program) | Reads the game for REDcode and EDGEwave. Has `sound.events` and `project.export`/`import`; later the bank methods for the index. New methods only by agreement with REDbridge's session |
-| **REDnode** | Plays the game's own events in the running game (`game.audio.play`, tested); a package's own sounds once its [Sound API](https://edgemodders.github.io/REDnode/sound.html) exists (planned: next in REDnode's order) |
+| **REDnode** | Plays the game's own events in the running game (`game.audio.play`, tested); a package's own sounds through its [Sound API](https://edgemodders.github.io/REDnode/sound.html) (`audio.play`, S1, since REDnode 0.24.1), which Into the Game's REDnode route writes for; swaps an archive with sound paks into the running game (`archives.reload`, since REDnode 0.26.8) |
 
 ## Phases
 
@@ -192,6 +192,7 @@ The index is built once per game version on the player's machine, in EDGEwave's 
 | **A2 Mix** | Tracks, effects and presets; quick search to add game sounds as clips | Two game sounds layered with the radio preset render to one WAV |
 | **A3 Into the game** | Into the Game: overriding a sound effect in its `.opuspak` (REDbridge 0.9.0 `sound.importWavs` through REDcode's Import); REDmod custom sounds for an event, or a silence; voice lines researched, no route yet. No Opus encoder of EDGEwave's own was needed: REDbridge encodes | An edited sound plays in the game after REDcode packs the mod |
 | **V1 Voice tools** | Generate Sound, Speak Line and Re-Voice through ElevenLabs: the client, the key in secret storage, the clone consent, the forms with previews, the `made` record | A generated sound, a spoken line and a re-voiced game line, each a track that renders |
+| **V2 Voice a quest** | For EDGEquest ([EDGEwave #5](https://github.com/Edgemodders/EDGEwave/issues/5), [#7](https://github.com/Edgemodders/EDGEwave/issues/7)): the contract, the Voice Lines panel, the exported API, `edgewave-mcp`, sound events and new events; then the `.wem` route through the modder's own Wwise ([V2 Voice a quest](voice-lines.html)) | A quest's lines from EDGEquest are voiced and play in the game as voice lines |
 | **A4 Index** | REDbridge bank methods; the index; the query language; search with fields, filters and paging; details with links | A search for an event name finds its sounds, switches and parameters |
 | **A5 Voices and objects** | Subtitles and scenes; TweakDB objects and radios; V's gender filter | A line of dialogue is found by its text and opened in the studio |
 | **A6 EDGE** | MCP tools for agents; play an event in the running game through REDnode; a REDnode package's own sounds (the Into the Game route is built, EDGEwave #2; effects that change in the game wait for REDnode's S3) | An agent finds and edits a sound; an event plays in the running game from EDGEwave |

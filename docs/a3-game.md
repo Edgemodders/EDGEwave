@@ -55,7 +55,7 @@ The override's WAV takes the channels of the sound it replaces. The choice (with
 
 | Route | To hear it | Why |
 |---|---|---|
-| Override | Pack and Install, then restart the game | A hot deploy (REDcode's Pack and Try, Red Hot Tools' hot folder) of an archive with the game's sound paks crashes the running game a few seconds later ([REDnode's research](https://edgemodders.github.io/REDnode/world.html#h1-limit-sound-paks-crash-a-swap)). REDnode 0.26.8 or later swaps one safely through its `archives.reload` (game paused, audio held, the sound index read again); REDcode is asked to route Pack and Try through it ([REDcode #11](https://github.com/Edgemodders/REDcode/issues/11)) |
+| Override | Pack and Install, then restart the game | A hot deploy (REDcode's Pack and Try, Red Hot Tools' hot folder) of an archive with the game's sound paks crashes the running game a few seconds later ([REDnode's research](https://edgemodders.github.io/REDnode/world.html#h1-limit-sound-paks-crash-a-swap)). REDnode 0.26.8 or later swaps one safely through its `archives.reload` or its MCP tool `archives_reload` (game paused, audio held, the sound index read again); a sound that just played may keep its old version until the game loads it again (for a weapon, equip it again); REDcode is asked to route Pack and Try through it ([REDcode #11](https://github.com/Edgemodders/REDcode/issues/11)) |
 | Replace or Silence (REDmod) | Pack and Install, then start the game (with `-modded`, as REDcode's Run Game does) | REDmod deploys custom sounds when the game starts |
 
 EDGEwave's message after Into the Game says so, and **Pack and Install** runs REDcode's.
