@@ -15,7 +15,7 @@ The sound studio for Cyberpunk 2077 modding, as a VS Code extension. Part of the
 **[Read the docs](https://edgemodders.github.io/EDGEwave/)** &middot; [Design](https://edgemodders.github.io/EDGEwave/design.html) &middot; [Changelog](CHANGELOG.md)
 
 > [!NOTE]
-> **Status: A1 Edit, A2 Mix, A3 Into the game and V1 Voice tools done.** Open a sound from REDcode, edit it, mix it with other sounds and effects, and put it into your mod: override a sound effect, or replace or silence an event with REDmod. Generate Sound, Speak Line and Re-Voice through ElevenLabs, with your own key. **0.1.0 is out** (preview): install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=edgemodders.edgewave) or [Open VSX](https://open-vsx.org/extension/edgemodders/edgewave), which add REDcode with it, or from the [GitHub release](https://github.com/Edgemodders/EDGEwave/releases/tag/v0.1.0).
+> **Status: A1 Edit, A2 Mix, A3 Into the game and V1 Voice tools done.** Open a sound from REDcode, edit it, mix it with other sounds and effects, and put it into your mod: override a sound effect, or replace or silence an event with REDmod. Generate Sound, Speak Line and Re-Voice through ElevenLabs, with your own key. **0.1.0 is out** (preview): install it from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=edgemodders.edgewave) or [Open VSX](https://open-vsx.org/extension/edgemodders/edgewave), which add REDcode with it, or from the [GitHub release](https://github.com/Edgemodders/EDGEwave/releases/tag/v0.1.0). Built since, not released yet: **As a REDnode sound**, the **Voice Lines** panel that voices a quest's lines for [EDGEquest](https://github.com/Edgemodders/EDGEquest), and an API and MCP server ([changelog](CHANGELOG.md)).
 
 REDcode finds and plays a game sound; **Open in EDGEwave** takes it into the studio. There you will edit it, layer and mix it with effects, and put the result into the mod you are making in REDcode, to add or override a game sound. Through ElevenLabs, with your own key: **Generate Sound** from a prompt, **Speak Line** in a voice, and **Re-Voice** a line into another voice; **Translate** is planned. Later, EDGEwave will index all of the game's audio from your own install and search it: sound effects, voice-over with its subtitles, music and radio, with what plays each sound and why.
 
@@ -23,7 +23,7 @@ REDcode finds and plays a game sound; **Open in EDGEwave** takes it into the stu
 |---|---|
 | [REDbridge](https://github.com/Edgemodders/REDbridge) | Reads the game's archives, sound banks and Opus packs, and converts audio |
 | [REDcode](https://github.com/Edgemodders/REDcode) | Owns the mod project that sounds go into; finds and plays game sounds and opens them in EDGEwave |
-| [REDnode](https://github.com/Edgemodders/REDnode) | Plays sounds in the running game (its Sound API is planned) |
+| [REDnode](https://github.com/Edgemodders/REDnode) | Plays sounds in the running game: a REDnode package's own sounds (its Sound API, which **As a REDnode sound** writes for), and the game's own events |
 
 EDGEwave's search is a clean-room implementation inspired by [Cyberpunk 2077 SoundDB](https://gitlab.com/cp2077-sounddb/frontend) by Zhincore: it uses none of SoundDB's code or data, only what its public documentation describes. See the design for the rule.
 
