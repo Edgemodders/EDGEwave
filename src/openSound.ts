@@ -4,11 +4,12 @@
 //   a game file    base\...\name.wem   ->  base\...\name.edgewave, rendering name.wav beside it
 //   a sound effect                     ->  sfx\<event name or hash>\<sound hash>.edgewave, rendering <sound hash>.wav
 // A file on disk gets its document beside it, rendering <name>.wav (<name>.edit.wav for a .wav).
+// Create a Sound (newSound) makes an empty document, by default under source/raw/edgewave/sounds.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { Extension, formatDoc, looksLikeVoice, newDoc, type SoundDoc, type Source } from "./doc";
+import { emptyDoc, Extension, formatDoc, isSoundFile, looksLikeVoice, newDoc, SoundExtensions, type SoundDoc, type Source } from "./doc";
 import { redcode, type SoundRef } from "./redcode";
 
 export const ViewType = "edgewave.sound";
@@ -86,7 +87,36 @@ export async function openSound(ref: SoundRef): Promise<void> {
   }
 }
 
-const SoundFile = /\.(wav|ogg|mp3|flac|opus|wem)$/i;
+/**
+ * edgewave.newSound (Create a Sound): an empty document with no tracks, filled by dropping sound files on
+ * it, Add Sound or a voice tool. Saved where the modder says, by default the project's
+ * source/raw/edgewave/sounds; `file` skips the question (the smoke test).
+ */
+export async function newSound(file?: string): Promise<void> {
+  try {
+    if (typeof file !== "string") {
+      const raw = (await redcode()).project()?.raw;
+      const dir = raw ? path.join(raw, "edgewave", "sounds") : vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      let name = "New sound";
+      for (let n = 2; dir && fs.existsSync(path.join(dir, name + Extension)); n++) name = `New sound ${n}`;
+      const pick = await vscode.window.showSaveDialog({
+        defaultUri: dir ? vscode.Uri.file(path.join(dir, name + Extension)) : undefined,
+        filters: { "EDGEwave documents": ["edgewave"] },
+        saveLabel: "Create",
+        title: "Create a sound: its name and where to keep it (the render, a WAV, goes beside it)",
+      });
+      if (!pick) return;
+      file = pick.fsPath;
+    }
+    if (!file.toLowerCase().endsWith(Extension)) file += Extension;
+    const name = path.basename(file, Extension);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, formatDoc(emptyDoc(`${name}.wav`)));
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(file), ViewType);
+  } catch (e) {
+    void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+  }
+}
 
 /**
  * edgewave.open: a sound file from the Explorer's menu, REDcode's Project view (its node, with the
@@ -94,14 +124,14 @@ const SoundFile = /\.(wav|ogg|mp3|flac|opus|wem)$/i;
  */
 export async function openFile(arg?: vscode.Uri | { file?: string; resourceUri?: vscode.Uri }): Promise<void> {
   let uri = arg instanceof vscode.Uri ? arg : arg?.resourceUri ?? (typeof arg?.file === "string" ? vscode.Uri.file(arg.file) : undefined);
-  if (uri && !SoundFile.test(uri.fsPath) && !uri.fsPath.toLowerCase().endsWith(Extension)) {
+  if (uri && !isSoundFile(uri.fsPath) && !uri.fsPath.toLowerCase().endsWith(Extension)) {
     void vscode.window.showInformationMessage(`EDGEwave opens sounds (.wav, .ogg, .mp3, .flac, .opus, .wem); ${path.basename(uri.fsPath)} is not one.`);
     return;
   }
   if (!uri) {
     const pick = await vscode.window.showOpenDialog({
       canSelectMany: false,
-      filters: { Sounds: ["wav", "ogg", "mp3", "flac", "opus", "wem"], "EDGEwave documents": ["edgewave"] },
+      filters: { Sounds: SoundExtensions, "EDGEwave documents": ["edgewave"] },
       title: "Open a sound in EDGEwave",
     });
     uri = pick?.[0];

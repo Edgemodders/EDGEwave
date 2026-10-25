@@ -5,7 +5,7 @@ import * as assert from "node:assert/strict";
 import { applyEdits, duration, frames, peak, type Audio } from "../src/audio/edits";
 import { decodeWav, encodeWav } from "../src/audio/wav";
 import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail } from "../src/audio/mix";
-import { formatDoc, looksLikeVoice, newDoc, newTrack, nextTrackId, parseDoc } from "../src/doc";
+import { docLabel, emptyDoc, formatDoc, isSoundFile, looksLikeVoice, newDoc, newTrack, nextTrackId, parseDoc } from "../src/doc";
 import { RedmodTypes, silenced, soundFileFor, upsertCustomSound } from "../src/redmod";
 
 /** A ramp 0, 1, 2 ... scaled small, at 10 Hz, so frames and seconds are easy to read. */
@@ -130,7 +130,12 @@ test("documents round trip and reject what they are not", () => {
   assert.deepEqual(parseDoc(formatDoc(doc)), doc);
   assert.equal(doc.tracks[1].id, "t2");
   assert.throws(() => parseDoc("{}"), /Not an EDGEwave/);
-  assert.throws(() => parseDoc('{"edgewave":2,"tracks":[],"render":{"file":"x"}}'), /no tracks/);
+  assert.throws(() => parseDoc('{"edgewave":2,"render":{"file":"x"}}'), /tracks are missing/);
+  // A sound not started yet (Create a Sound) has no tracks, and its render names it.
+  const empty = parseDoc(formatDoc(emptyDoc("New sound.wav")));
+  assert.deepEqual(empty.tracks, []);
+  assert.equal(docLabel(empty), "New sound");
+  assert.ok(isSoundFile("a.WAV") && isSoundFile("b.wem") && !isSoundFile("c.txt"));
   assert.throws(() => parseDoc('{"edgewave":2,"tracks":[{"id":"t1","source":{"kind":"game"},"edits":[]}],"render":{"file":"x"}}'), /source/);
   assert.throws(() => parseDoc("nope"), /JSON/);
 });

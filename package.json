@@ -49,6 +49,12 @@
         "command": "edgewave.open",
         "title": "Open Sound in EDGEwave…",
         "category": "EDGEwave",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "edgewave.newSound",
+        "title": "Create a Sound…",
+        "category": "EDGEwave",
         "icon": "$(add)"
       },
       {
@@ -176,14 +182,19 @@
       ],
       "view/title": [
         {
-          "command": "edgewave.open",
+          "command": "edgewave.newSound",
           "when": "view == edgewave.sounds",
           "group": "navigation@1"
         },
         {
-          "command": "edgewave.refreshSounds",
+          "command": "edgewave.open",
           "when": "view == edgewave.sounds",
           "group": "navigation@2"
+        },
+        {
+          "command": "edgewave.refreshSounds",
+          "when": "view == edgewave.sounds",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [

@@ -25,7 +25,9 @@ for (const f of ["api.json", "voiceLines.json", "home"]) fs.rmSync(path.join(T, 
 fs.mkdirSync(path.join(T, "game"), { recursive: true });
 fs.mkdirSync(path.join(T, "proj", "source", "raw"), { recursive: true });
 fs.cpSync(path.join(here, "stub"), path.join(T, "stub"), { recursive: true });
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// SMOKE_SLOW=2 doubles every wait and the time limit, for a busy machine (other VS Code windows open).
+const slow = Math.max(1, Number(process.env.SMOKE_SLOW) || 1);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms * slow));
 const log = (...a) => console.log("[smoke]", ...a);
 
 // A stand-in ElevenLabs (the voice tools): tones as 16-bit PCM at the asked rate. Like a plan without
@@ -78,7 +80,7 @@ const code = spawn(exe, ["--new-window", "--user-data-dir", path.join(T, "ud"), 
   "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339", "--force-device-scale-factor=1.5",
   "--skip-welcome", "--skip-release-notes", "--disable-workspace-trust", path.join(T, "proj")], { env, stdio: "ignore" });
 const finish = (ok, msg) => { log(ok ? "PASS" : "FAIL", msg); code.kill(); process.exit(ok ? 0 : 1); };
-setTimeout(() => finish(false, "timed out"), 240000);
+setTimeout(() => finish(false, "timed out"), 240000 * slow);
 
 // ---- DevTools: find the editor page's execution context, in the main target or an attached frame
 let ws, nextId = 1; const waiting = new Map(); const contexts = [];
@@ -241,7 +243,7 @@ for (let i = 0; i < 20 && !fs.existsSync(wav); i++) await sleep(500);
 if (!fs.existsSync(wav)) finish(false, "no render at " + wav);
 await sleep(500);
 const doc = JSON.parse(fs.readFileSync(docFile, "utf8"));
-// The A2 render, read now, before Into the Game writes beside it.
+// The A2 render, read now, before Add to Project writes beside it.
 const renderedWav = fs.readFileSync(wav);
 log("document", JSON.stringify(doc));
 // The workbench itself (not the webview), for VS Code's own dialog and quick pick.
@@ -249,7 +251,7 @@ let bench;
 for (const c of contexts.filter((c) => !c.origin.startsWith("vscode-webview"))) {
   try { if (await evalIn(c, "!!document.querySelector('.monaco-workbench')")) { bench = c; break; } } catch {}
 }
-// A3: Into the Game, both routes, through the real quick picks. The override replaces track 2's sound
+// A3: Add to Project, both routes, through the real quick picks. The override replaces track 2's sound
 // (43, mono), so the target is not track 1 and the WAV has the target's channels.
 const pickFirst = async (filter) => {
   await sleep(1200);
@@ -273,7 +275,7 @@ await run("document.getElementById('intoGame').click()");
 // Both tracks are in the mix: they come in the mixer's order, the last choice (track 2's override) marked where it is.
 await sleep(1200);
 const firstRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 6).map((r) => r.textContent.trim())`);
-log("into the game, second time", JSON.stringify(firstRows));
+log("add to project, second time", JSON.stringify(firstRows));
 const lastFirst = /^Override sound 42/.test(firstRows[0] ?? "") && !/last time/.test(firstRows[0]) && firstRows.some((r) => /^Override sound 43/.test(r) && /last time/.test(r));
 await pickFirst("Replace the event smoke_event");
 await pickFirst(""); // 2D
@@ -293,7 +295,7 @@ const a3 =
   !!override && path.basename(override) === "43.wav" && overrideFormat?.rate === 48000 && overrideFormat?.ch === 1 &&
   customFormat?.rate === 48000 && customFormat.ch === 2 && infoJson?.customSounds?.[0]?.name === "smoke_event" && infoJson.customSounds[0].type === "mod_sfx_2d" && infoJson.customSounds[0].file === "smoke_event.wav" &&
   game?.route === "redmod" && game.type === "mod_sfx_2d" && lastFirst;
-if (!a3) finish(false, "Into the Game did not write what it should");
+if (!a3) finish(false, "Add to Project did not write what it should");
 // Silence the same event: this document wrote its WAV, so no question; the type as last time (2D);
 // the same WAV as the replacement, every sample zeroed; not a mod_skip.
 const replaced = fs.readFileSync(custom);
@@ -414,7 +416,7 @@ const voiceOk =
 if (!voiceOk) finish(false, "the voice tools did not do what they should");
 
 // The lanes' checkboxes: track 1 (left out by Re-Voice) is unchecked; check it. Then right-click the
-// generated sound's lane > Only This Track: a file alone in the mix, so Into the Game offers the named
+// generated sound's lane > Only This Track: a file alone in the mix, so Add to Project offers the named
 // event first, saying why.
 const checks = () => run("return [...document.querySelectorAll('#laneChecks input')].map((b) => b.checked)");
 const checksBefore = await checks();
@@ -628,6 +630,56 @@ const groupAt = (g) => soundRows.findIndex((r) => r.startsWith(g));
 const viewOk = groupAt("Project") === 0 && groupAt("Recent") > 1 && soundRows[1].startsWith("42") && soundRows[groupAt("Recent") + 1]?.startsWith("42");
 if (!viewOk) finish(false, "the Sounds view does not list 42 under Project and Recent");
 
+// Create a Sound: an empty document. Then sound files dragged from the desktop, as the OS would hand them
+// to VS Code (DevTools' dispatchDragEvent with file paths), with Shift held: two on the lanes become
+// tracks 1 and 2, copied into Smoke New.sounds; one on the clip becomes the selected track's sound, its
+// edits cleared. Last, one dropped without Shift: what VS Code does with it is logged, not checked.
+const dropDir = path.join(T, "drops");
+fs.mkdirSync(dropDir, { recursive: true });
+const dropWav = (name, seconds, hz) => { const f = path.join(dropDir, name); fs.writeFileSync(f, wavOf(pcmTone(seconds, 24000, hz), 24000)); return f; };
+const drops = [dropWav("kick.wav", 0.4, 120), dropWav("snare.wav", 0.6, 300), dropWav("hat.wav", 0.3, 900), dropWav("noshift.wav", 0.2, 600)];
+const newFile = path.join(T, "proj", "source", "raw", "edgewave", "sounds", "Smoke New.edgewave");
+await command("Smoke: New Empty Sound");
+let np;
+for (let i = 0; i < 40 && !np; i++) {
+  for (const c of contexts.filter((c) => c.origin.startsWith("vscode-webview"))) {
+    try { if (await evalIn(c, "document.getElementById('title')?.textContent === 'Smoke New' && !document.getElementById('note').hidden")) { np = c; break; } } catch {}
+  }
+  if (!np) await sleep(500);
+}
+if (!np) finish(false, "Create a Sound did not open an empty sound");
+const nrun = (js) => evalIn(np, `(async () => { ${js} })()`);
+const empty = await nrun("return { note: document.getElementById('note').textContent, render: document.getElementById('render').disabled, project: document.getElementById('intoGame').textContent, tracks: document.getElementById('laneChecks').children.length }");
+log("create a sound", JSON.stringify({ file: JSON.parse(fs.readFileSync(newFile, "utf8")), empty }));
+// Where an element of the new page is in the window: the webview's frame in the workbench, plus the element in the page.
+const frameAt = await evalIn(bench, "(() => { const f = [...document.querySelectorAll('iframe.webview')].find((f) => f.offsetParent && f.getBoundingClientRect().width > 0 && f.closest('.editor-instance, [data-parent-flow-to-element-id]') !== null) ?? [...document.querySelectorAll('iframe.webview')].filter((f) => f.getBoundingClientRect().width > 0).pop(); const r = f.getBoundingClientRect(); return { x: r.left, y: r.top }; })()");
+const nativeDrop = async (files, el, modifiers) => {
+  const r = await nrun(`const r = document.querySelector('${el}').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }`);
+  const at = { x: frameAt.x + r.x, y: frameAt.y + r.y };
+  const data = { items: [], files, dragOperationsMask: 1 };
+  for (const type of ["dragEnter", "dragOver", "dragOver", "drop"]) {
+    await cdp("Input.dispatchDragEvent", { type, ...at, data, modifiers });
+    await sleep(150);
+  }
+  await sleep(1200);
+};
+await nativeDrop(drops.slice(0, 2), ".lanes", 8);
+const afterLanes = await nrun("return document.getElementById('laneChecks').children.length");
+await nativeDrop([drops[2]], "#wave", 8);
+await saveDoc();
+const filled = JSON.parse(fs.readFileSync(newFile, "utf8"));
+const copies = fs.existsSync(path.join(path.dirname(newFile), "Smoke New.sounds")) ? fs.readdirSync(path.join(path.dirname(newFile), "Smoke New.sounds")).sort() : [];
+const nshot = await cdp("Page.captureScreenshot", { format: "png" });
+fs.writeFileSync(path.join(T, "created.png"), Buffer.from(nshot.data, "base64"));
+await nativeDrop([drops[3]], ".lanes", 0);
+const noShift = { tracks: await nrun("return document.getElementById('laneChecks').children.length").catch(() => "page gone"), tabs: await evalIn(bench, "[...document.querySelectorAll('.tab .label-name')].map((e) => e.textContent)") };
+log("drops", JSON.stringify({ afterLanes, filled: filled.tracks.map((t) => [t.id, t.source.file, t.edits.length]), copies, noShift }));
+const createOk = empty.render === true && empty.project === "Add to Project…" && empty.tracks === 0 && /Drop sound files/.test(empty.note)
+  && afterLanes === 2 && filled.tracks.length === 2 && filled.render.file === "Smoke New.wav"
+  && filled.tracks[0].source.file === "Smoke New.sounds/kick.wav" && filled.tracks[1].source.file === "Smoke New.sounds/hat.wav"
+  && copies.join() === "hat.wav,kick.wav,snare.wav";
+if (!createOk) finish(false, "Create a Sound or dropping sound files did not do what it should");
+
 const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
@@ -641,4 +693,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Into the Game, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it" : "render or mix checks failed");

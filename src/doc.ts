@@ -90,7 +90,7 @@ export interface Render {
   sampleRate?: number;
 }
 
-/** How Into the Game put this sound in the mod last time, offered first next time. */
+/** How Add to Project put this sound in the mod last time, offered first next time. */
 export type IntoGame =
   /** Replace one sound effect variation in its .opuspak (REDbridge's sound.importWavs, through REDcode's Import); which one (absent before 2026-10-19: track 1's). */
   | { route: "override"; soundHash?: number }
@@ -109,7 +109,7 @@ export interface SoundDoc {
   /** Loop points, seconds on the mix. */
   loop?: { start: number; end: number } | null;
   render: Render;
-  /** The last Into the Game choice. */
+  /** The last Add to Project choice. */
   game?: IntoGame;
 }
 
@@ -144,8 +144,17 @@ export function newTrack(id: string, source: Source, voice?: boolean): Track {
 
 /** A new document with one track. */
 export function newDoc(source: Source, renderFile: string, voice?: boolean): SoundDoc {
-  return { edgewave: 2, tracks: [newTrack("t1", source, voice)], master: { gain: 0, effects: [] }, render: { file: renderFile } };
+  return { ...emptyDoc(renderFile), tracks: [newTrack("t1", source, voice)] };
 }
+
+/** A new document with no tracks yet (Create a Sound): sounds dropped on it, Add Sound or a voice tool fill it. */
+export function emptyDoc(renderFile: string): SoundDoc {
+  return { edgewave: 2, tracks: [], master: { gain: 0, effects: [] }, render: { file: renderFile } };
+}
+
+/** The sound files EDGEwave opens, as Add Sound's file picker and a drop take them. */
+export const SoundExtensions = ["wav", "ogg", "mp3", "flac", "opus", "wem"];
+export const isSoundFile = (name: string) => new RegExp(`\\.(${SoundExtensions.join("|")})$`, "i").test(name);
 
 /** An id no track in the document has yet. */
 export function nextTrackId(doc: SoundDoc): string {
@@ -176,7 +185,8 @@ export function parseDoc(text: string): SoundDoc {
     return doc;
   }
   const doc = raw as Partial<SoundDoc>;
-  if (!Array.isArray(doc.tracks) || doc.tracks.length === 0) throw new Error("The document has no tracks");
+  // No tracks is a sound not started yet (Create a Sound).
+  if (!Array.isArray(doc.tracks)) throw new Error("The document's tracks are missing");
   doc.tracks.forEach((t, i) => {
     if (!t || typeof t.id !== "string") throw new Error(`Track ${i + 1} has no id`);
     if (!isSource(t.source)) throw new Error(`Track ${i + 1}'s source is missing or not one of game, sfx or file`);
@@ -218,8 +228,9 @@ export function sourceLabel(s: Source): string {
   }
 }
 
-/** A short name for a document: its first track's source, and how many more there are. */
+/** A short name for a document: its first track's source, and how many more there are; with no track, its render's name. */
 export function docLabel(doc: SoundDoc): string {
+  if (!doc.tracks.length) return (doc.render.file.split(/[\\/]/).pop() ?? doc.render.file).replace(/\.wav$/i, "");
   const first = sourceLabel(doc.tracks[0].source);
   return doc.tracks.length > 1 ? `${first} + ${doc.tracks.length - 1} more` : first;
 }

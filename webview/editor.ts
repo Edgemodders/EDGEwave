@@ -74,7 +74,7 @@ window.addEventListener("message", async (e) => {
     // A track that was not in the last document (Add Sound, or undo of a Remove) becomes the selected one.
     const fresh = before ? doc.tracks.filter((t) => !before.has(t.id)) : [];
     if (fresh.length) selectTrack(fresh[fresh.length - 1].id);
-    if (!doc.tracks.some((t) => t.id === selId)) selId = doc.tracks[0].id;
+    if (!doc.tracks.some((t) => t.id === selId)) selId = doc.tracks[0]?.id ?? "";
     requestSources();
     $("title").textContent = docLabel(doc);
     if (!same) refresh();
@@ -94,7 +94,7 @@ window.addEventListener("message", async (e) => {
   } else if (m.type === "voiceToolResult") {
     voiceToolResult(m);
   } else if (m.type === "renderFor") {
-    // Into the Game: the mix at the format its route needs; {track} is the channels of the sound it replaces.
+    // Add to Project: the mix at the format its route needs; {track} is the channels of the sound it replaces.
     try {
       const target = typeof m.channels === "object" ? doc?.tracks.find((t) => t.id === m.channels.track) : undefined;
       const audio = target ? sources.get(sourceKey(target.source))?.audio : undefined;
@@ -115,6 +115,9 @@ function requestSources() {
     send({ type: "need", key, source: t.source });
   }
 }
+
+/** The clip editor's note in a document with no tracks yet (Create a Sound). */
+const Empty = "No sound yet. Drop sound files here or on the lanes (hold Shift as you drop them), or use Add Sound (+), Generate Sound or Speak Line.";
 
 function note(text: string | null) {
   $("note").textContent = text ?? "";
@@ -158,7 +161,7 @@ function refresh() {
   // Undo back past a copy drops it.
   if (clipboard && t && clipboard.track === t.id && clipboard.after > t.edits.length) clipboard = null;
   const key = t ? sourceKey(t.source) : "";
-  note(!doc ? "Loading…" : failed.get(key) ?? (c ? null : "Loading the sound…"));
+  note(!doc ? "Loading…" : !t ? Empty : failed.get(key) ?? (c ? null : "Loading the sound…"));
   refreshPanels();
   fitMix();
   draw();
@@ -367,13 +370,19 @@ function drawClip() {
 /** The mix: one lane per track, each clip where it starts. */
 function drawMix() {
   if (!doc) return;
-  const h = Ruler + 1 + Lane * doc.tracks.length;
+  // With no tracks, one empty lane to drop sounds on.
+  const h = Ruler + 1 + Lane * Math.max(1, doc.tracks.length);
   mixCanvas.style.height = `${h}px`;
   sizeLanes();
   const w = width(mixCanvas);
   const g = setup(mixCanvas, h);
   const k = colours();
   ruler(g, w, 0, mixSecPerPx, k);
+  if (!doc.tracks.length) {
+    g.fillStyle = k.dim;
+    g.font = `11px ${k.font}`;
+    g.fillText("Drop sound files here to add them as tracks (hold Shift as you drop)", 8, Ruler + 1 + Lane / 2 + 4);
+  }
   const heard = new Set(audible(doc.tracks).map((t) => t.id));
   const x = (s: number) => s / mixSecPerPx;
   doc.tracks.forEach((t, i) => {
@@ -962,7 +971,7 @@ numberInput("trackRate", (v) => changeTrack((t) => ({ ...t, rate: v > 0 && v !==
 numberInput("trackOffset", (v) => changeTrack((t) => ({ ...t, offset: Math.max(0, v) })));
 on("removeTrack", () => {
   const t = track();
-  if (!t || !doc || doc.tracks.length < 2) return;
+  if (!t || !doc) return;
   change((d) => ({ ...d, tracks: d.tracks.filter((x) => x.id !== t.id) }));
 });
 numberInput("masterGain", (v) => change((d) => ({ ...d, master: { ...d.master, gain: v } })));
@@ -1157,9 +1166,27 @@ function paramField(e: Effect, p: Param, set: (v: number) => void): HTMLElement 
   return label;
 }
 
+/** The controls that need a track, off while the document has none. */
+const TrackControls = ["trackGain", "trackPan", "trackRate", "trackOffset", "removeTrack", "play", "stopClip", "trim", "cut", "copy", "paste", "silence", "fadeIn", "fadeOut", "curve", "gainDb", "gain", "peakDb", "normalize", "channels", "setLoop", "trackPreset", "trackAdd", "voice", "playMix", "render", "intoGame"];
+
 function refreshPanels() {
   if (!doc) return;
-  const t = track()!;
+  const t = track();
+  for (const id of TrackControls) $<HTMLInputElement>(id).disabled = !t;
+  if (!t) {
+    for (const id of ["meta", "trackName", "editsOf", "effectsOf", "renderInfo"]) $(id).textContent = "";
+    for (const id of ["edits", "trackEffects"]) $(id).replaceChildren();
+    for (const id of ["trackGain", "trackPan", "trackRate", "trackOffset"]) $<HTMLInputElement>(id).value = "";
+    $<HTMLInputElement>("voice").checked = false;
+    $("translate").hidden = $("revoice").hidden = true;
+    $("noEdits").hidden = $("noEffects").hidden = true;
+    $<HTMLInputElement>("masterGain").value = String(doc.master.gain);
+    effectsList($("masterEffects"), doc.master.effects, (effects) => change((d) => ({ ...d, master: { ...d.master, effects } })));
+    $("renderFile").textContent = doc.render.file;
+    $<HTMLSelectElement>("rate").value = doc.render.sampleRate ? String(doc.render.sampleRate) : "";
+    refreshTime();
+    return;
+  }
   const c = clip(t);
   $("meta").textContent = sources.get(sourceKey(t.source))?.info ?? "";
   const voice = !!t.voice;
@@ -1171,7 +1198,6 @@ function refreshPanels() {
   $<HTMLInputElement>("trackPan").value = String(t.pan);
   $<HTMLInputElement>("trackRate").value = String(t.rate ?? 1);
   $<HTMLInputElement>("trackOffset").value = String(t.offset);
-  $<HTMLButtonElement>("removeTrack").disabled = doc.tracks.length < 2;
   $("channels").textContent = c && c.channels.length === 1 ? "Stereo" : "Mono";
   $<HTMLButtonElement>("paste").disabled = !clipboard || clipboard.track !== t.id;
 
@@ -1283,6 +1309,37 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") hideMenu();
 });
 window.addEventListener("blur", hideMenu);
+
+// ---- dropping sound files: on the lanes, new tracks; on the clip, the selected track's sound -------------
+// VS Code opens a file dropped on an editor itself unless Shift is held, so the notes say to hold it.
+// Files from VS Code's Explorer come as URIs; files from the desktop only as their bytes.
+
+function dropTarget(el: HTMLElement, on: "mix" | "clip") {
+  const files = (ev: DragEvent) => !!ev.dataTransfer && [...ev.dataTransfer.types].some((t) => t === "Files" || t.endsWith("uri-list"));
+  el.addEventListener("dragover", (ev) => {
+    if (!doc || !files(ev)) return;
+    ev.preventDefault();
+    ev.dataTransfer!.dropEffect = "copy";
+    el.classList.add("dropping");
+  });
+  el.addEventListener("dragleave", (ev) => {
+    if (!el.contains(ev.relatedTarget as Node)) el.classList.remove("dropping");
+  });
+  el.addEventListener("drop", async (ev) => {
+    el.classList.remove("dropping");
+    if (!doc || !ev.dataTransfer) return;
+    ev.preventDefault();
+    const dt = ev.dataTransfer;
+    const list = (dt.getData("application/vnd.code.uri-list") || (dt.files.length ? "" : dt.getData("text/uri-list")))
+      .split(/\r?\n/)
+      .map((u) => u.trim())
+      .filter((u) => u && !u.startsWith("#"));
+    const dropped = list.length ? [] : await Promise.all([...dt.files].map(async (f) => ({ name: f.name, data: new Uint8Array(await f.arrayBuffer()) })));
+    if (list.length || dropped.length) send({ type: "dropped", on, track: track()?.id, uris: list, files: dropped });
+  });
+}
+dropTarget(mixCanvas.parentElement!, "mix");
+dropTarget(wave, "clip");
 
 setupVoiceTools({
   send,

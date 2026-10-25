@@ -1,6 +1,6 @@
 // A sound made in EDGEwave as a new sound event a quest can post (EDGEwave #7): a REDmod custom sound named
 // edgewave_<name>, its WAV in the project's source/customSounds and its entry in source/resources/info.json,
-// as Into the Game's REDmod route writes them. sfx is low occlusion (a quest sound that is not muffled); music
+// as Add to Project's REDmod route writes them. sfx is low occlusion (a quest sound that is not muffled); music
 // is 2D, with no position, on the effects slider: REDmod has no music type. No VS Code, for the MCP server.
 
 import * as fs from "node:fs";

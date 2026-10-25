@@ -4,7 +4,8 @@
 // Opens sound 42 in EDGEwave three seconds after startup. Its bridge's toJson gives a small
 // eventsmetadata.json (smoke_event, smoke_second and a music cue). Two commands call EDGEwave's own API as
 // EDGEquest does: Smoke: EDGEwave API (sound events, hearing one, a custom sound; the results in api.json) and
-// Smoke: Voice Lines (a quest's two lines; voiceLines.json when the panel closes).
+// Smoke: Voice Lines (a quest's two lines; voiceLines.json when the panel closes). Smoke: New Empty Sound
+// runs Create a Sound with a known path (the real command asks with a save dialog).
 const vscode = require("vscode");
 const path = require("path");
 const T = path.resolve(__dirname, "..");
@@ -49,6 +50,8 @@ exports.activate = (context) => {
       const r = await api.voiceLines({ quest: "smoke_quest", lines, archiveDir: "mod/smoke/smoke_quest/vo" });
       fs.writeFileSync(path.join(T, "voiceLines.json"), JSON.stringify(r, null, 2));
     }),
+    // Create a Sound at a known path (the real command asks with a save dialog).
+    vscode.commands.registerCommand("smoke.newSound", () => vscode.commands.executeCommand("edgewave.newSound", path.join(p, "source", "raw", "edgewave", "sounds", "Smoke New.edgewave"))),
   );
   const api = {
     apiVersion: 1, version: "0.9.0-stub", gamePath: () => path.join(T, "game"),
@@ -61,7 +64,7 @@ exports.activate = (context) => {
       if (!s) throw new Error("no such sound");
       return { data: tone(s[0], 48000, s[1], s[2]), mime: "audio/wav", codec: "PCM", channels: s[1], sampleRate: 48000, name: `${ref.soundHash}.wav` };
     },
-    // Records what EDGEwave imports (Into the Game's override), as REDcode's Import would take it.
+    // Records what EDGEwave imports (Add to Project's override), as REDcode's Import would take it.
     importFile: async (file) => {
       require("fs").writeFileSync(path.join(T, "imported.json"), JSON.stringify({ file }));
       return { ok: true, written: [path.join(p, "source", "archive", "base", "sound", "soundbanks", "sfx_container_1.opuspak")] };

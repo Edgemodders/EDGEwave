@@ -1,12 +1,12 @@
 // The sound editor: a custom editor over the .edgewave document's JSON text, so VS Code gives it
 // save, undo and redo as for any file. The page (webview/editor.ts) decodes the sources, applies the
 // edits, mixes, plays and renders; this side fetches each source's audio when the page asks, adds
-// tracks (Add Sound), and writes the document and the render.
+// tracks (Add Sound, sound files dropped on the page), and writes the document and the render.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { formatDoc, looksLikeVoice, newTrack, nextTrackId, parseDoc, type SoundDoc, type Source } from "./doc";
+import { formatDoc, isSoundFile, looksLikeVoice, newTrack, nextTrackId, parseDoc, SoundExtensions, type SoundDoc, type Source, type Track } from "./doc";
 import { intoGame, type RenderFor } from "./intoGame";
 import { redcode } from "./redcode";
 import type { VoiceRequest, VoiceTools } from "./voiceTools";
@@ -48,6 +48,7 @@ type FromPage =
   | { type: "ready" }
   | { type: "need"; key: string; source: Source }
   | { type: "addSound" }
+  | { type: "dropped"; on: "mix" | "clip"; track?: string; uris: string[]; files: { name: string; data: Uint8Array }[] }
   | { type: "intoGame" }
   | { type: "renderedFor"; id: number; wav?: Uint8Array; error?: string }
   | { type: "edit"; doc: SoundDoc }
@@ -84,7 +85,7 @@ async function pickSource(docDir: string): Promise<Source | undefined> {
   const chosen = await vscode.window.showQuickPick(items, { title: "Add a sound as a new track", placeHolder: "Type a sound effect's event name or tag", matchOnDescription: true });
   if (!chosen) return undefined;
   if (chosen.pick === "file") {
-    const pick = await vscode.window.showOpenDialog({ canSelectMany: false, defaultUri: vscode.Uri.file(docDir), filters: { Sounds: ["wav", "ogg", "mp3", "flac", "opus", "wem"] }, title: "A sound file for the new track" });
+    const pick = await vscode.window.showOpenDialog({ canSelectMany: false, defaultUri: vscode.Uri.file(docDir), filters: { Sounds: SoundExtensions }, title: "A sound file for the new track" });
     const file = pick?.[0]?.fsPath;
     if (!file) return undefined;
     const rel = path.relative(docDir, file);
@@ -128,7 +129,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 
     const post = (m: unknown) => void webview.postMessage(m);
 
-    // Renders the page makes for Into the Game, at the format a route needs.
+    // Renders the page makes for Add to Project, at the format a route needs.
     let nextRender = 1;
     const renders = new Map<number, { resolve: (wav: Uint8Array) => void; reject: (e: Error) => void }>();
     const renderFor: RenderFor = (rate, channels) =>
@@ -170,11 +171,13 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
           return sendSource(m.key, m.source);
         case "addSound":
           return this.addSound(document);
+        case "dropped":
+          return this.dropped(document, m);
         case "intoGame":
           try {
             await intoGame(document, renderFor, this.log);
           } catch (e) {
-            void vscode.window.showErrorMessage(`EDGEwave, Into the Game: ${(e as Error).message}`);
+            void vscode.window.showErrorMessage(`EDGEwave, Add to Project: ${(e as Error).message}`);
           }
           return;
         case "renderedFor": {
@@ -223,6 +226,71 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
       const doc = parseDoc(document.getText());
       const voice = source.kind === "game" ? looksLikeVoice(source.path) : source.kind === "file" ? looksLikeVoice(path.resolve(dir, source.file)) : false;
       doc.tracks.push(newTrack(nextTrackId(doc), source, voice));
+      const edit = new vscode.WorkspaceEdit();
+      edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), formatDoc(doc));
+      await vscode.workspace.applyEdit(edit);
+    } catch (e) {
+      void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+    }
+  }
+
+  /**
+   * Sound files dropped on the page. On the lanes, each becomes a new track at the start of the mix; on
+   * the clip, the first becomes the selected track's sound (its edits cleared, its level, pan and effects
+   * kept; with no track, a new one) and any others new tracks. Files from VS Code's Explorer are used
+   * where they are; files from the desktop reach the page as bytes only, so they are copied into the
+   * document's <name>.sounds folder.
+   */
+  private async dropped(document: vscode.TextDocument, m: Extract<FromPage, { type: "dropped" }>): Promise<void> {
+    try {
+      const docFile = document.uri.fsPath;
+      const dir = path.dirname(docFile);
+      const sources: { file: string; abs: string }[] = [];
+      const skipped: string[] = [];
+      const relative = (abs: string) => {
+        const rel = path.relative(dir, abs);
+        return (path.isAbsolute(rel) ? abs : rel).replace(/\\/g, "/");
+      };
+      for (const u of m.uris) {
+        const uri = vscode.Uri.parse(u);
+        if (uri.scheme !== "file" || !isSoundFile(uri.fsPath) || !fs.existsSync(uri.fsPath)) skipped.push(path.basename(uri.path));
+        else sources.push({ file: relative(uri.fsPath), abs: uri.fsPath });
+      }
+      const copies = `${path.basename(docFile, path.extname(docFile))}.sounds`;
+      for (const f of m.files) {
+        const name = path.basename(f.name).replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
+        if (!isSoundFile(name)) {
+          skipped.push(name);
+          continue;
+        }
+        const data = bytes(f.data);
+        const ext = path.extname(name);
+        let abs = path.join(dir, copies, name);
+        // The same file dropped again is the same copy; another with its name gets a number.
+        for (let n = 2; fs.existsSync(abs) && !fs.readFileSync(abs).equals(data); n++) abs = path.join(dir, copies, `${path.basename(name, ext)} ${n}${ext}`);
+        fs.mkdirSync(path.dirname(abs), { recursive: true });
+        if (!fs.existsSync(abs)) fs.writeFileSync(abs, data);
+        this.log.appendLine(`Dropped ${name}: ${abs}`);
+        sources.push({ file: relative(abs), abs });
+      }
+      if (skipped.length) void vscode.window.showWarningMessage(`EDGEwave takes sound files (${SoundExtensions.map((e) => `.${e}`).join(", ")}); left out: ${skipped.join(", ")}.`);
+      if (!sources.length) return;
+      const doc = parseDoc(document.getText());
+      const source = (s: (typeof sources)[number]): Source => ({ kind: "file", file: s.file });
+      const target = m.on === "clip" ? doc.tracks.find((t) => t.id === m.track) ?? doc.tracks[0] : undefined;
+      let rest = sources;
+      if (target) {
+        const [first, ...others] = sources;
+        rest = others;
+        doc.tracks = doc.tracks.map((t) => {
+          if (t !== target) return t;
+          const next: Track = { ...t, source: source(first), edits: [], voice: looksLikeVoice(first.abs) || undefined };
+          delete next.made;
+          if (!next.voice) delete next.voice;
+          return next;
+        });
+      }
+      for (const s of rest) doc.tracks.push(newTrack(nextTrackId(doc), source(s), looksLikeVoice(s.abs)));
       const edit = new vscode.WorkspaceEdit();
       edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), formatDoc(doc));
       await vscode.workspace.applyEdit(edit);
@@ -282,11 +350,11 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
     <button id="toNext" class="icon" title="Mix cursor to the next clip edge: a track's start or end" aria-label="Next clip edge"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 3v10" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M3 3l8 5-8 5z" fill="currentColor"/></svg></button>
     <button id="loopPlay" class="icon" title="Loop: the clip's selection or the whole clip; the mix's loop points or the whole mix" aria-label="Loop"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 9V7a3 3 0 0 1 3-3h7" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M11 1.5 13.5 4 11 6.5" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M13.5 7v2a3 3 0 0 1-3 3h-7" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M5 9.5 2.5 12 5 14.5" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></button>
   </span>
-  <button id="addSound" class="icon" title="Add Sound: a game sound effect, a game file or a sound file, as a new track" aria-label="Add Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.8" fill="none"/></svg></button>
+  <button id="addSound" class="icon" title="Add Sound: a game sound effect, a game file or a sound file, as a new track. Or drop sound files on the lanes (hold Shift)" aria-label="Add Sound"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11" stroke="currentColor" stroke-width="1.8" fill="none"/></svg></button>
   <span class="spacer"></span>
   <span id="mixTime" class="mono"></span>
   <button id="render" class="primary" title="Write the mix as a 16-bit WAV, reverb tails included (settings in Master)">Render WAV</button>
-  <button id="intoGame" class="primary" title="Put the mix into the REDcode project for the game: override this sound effect, or a REDmod custom sound for an event">Into the Game…</button>
+  <button id="intoGame" class="primary" title="Add the mix to the REDcode project, the way the game plays it: override a sound effect, a REDmod custom sound for an event, or a REDnode package's sound">Add to Project…</button>
 </div>
 <div class="lanes"><div id="laneChecks" class="lanechecks"></div><canvas id="mix"></canvas></div>
 <div class="toolbar track">

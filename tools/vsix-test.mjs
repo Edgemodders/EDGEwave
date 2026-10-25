@@ -1,6 +1,6 @@
 // The release's packaged test: installs the built .vsix into a clean VS Code, which installs REDcode
 // for Cyberpunk 2077 from the Marketplace as its dependency (so it needs the network), opens a sound
-// document on a generated tone, and checks that the page loads it, renders it, and that Into the Game
+// document on a generated tone, and checks that the page loads it, renders it, and that Add to Project
 // reaches REDcode's API (with no REDcode project open, it says to open one).
 //
 //   npm run package && node tools/vsix-test.mjs
@@ -125,7 +125,7 @@ for (let i = 0; i < 20 && !rendered; i++) {
 }
 log("rendered", rendered, fs.existsSync(wav));
 
-// Into the Game: EDGEwave asks REDcode's API for the project; with none open, it says to open one.
+// Add to Project: EDGEwave asks REDcode's API for the project; with none open, it says to open one.
 await run("document.getElementById('intoGame').click()");
 let toast = "";
 for (let i = 0; i < 20 && !toast; i++) {
@@ -133,6 +133,6 @@ for (let i = 0; i < 20 && !toast; i++) {
   toast = texts.find((t) => /REDcode project/.test(t)) ?? "";
   if (!toast) await sleep(500);
 }
-log("into the game", toast);
+log("add to project", toast);
 const ok = fs.existsSync(wav) && /Open a REDcode project first/.test(toast);
-finish(ok, ok ? `${path.basename(vsix)} with REDcode ${exts.find((d) => d.startsWith("edgemodders.redcode-cyberpunk-")).match(/\d+\.\d+\.\d+/)[0]}: the page loads and renders a sound, and Into the Game reaches REDcode's API` : "the packaged extension did not do what it should");
+finish(ok, ok ? `${path.basename(vsix)} with REDcode ${exts.find((d) => d.startsWith("edgemodders.redcode-cyberpunk-")).match(/\d+\.\d+\.\d+/)[0]}: the page loads and renders a sound, and Add to Project reaches REDcode's API` : "the packaged extension did not do what it should");

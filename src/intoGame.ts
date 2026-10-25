@@ -1,4 +1,4 @@
-// Into the Game (A3): puts the mix (the tracks whose lanes are checked) into the open REDcode project,
+// Add to Project (A3): puts the mix (the tracks whose lanes are checked) into the open REDcode project,
 // in a layout the game loads, for REDcode's pack. What it replaces is a separate choice: any game sound
 // effect on a track, those in the mix first, so a mix of a game sound and a file can override that sound.
 // Two routes, both chosen in a quick pick and remembered in the document (doc.game):
@@ -116,7 +116,7 @@ function lastItem(items: Item[], last: IntoGame | undefined): Item | undefined {
 export async function intoGame(document: vscode.TextDocument, renderFor: RenderFor, log: vscode.OutputChannel): Promise<void> {
   const api = await redcode();
   const project = api.project();
-  if (!project) throw new Error("Open a REDcode project first: Into the Game writes into its source folders.");
+  if (!project) throw new Error("Open a REDcode project first: Add to Project writes into its source folders.");
   if (document.isDirty) await document.save();
   const doc = parseDoc(document.getText());
   const inMix = audible(doc.tracks);
@@ -129,7 +129,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
     );
   }
 
-  const chosen = await vscode.window.showQuickPick(routes(doc), { title: "Into the Game: what should the mix replace?" });
+  const chosen = await vscode.window.showQuickPick(routes(doc), { title: "Add to Project: what should the mix replace?" });
   if (!chosen?.route) return;
   if (chosen.route === "rednode") return asRednodeSound(document, doc, project, api.gamePath(), renderFor, log);
   // The channels of the sound replaced; for a named event, the first track in the mix.
@@ -145,13 +145,13 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
     fs.writeFileSync(file, wav);
     const r = await api.importFile(file);
     if (!r.ok) throw new Error(`REDcode could not import ${path.basename(file)}; see REDcode's output.`);
-    log.appendLine(`Into the Game: sound ${hash} from ${file} into ${r.written.join(", ")}`);
+    log.appendLine(`Add to Project: sound ${hash} from ${file} into ${r.written.join(", ")}`);
     game = { route: "override", soundHash: hash };
     done = `Sound ${hash} now overrides the game's, in ${r.written.map((w) => path.relative(project.dir, w)).join(", ")}.`;
   } else {
     let name = chosen.event;
     if (chosen.route === "redmodNamed" || !name) {
-      name = (await vscode.window.showInputBox({ title: "Into the Game: the audio event", prompt: "The event the game should play this mix for", value: doc.game && "event" in doc.game ? doc.game.event : "" }))?.trim();
+      name = (await vscode.window.showInputBox({ title: "Add to Project: the audio event", prompt: "The event the game should play this mix for", value: doc.game && "event" in doc.game ? doc.game.event : "" }))?.trim();
       if (!name) return;
     }
     const info = path.join(project.resources, "info.json");
@@ -164,7 +164,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
     const types = [...RedmodTypes].sort((a, b) => Number(b.type === lastType) - Number(a.type === lastType));
     const t = await vscode.window.showQuickPick(
       types.map((x) => ({ label: x.label, description: x.type, detail: x.detail, type: x.type })),
-      { title: silence ? `Into the Game: how does the game play ${name}? (the silence takes its place)` : `Into the Game: how should the game play ${name}?` },
+      { title: silence ? `Add to Project: how does the game play ${name}? (the silence takes its place)` : `Add to Project: how should the game play ${name}?` },
     );
     if (!t) return;
     const gain = doc.game?.route === "redmod" ? doc.game.gain : 1;
@@ -180,7 +180,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
     done = silence
       ? `REDmod will play silence for ${name}, as ${t.type}: ${path.relative(project.dir, out)} (in ${path.relative(project.dir, info)}).`
       : `REDmod will play ${path.relative(project.dir, out)} for ${name}, as ${t.type} (in ${path.relative(project.dir, info)}).`;
-    log.appendLine(`Into the Game: ${done}`);
+    log.appendLine(`Add to Project: ${done}`);
   }
 
   await remember(document, doc, game);
@@ -251,7 +251,7 @@ async function pickPackage(project: ProjectRef, gamePath: string | undefined, la
   return { dir: path.join(root, ...AppsDir, id), id, name: project.modName || id, where: pick.make!, isNew: true };
 }
 
-/** Into the Game > As a REDnode sound: the render in a package's sounds folder and manifest. */
+/** Add to Project > As a REDnode sound: the render in a package's sounds folder and manifest. */
 async function asRednodeSound(document: vscode.TextDocument, doc: SoundDoc, project: ProjectRef, gamePath: string | undefined, renderFor: RenderFor, log: vscode.OutputChannel) {
   const last = doc.game?.route === "rednode" ? doc.game : undefined;
   const pkg = await pickPackage(project, gamePath, last?.package);
@@ -295,7 +295,7 @@ async function asRednodeSound(document: vscode.TextDocument, doc: SoundDoc, proj
   await remember(document, doc, { route: "rednode", package: stored, sound, category: c.category });
 
   const shown = pkg.where === "project" ? path.relative(project.dir, out) : out;
-  log.appendLine(`Into the Game: REDnode sound ${sound} (${c.category}) in ${pkg.dir}${pkg.isNew ? ", a new package" : ""}`);
+  log.appendLine(`Add to Project: REDnode sound ${sound} (${c.category}) in ${pkg.dir}${pkg.isNew ? ", a new package" : ""}`);
   const hear = pkg.where === "game"
     ? " REDnode picks up the change while the game runs (a new package starts, a changed one restarts), so it plays without a restart."
     : " To hear it: Pack and Install puts the package in the game folder, where REDnode starts it (or restarts it while the game runs).";
@@ -338,7 +338,7 @@ function writeInfo(file: string, text: string) {
   fs.writeFileSync(file, text);
 }
 
-/** Keeps the choice in the document, saved, so the next Into the Game offers it first. */
+/** Keeps the choice in the document, saved, so the next Add to Project offers it first. */
 async function remember(document: vscode.TextDocument, doc: SoundDoc, game: IntoGame) {
   if (JSON.stringify(doc.game) === JSON.stringify(game)) return;
   doc.game = game;

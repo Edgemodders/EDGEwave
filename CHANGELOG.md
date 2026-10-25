@@ -13,7 +13,9 @@ How to keep it:
 
 **New**
 
-- Into the Game: **As a REDnode sound**. A REDnode package plays the mix where its code calls `audio.play`, beside the game's sound, following the game's volume sliders. No REDmod and no `.wem`, so voice lines too. EDGEwave writes the WAV into a package's `sounds` folder and its `rednode-app.json`, or makes a new package, in the project or in the game folder, where REDnode plays it without a restart ([#2](https://github.com/Edgemodders/EDGEwave/issues/2), [how](https://edgemodders.github.io/EDGEwave/a3-game.html#as-a-rednode-sound)).
+- **Create a Sound** (the + in the Sounds view): a new, empty sound, saved by default in the project's `source/raw/edgewave/sounds`. Fill it with Add Sound, Generate Sound or Speak Line, or by dropping sound files on it.
+- Drop sound files on the editor, holding Shift as you drop: on the lanes each becomes a new track; on the clip the first becomes the selected track's sound, its edits cleared. Files from the desktop are copied beside the sound, into `<name>.sounds`; files from VS Code's Explorer are used where they are.
+- Add to Project: **As a REDnode sound**. A REDnode package plays the mix where its code calls `audio.play`, beside the game's sound, following the game's volume sliders. No REDmod and no `.wem`, so voice lines too. EDGEwave writes the WAV into a package's `sounds` folder and its `rednode-app.json`, or makes a new package, in the project or in the game folder, where REDnode plays it without a restart ([#2](https://github.com/Edgemodders/EDGEwave/issues/2), [how](https://edgemodders.github.io/EDGEwave/a3-game.html#as-a-rednode-sound)).
 
 - **Voice Lines** for a quest: EDGEquest hands over a quest's dialogue lines, and EDGEwave voices them through ElevenLabs, two takes for V (female and male) and one for anyone else, named as the game names voice files. Pick a voice per speaker, Generate All or one line, play each take, swap in a recording, go back to the previous take, or edit a take in the studio. Lines whose words changed show as changed and are voiced again; `eleven_v3` follows the lines' delivery tags such as `[softly]` ([#5](https://github.com/Edgemodders/EDGEwave/issues/5), [how](https://edgemodders.github.io/EDGEwave/voice-lines.html)).
 - Sound events for quests: other tools search the game's own list of sound events (every event in 2.31 has its name), hear one, and make a sound into a new event a quest can post, as a REDmod custom sound ([#7](https://github.com/Edgemodders/EDGEwave/issues/7), [how](https://edgemodders.github.io/EDGEwave/api.html#sound-events)).
@@ -21,8 +23,11 @@ How to keep it:
 
 **Changed**
 
+- **Into the Game…** is now **Add to Project…**, as other EDGE tools name the same step. It works as before.
+- The Sounds view's + is Create a Sound; Open Sound in EDGEwave… (a sound file from disk) is the folder button beside it.
+- Remove takes the last track too, leaving an empty sound.
 - Needs REDcode for Cyberpunk 2077 0.10.3 or later.
-- Into the Game says how to hear the result: install the mod and restart the game, since a sound override hot-deployed into a running game crashes it, and REDmod deploys custom sounds at start. It offers **Pack and Install** beside **Pack** ([#4](https://github.com/Edgemodders/EDGEwave/issues/4)).
+- Add to Project says how to hear the result: install the mod and restart the game, since a sound override hot-deployed into a running game crashes it, and REDmod deploys custom sounds at start. It offers **Pack and Install** beside **Pack** ([#4](https://github.com/Edgemodders/EDGEwave/issues/4)).
 
 **Fixed**
 

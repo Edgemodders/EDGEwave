@@ -7,7 +7,7 @@ import * as vscode from "vscode";
 import { makeApi, type EDGEwaveApi } from "./api";
 import { SoundEditorProvider } from "./editor";
 import { connectAssistant, installServer, registerWithEditor } from "./mcp";
-import { openFile, openSound, ViewType } from "./openSound";
+import { newSound, openFile, openSound, ViewType } from "./openSound";
 import type { SoundRef } from "./redcode";
 import { SoundEvents } from "./soundEvents";
 import { SoundsView } from "./soundsView";
@@ -34,6 +34,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
       return openSound(ref);
     }),
     vscode.commands.registerCommand("edgewave.open", (uri?: vscode.Uri) => openFile(uri)),
+    vscode.commands.registerCommand("edgewave.newSound", (file?: string) => newSound(file)),
     vscode.commands.registerCommand("edgewave.elevenlabs.setKey", () => voices.setKey()),
     vscode.commands.registerCommand("edgewave.elevenlabs.clearKey", () => voices.clearKey()),
     vscode.commands.registerCommand("edgewave.elevenlabs.voices", async () => {
