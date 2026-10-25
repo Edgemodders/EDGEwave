@@ -710,6 +710,50 @@ const newOk = /^A new sound for this project/.test(newRows[0] ?? "") && newInfo?
   && at("Project sounds") > 0 && namedRows.some((r) => r.startsWith("edgewave_smoke_new")) && namedRows.some((r) => r.startsWith("edgewave_smoke_knock"));
 if (!newOk) finish(false, "A new sound for this project did not name the sound in the project");
 
+// Game Assets: the game's sounds only. Sound effects lists the stub's two events; Voice lines shows English
+// (German has no voice folder); a click on an event plays it in the Hear panel. Then Filter "judy": the voice
+// line, whose Add to the Open Sound puts it on Smoke New as track 3.
+await command("EDGEwave: Focus on Game Assets View");
+await sleep(800);
+const assetRows = async () => evalIn(bench, `[...document.querySelectorAll('.part.sidebar .pane')].find((p) => /Game Assets/i.test(p.querySelector('.pane-header')?.textContent ?? ''))?.querySelectorAll('.monaco-list-row') ?? []`).then(() =>
+  evalIn(bench, `(() => { const p = [...document.querySelectorAll('.part.sidebar .pane')].find((p) => /Game Assets/i.test(p.querySelector('.pane-header')?.textContent ?? '')); return p ? [...p.querySelectorAll('.monaco-list-row')].map((r) => r.textContent.trim()) : []; })()`));
+const clickAsset = (text, selector = "") => evalIn(bench, `(() => { const p = [...document.querySelectorAll('.part.sidebar .pane')].find((p) => /Game Assets/i.test(p.querySelector('.pane-header')?.textContent ?? '')); const r = [...p.querySelectorAll('.monaco-list-row')].find((r) => r.textContent.trim().startsWith(${JSON.stringify(text)})); if (!r) return false; (${JSON.stringify(selector)} ? r.querySelector(${JSON.stringify(selector)}) : r).click(); return true; })()`);
+const rowsBefore = await assetRows();
+await clickAsset("Sound effects");
+await sleep(1500);
+await clickAsset("Voice lines");
+await sleep(800);
+await clickAsset("Base game");
+await sleep(1500);
+const rowsOpen = await assetRows();
+await clickAsset("smoke_event");
+let hearTab = "";
+for (let i = 0; i < 20 && !hearTab; i++) {
+  hearTab = (await evalIn(bench, "[...document.querySelectorAll('.tab .label-name')].map((e) => e.textContent).find((t) => t.startsWith('Hear: ')) ?? ''"));
+  if (!hearTab) await sleep(500);
+}
+await command("EDGEwave: Filter the Game's Sounds");
+await sleep(800);
+await cdp("Input.insertText", { text: "judy" });
+await sleep(300);
+await key("Enter", "Enter", 13);
+await sleep(2000);
+const rowsFiltered = await assetRows();
+const added = await clickAsset("judy_smoke_f_000000000000002a.wem", ".action-label[aria-label='Add to the Open Sound'], .action-label[title='Add to the Open Sound']");
+await sleep(1200);
+// Save Smoke New (the sound added to) from its tab.
+await evalIn(bench, "[...document.querySelectorAll('.tab')].find((t) => t.textContent.includes('Smoke New'))?.click()");
+await sleep(600);
+await saveDoc();
+const withVoice = JSON.parse(fs.readFileSync(newFile, "utf8")).tracks;
+log("game assets", JSON.stringify({ rowsBefore, rowsOpen, hearTab, rowsFiltered, added, tracks: withVoice.map((t) => [t.id, t.source]) }));
+const assetsOk = rowsBefore.join() === "Sound effects,Voice lines,Music and streamed sounds"
+  && rowsOpen.some((r) => r.startsWith("smoke_event")) && rowsOpen.some((r) => r.startsWith("smoke_second2 variations")) && rowsOpen.some((r) => r.startsWith("en-us")) && !rowsOpen.some((r) => r.startsWith("de-de"))
+  && hearTab === "Hear: smoke_event"
+  && rowsFiltered.some((r) => r.startsWith("judy_smoke_f_000000000000002a.wem")) && !rowsFiltered.some((r) => r.startsWith("v_smoke_m_")) && !rowsFiltered.some((r) => r.startsWith("smoke_event"))
+  && added && withVoice.length === 3 && withVoice[2].source.kind === "game" && withVoice[2].source.path === "base\\localization\\en-us\\vo\\judy_smoke_f_000000000000002a.wem" && withVoice[2].voice === true;
+if (!assetsOk) finish(false, "Game Assets did not list, play or add the game's sounds as expected");
+
 const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
@@ -723,4 +767,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound" : "render or mix checks failed");

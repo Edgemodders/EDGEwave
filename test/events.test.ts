@@ -7,6 +7,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { encodeWav } from "../src/audio/wav";
+import { compileFilter, formatSize, groupByParts, isAudioFile, isVoiceFolder, nameParts } from "../src/assetTree";
 import { projectSounds } from "../src/customSound";
 import { customEventName, eventsFromMetadata, searchEvents, wwiseId } from "../src/events";
 
@@ -108,4 +109,34 @@ test("projectSounds: info.json's custom sounds with their WAV's length; a missin
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("Game Assets: the filter, name parts and grouping a big folder", () => {
+  const f = compileFilter("Judy  q307")!;
+  assert.ok(f.test("base\\localization\\en-us\\vo\\judy_q307_f_2e6b759be83bc000.wem") && !f.test("judy_q101_f_0.wem"));
+  assert.equal(compileFilter("   "), undefined);
+  const w = compileFilter("*_q307_f_*")!;
+  assert.ok(w.test("judy_q307_f_2e6b759be83bc000.wem") && !w.test("judy_q307_m_2e6b759be83bc000.wem"));
+  assert.equal(w.seed, "_q307_f_");
+  assert.deepEqual(nameParts("base\\localization\\en-us\\vo\\judy_q307_f_2e6b759be83bc000.wem"), ["judy", "q307"]);
+  assert.deepEqual(nameParts("61753991.wem"), ["61753991"]);
+  const names = [
+    ...Array.from({ length: 6 }, (_, i) => `judy_q307_f_${i.toString(16).padStart(16, "0")}.wem`),
+    ...Array.from({ length: 3 }, (_, i) => `judy_q101_f_${i.toString(16).padStart(16, "0")}.wem`),
+    "judy_sq030_f_0000000000000001.wem",
+    ...Array.from({ length: 4 }, (_, i) => `v_q101_m_${i.toString(16).padStart(16, "0")}.wem`),
+  ];
+  const top = groupByParts(names, (n) => n, "", 5);
+  assert.deepEqual(top.groups, [{ prefix: "judy", count: 10 }, { prefix: "v", count: 4 }]);
+  // Under judy: q101 and q307 groups; sq030 alone is shown as its file.
+  const judy = groupByParts(names, (n) => n, "judy", 5);
+  assert.deepEqual(judy.groups, [{ prefix: "judy_q101", count: 3 }, { prefix: "judy_q307", count: 6 }]);
+  assert.deepEqual(judy.items, ["judy_sq030_f_0000000000000001.wem"]);
+  // Few enough: the files themselves.
+  assert.deepEqual(groupByParts(names, (n) => n, "judy_q307", 5).items.length, 6);
+  // Every name in one group goes a part deeper by itself.
+  const one = groupByParts(names.slice(0, 9), (n) => n, "", 5);
+  assert.deepEqual(one.groups.map((g) => g.prefix), ["judy_q101", "judy_q307"]);
+  assert.ok(isVoiceFolder("vo_holocall") && !isVoiceFolder("voices") && isAudioFile("a.WEM") && !isAudioFile("a.bnk"));
+  assert.equal(formatSize(41 * 1024), "41 KB");
 });

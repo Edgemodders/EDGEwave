@@ -21,7 +21,7 @@ EDGEwave builds on [REDcode for Cyberpunk 2077](https://marketplace.visualstudio
 ## Getting started
 
 1. In REDcode, open or create a mod project.
-2. Find a sound: REDcode's **Browse Game Sounds**, play one, and click **Open in EDGEwave**. Or right-click a `.wav` or `.ogg` file > **Open Sound in EDGEwave…**. Or start from nothing: **Create a Sound** (the + in EDGEwave's Sounds view), then drop sound files on it (hold Shift as you drop), or use Add Sound, Generate Sound or Speak Line.
+2. Find a sound: REDcode's **Browse Game Sounds**, play one, and click **Open in EDGEwave**. Or right-click a `.wav` or `.ogg` file > **Open Sound in EDGEwave…**. Or find one in EDGEwave's own **Game Assets** view (the game's sound effects, voice lines and music only): click to hear it, add it to the open sound, or open it. Or start from nothing: **Create a Sound** (the + in EDGEwave's Sounds view), then drop sound files on it (hold Shift as you drop), or use Add Sound, Generate Sound or Speak Line.
 3. EDGEwave saves a `.edgewave` document next to the sound in your project and opens it in its editor. The document holds your edits, not audio, so the game's sound is never changed on disk.
 4. Edit and mix. **Render WAV** writes the mix as a WAV file.
 5. **Add to Project…** puts the mix into the project, then **Pack** (REDcode's) builds the mod.
@@ -44,14 +44,15 @@ Drop sound files from the desktop or the Explorer on the editor, holding Shift: 
 
 ## Into the game
 
-**Add to Project…** asks what the mix should replace. It lists every game sound effect on a track, the tracks in the mix first:
+**Add to Project…** asks where the mix goes. First, **A new sound for this project…**: name it, and quests, scenes and scripts play it by that name (a REDmod custom sound); the Sounds view lists the project's sounds, and other EDGE tools offer them. Then every game sound effect on a track, the tracks in the mix first:
 
 | Route | What it does | Beside other mods |
 |---|---|---|
 | **Override sound `<hash>`** | Replaces that one sound (one variation of its event), through REDcode's Import | No: the last mod loaded wins |
 | **Replace the event, every variation, with REDmod** | A REDmod custom sound: the game plays your mix for that audio event | Yes |
 | **Silence the event, every variation, with REDmod** | The game plays silence for that event | Yes |
-| **A REDmod custom sound for an event…** | For an event you name | Yes |
+| **Replace a game event by name…** | For a game event you name | Yes |
+| **In a REDnode package, for its code to play…** | Only that REDnode package's code plays it | Yes |
 
 What goes in is the mix of the checked tracks; what it replaces is the row you pick. So a generated sound can replace a game sound left out of the mix. For the REDmod routes, turn on REDcode's `redcode.pack.redmod` setting, and start the game with REDcode's **Run Game** so REDmod deploys.
 

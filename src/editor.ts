@@ -111,6 +111,9 @@ async function pickSource(docDir: string): Promise<Source | undefined> {
 }
 
 export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
+  /** The sound document whose editor was active last: where Game Assets' Add to the Open Sound puts a track. */
+  private active?: vscode.TextDocument;
+
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly log: vscode.OutputChannel,
@@ -121,6 +124,13 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
 
   resolveCustomTextEditor(document: vscode.TextDocument, panel: vscode.WebviewPanel): void {
     this.opened(document.uri);
+    this.active = document;
+    panel.onDidChangeViewState((e) => {
+      if (e.webviewPanel.active) this.active = document;
+    });
+    panel.onDidDispose(() => {
+      if (this.active === document) this.active = undefined;
+    });
     const webview = panel.webview;
     const dist = vscode.Uri.joinPath(this.context.extensionUri, "dist");
     const media = vscode.Uri.joinPath(this.context.extensionUri, "media");
@@ -215,6 +225,18 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
           return;
       }
     });
+  }
+
+  /** A game sound as a new track of the sound whose editor was active last; its name, or undefined with none open. */
+  async addToOpen(source: Source, voice: boolean): Promise<string | undefined> {
+    const document = this.active;
+    if (!document || document.isClosed) return undefined;
+    const doc = parseDoc(document.getText());
+    doc.tracks.push(newTrack(nextTrackId(doc), source, voice));
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(document.uri, new vscode.Range(0, 0, document.lineCount, 0), formatDoc(doc));
+    await vscode.workspace.applyEdit(edit);
+    return path.basename(document.uri.fsPath);
   }
 
   /** Add Sound: a quick pick over the game's sound effects (REDcode's index), a game path or a file; the choice becomes a new track. */

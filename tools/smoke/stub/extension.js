@@ -22,6 +22,15 @@ const metaEvent = (name, wwiseId, tags, loop = 0) => ({ $type: "audioAudioEventM
 const metadata = { Data: { RootChunk: { $type: "JsonResource", root: { Data: { $type: "audioAudioEventArray", events: [
   metaEvent("smoke_event", 7, ["sfx_quest_events"]), metaEvent("smoke_second", 8, ["smoke"]), metaEvent("mus_smoke_01_START", 9, ["music_quests_events", "quest_music_start"], 1),
 ] } } } } };
+const file = (name, size) => ({ hash: "1", name, size, archive: "lang_en_voice.archive" });
+const tree = {
+  "base\\localization": { folders: [{ name: "de-de", path: "base\\localization\\de-de", files: 1 }, { name: "en-us", path: "base\\localization\\en-us", files: 3 }], files: [] },
+  "base\\localization\\de-de": { folders: [{ name: "subtitles", path: "base\\localization\\de-de\\subtitles", files: 1 }], files: [] },
+  "base\\localization\\en-us": { folders: [{ name: "subtitles", path: "base\\localization\\en-us\\subtitles", files: 1 }, { name: "vo", path: "base\\localization\\en-us\\vo", files: 2 }], files: [] },
+  "base\\localization\\en-us\\vo": { folders: [], files: [file("base\\localization\\en-us\\vo\\judy_smoke_f_000000000000002a.wem", 41000), file("base\\localization\\en-us\\vo\\v_smoke_m_112210f47de98115.wem", 30000)] },
+  "ep1\\localization": { folders: [], files: [] },
+  "base\\sound\\soundbanks\\media": { folders: [], files: [file("base\\sound\\soundbanks\\media\\61753991.wem", 167751), { ...file("base\\sound\\soundbanks\\media\\init.bnk", 1), archive: "audio_2_soundbanks.archive" }] },
+};
 exports.activate = (context) => {
   const fs = require("fs");
   const p = path.join(T, "proj");
@@ -55,11 +64,25 @@ exports.activate = (context) => {
   );
   const api = {
     apiVersion: 1, version: "0.9.0-stub", gamePath: () => path.join(T, "game"),
-    bridge: () => ({ toJson: async (gamePath, outFile) => { require("fs").writeFileSync(outFile, JSON.stringify(metadata)); return { file: outFile, bytes: 1 }; } }),
+    bridge: () => ({
+      toJson: async (gamePath, outFile) => { require("fs").writeFileSync(outFile, JSON.stringify(metadata)); return { file: outFile, bytes: 1 }; },
+      // A few made-up game files for EDGEwave's Game Assets: English voice lines (German has subtitles only) and a streamed sound.
+      tree: async (p = "") => {
+        const t = tree[p.toLowerCase()];
+        if (!t) throw new Error(`'${p}' is not a folder in the loaded archives`);
+        return { path: p, folders: t.folders, files: t.files };
+      },
+      search: async (q, limit = 200) => {
+        const all = Object.values(tree).flatMap((t) => t.files).filter((f) => f.name.toLowerCase().includes(q.toLowerCase()));
+        return { total: all.length, items: all.slice(0, limit) };
+      },
+    }),
     project: () => ({ name: "Smoke", modName: "Smoke", file: path.join(p, "Smoke.cpmodproj"), dir: p, archive: path.join(p, "source", "archive"), raw: path.join(p, "source", "raw"), resources: path.join(p, "source", "resources"), packed: path.join(p, "packed") }),
     onDidChangeProject: new vscode.EventEmitter().event,
     soundIndex: async () => ({ count: 3, events: [{ hash: 7, name: "smoke_event", tags: [], sounds: [42] }, { hash: 8, name: "smoke_second", tags: ["smoke"], sounds: [43, 44] }] }),
     sound: async (ref) => {
+      // A game file (the Game Assets' voice lines): a 1 s mono tone, as REDcode serves a .wem decoded.
+      if (ref.path) return { data: tone(1, 48000, 1, 500), mime: "audio/wav", codec: "Vorbis", channels: 1, sampleRate: 48000, name: ref.path.split("\\").pop() };
       const s = { 42: [2, 2, 440], 43: [1.5, 1, 660], 44: [0.5, 1, 880] }[ref.soundHash];
       if (!s) throw new Error("no such sound");
       return { data: tone(s[0], 48000, s[1], s[2]), mime: "audio/wav", codec: "PCM", channels: s[1], sampleRate: 48000, name: `${ref.soundHash}.wav` };

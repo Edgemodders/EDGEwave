@@ -13,6 +13,7 @@ How to keep it:
 
 **New**
 
+- **Game Assets** in EDGEwave's activity bar: the game's sounds only, so there is no going to REDcode and back. Sound effects by event, voice lines by language and folder, music and streamed sounds; big folders grouped by name. Click to hear one; add it to the open sound, open it in EDGEwave, or copy its name. **Filter** takes words or `*` patterns, as REDcode's does ([how](https://edgemodders.github.io/EDGEwave/game-assets.html)).
 - **A new sound for this project…**, first in Add to Project: name the mix (`edgewave_<name>` by default), and quests, scenes and scripts play it by that name, as a REDmod custom sound. Replaces nothing. Pick how it plays in plain words: a sound effect heard from where it plays, or the same everywhere (2D).
 - **Project sounds** in the Sounds view: the project's named sounds, with their type and length. Click one to hear it; copy its name for a quest or a script.
 - Other tools' sound pickers (EDGEwave's `soundEvents`, the MCP server's `sound_events` with `project`) list the project's own sounds first, so EDGEquest offers them without typing a name ([how](https://edgemodders.github.io/EDGEwave/api.html#sound-events)).

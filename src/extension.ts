@@ -6,6 +6,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { makeApi, type EDGEwaveApi } from "./api";
 import { SoundEditorProvider } from "./editor";
+import { GameAssets, type AssetNode } from "./gameAssets";
 import { connectAssistant, installServer, registerWithEditor } from "./mcp";
 import { newSound, openFile, openSound, ViewType } from "./openSound";
 import type { SoundRef } from "./redcode";
@@ -23,9 +24,11 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   const events = new SoundEvents(context, (l) => log.appendLine(l));
   const version = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
   const sounds = new SoundsView(context);
+  const editor = new SoundEditorProvider(context, log, voices, (uri) => void sounds.remember(uri));
+  const assets = new GameAssets(events, editor);
   context.subscriptions.push(
     log,
-    vscode.window.registerCustomEditorProvider(ViewType, new SoundEditorProvider(context, log, voices, (uri) => void sounds.remember(uri)), {
+    vscode.window.registerCustomEditorProvider(ViewType, editor, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     // REDcode's Open in EDGEwave runs this with the sound now playing.
@@ -69,6 +72,15 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     }),
     vscode.commands.registerCommand("edgewave.revealSound", (n?: NamedItem) => n?.file && vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(path.join(n.dir, n.file)))),
     vscode.commands.registerCommand("edgewave.voiceLines", () => openRecordedQuest(voiceLines)),
+    // Game Assets: the game's sounds only.
+    vscode.window.registerTreeDataProvider("edgewave.gameAssets", assets),
+    vscode.commands.registerCommand("edgewave.gameAssets.filter", () => assets.askFilter()),
+    vscode.commands.registerCommand("edgewave.gameAssets.clearFilter", () => assets.setFilter(undefined)),
+    vscode.commands.registerCommand("edgewave.gameAssets.refresh", () => assets.refresh()),
+    vscode.commands.registerCommand("edgewave.hearGameSound", (n?: AssetNode) => assets.hear(n)),
+    vscode.commands.registerCommand("edgewave.openGameSound", (n?: AssetNode) => assets.open(n)),
+    vscode.commands.registerCommand("edgewave.addGameSound", (n?: AssetNode) => assets.addToOpen(n)),
+    vscode.commands.registerCommand("edgewave.copyGameName", (n?: AssetNode) => assets.copyName(n)),
     vscode.commands.registerCommand("edgewave.connectAssistant", () => connectAssistant(context, (l) => log.appendLine(l))),
   );
   installServer(context.extensionPath, (l) => log.appendLine(l));

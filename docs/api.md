@@ -18,8 +18,8 @@ if (api?.apiVersion === 1) { ... }
 | `version` | EDGEwave's version |
 | `voiceLines({ quest, lines, voices?, archiveDir?, project? })` | Opens [Voice Lines](voice-lines.html#the-voice-lines-panel) on these lines, adding them to the quest's panel when it is open. One line opens the panel on it. Resolves with `voice.json` when the panel closes. `lines` as in [the contract](voice-lines.html#the-contract). `project`: the project's folder, else REDcode's open project, else the workspace folder with `source/` |
 | `voiceStatus(quest, project?)` | The quest's `voice.json`, with `voices`, or `undefined` when nothing is voiced yet |
-| `soundEvents({ query?, music?, quest?, limit? })` | The game's sound events matching a query. See [Sound events](#sound-events) |
-| `playEvent({ name })` | Plays an event's sound effect recordings in EDGEwave's **Hear** panel: `{ ok: true, where: "archive", variations }`. A music cue, or an event with no recordings, gives `{ ok: false, reason }` |
+| `soundEvents({ query?, music?, quest?, limit?, project? })` | The project's own named sounds, then the game's sound events, matching a query. See [Sound events](#sound-events) |
+| `playEvent({ name, project? })` | Plays an event's sound effect recordings in EDGEwave's **Hear** panel: `{ ok: true, where: "archive", variations }`; a project sound plays its WAV (`where: "project"`). A music cue, or an event with no recordings, gives `{ ok: false, reason }` |
 | `customSound({ project?, wav, name, kind? })` | A sound as a new event a quest can post: `{ event, file, type, note }`, or `{ reason }`. See [A new event](#a-new-event) |
 
 ## Sound events
@@ -36,6 +36,8 @@ EDGEwave reads the file through REDcode's bridge (`cr2w.toJson`) the first time 
 | `limit` | 50 by default, up to 1,000 |
 
 Each result: `name`, `hash`, `loops`, `min`, `max` (seconds), `tags`, `music`, `quest`, and `sounds` (the variations REDcode's index has, for sound effects).
+
+**The project's own sounds come first** (added 2026-10-24): every REDmod custom sound in the project's `source/resources/info.json` (`project`, else REDcode's open project), made with Add to Project's [A new sound for this project](a3-game.html#a-new-sound-for-this-project) or `customSound`. Each has `project: { type, file }`, the tags `project` and its type, and its WAV's length as `min` and `max`. One under a game event's name is marked `replaces: true` and stands in that event's place, with the event's tags, so a picker shows what the game will play. The query matches them as it does the game's.
 
 **Hearing an event:** sound effects play from the archive through REDcode, in the **Hear** panel: the raw recordings, without the game's effects. Music cues live in Wwise's sound banks, which EDGEwave reads only from A4. They will play in the running game, with the game's own mix, once REDnode can be asked from VS Code ([REDnode #17](https://github.com/Edgemodders/REDnode/issues/17), requested 2026-10-24).
 
@@ -59,7 +61,7 @@ Unverified: that a quest phase's `questAudioEventNodeType` or a scene's `scnAudi
 | `voice_lines` | Yes | `{ project, quest, lines, voices?, redo?, model?, archiveDir? }`: voices the lines that need it (or all with `redo`) and saves `voice.json`. Returns each line's status and files, the characters sent (what ElevenLabs counts), the model and the rate. **No ask-first flag**: the owner allowed assistants to voice lines (2026-10-23). It spends ElevenLabs credits |
 | `voice_status` | No | `{ project, quest, lines? }`: with lines, made, stale or none for each, and the voices. Without, the whole `voice.json` |
 | `voice_voices` | No | `{ search? }`: the ElevenLabs account's voices, with labels and a preview URL |
-| `sound_events` | No | `{ query?, music?, quest?, limit? }`: as `soundEvents`, from the index EDGEwave built. Before VS Code has built it, it says so |
+| `sound_events` | No | `{ query?, music?, quest?, limit?, project? }`: as `soundEvents`, from the index EDGEwave built; with `project`, its own sounds first. Before VS Code has built the index, it says so |
 | `sound_custom` | Yes | `{ project, wav, name, kind? }`: as `customSound` |
 
 It needs no VS Code to run. Settings (`edgewave.voiceLines.model`, `edgewave.elevenlabs.sampleRate`, `edgewave.elevenlabs.baseUrl`, `redcode.pack.redmod`) come from VS Code's user settings file. The key comes from `ELEVENLABS_API_KEY`. Logs go to stderr.

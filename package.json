@@ -128,6 +128,48 @@
         "title": "Show the WAV",
         "category": "EDGEwave",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "edgewave.gameAssets.filter",
+        "title": "Filter the Game's Sounds",
+        "category": "EDGEwave",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "edgewave.gameAssets.clearFilter",
+        "title": "Clear the Filter",
+        "category": "EDGEwave",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "edgewave.gameAssets.refresh",
+        "title": "Refresh Game Assets",
+        "category": "EDGEwave",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "edgewave.hearGameSound",
+        "title": "Hear",
+        "category": "EDGEwave",
+        "icon": "$(play)"
+      },
+      {
+        "command": "edgewave.openGameSound",
+        "title": "Open in EDGEwave",
+        "category": "EDGEwave",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "edgewave.addGameSound",
+        "title": "Add to the Open Sound",
+        "category": "EDGEwave",
+        "icon": "$(add)"
+      },
+      {
+        "command": "edgewave.copyGameName",
+        "title": "Copy Name",
+        "category": "EDGEwave",
+        "icon": "$(copy)"
       }
     ],
     "configuration": {
@@ -201,6 +243,26 @@
         {
           "command": "edgewave.revealSound",
           "when": "false"
+        },
+        {
+          "command": "edgewave.gameAssets.clearFilter",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.hearGameSound",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.openGameSound",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.addGameSound",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.copyGameName",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -224,6 +286,21 @@
         {
           "command": "edgewave.refreshSounds",
           "when": "view == edgewave.sounds",
+          "group": "navigation@3"
+        },
+        {
+          "command": "edgewave.gameAssets.filter",
+          "when": "view == edgewave.gameAssets",
+          "group": "navigation@1"
+        },
+        {
+          "command": "edgewave.gameAssets.clearFilter",
+          "when": "view == edgewave.gameAssets && edgewave.gameAssetsFiltered",
+          "group": "navigation@2"
+        },
+        {
+          "command": "edgewave.gameAssets.refresh",
+          "when": "view == edgewave.gameAssets",
           "group": "navigation@3"
         }
       ],
@@ -277,6 +354,36 @@
           "command": "edgewave.revealSound",
           "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
           "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.addGameSound",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
+          "group": "inline@1"
+        },
+        {
+          "command": "edgewave.openGameSound",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
+          "group": "inline@2"
+        },
+        {
+          "command": "edgewave.hearGameSound",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.addGameSound",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
+          "group": "edgewave@2"
+        },
+        {
+          "command": "edgewave.openGameSound",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
+          "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.copyGameName",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)$/",
+          "group": "edgewave@4"
         }
       ]
     },
@@ -320,13 +427,17 @@
         {
           "id": "edgewave.sounds",
           "name": "Sounds"
+        },
+        {
+          "id": "edgewave.gameAssets",
+          "name": "Game Assets"
         }
       ]
     },
     "viewsWelcome": [
       {
         "view": "edgewave.sounds",
-        "contents": "No sound documents yet, in this folder or opened lately.\nOpen a game sound from REDcode's sound list with Open in EDGEwave, or open a sound file.\n[Browse Game Sounds](command:redcode.browseSounds)\n[Open Sound…](command:edgewave.open)"
+        "contents": "No sound documents yet, in this folder or opened lately.\nCreate a sound, open a sound file, or find a game sound in Game Assets below and open it in EDGEwave.\n[Create a Sound…](command:edgewave.newSound)\n[Open Sound…](command:edgewave.open)"
       }
     ]
   },

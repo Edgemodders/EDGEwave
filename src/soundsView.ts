@@ -201,9 +201,7 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
       item.id = `named:${n.name}`;
       const kind = RedmodTypes.find((t) => t.type === n.type)?.label ?? n.type;
       item.description = n.missing ? "WAV missing" : `${kind}${n.seconds !== undefined ? ` · ${n.seconds.toFixed(2)} s` : ""}`;
-      item.tooltip = `${n.name}: a quest, scene or script plays it by this name
-${n.type}${n.file ? `
-${n.file}` : ""}${n.missing ? " (missing)" : ""}`;
+      item.tooltip = `${n.name}: a quest, scene or script plays it by this name\n${n.type}${n.file ? `\n${n.file}` : ""}${n.missing ? " (missing)" : ""}`;
       item.iconPath = new vscode.ThemeIcon(n.missing ? "warning" : n.type === "mod_skip" ? "mute" : "symbol-event");
       item.contextValue = "edgewave.namedSound";
       item.command = { command: "edgewave.hearSound", title: "Hear", arguments: [n] };

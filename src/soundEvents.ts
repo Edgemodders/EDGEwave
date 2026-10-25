@@ -13,7 +13,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { customSoundNote, makeCustomSound, projectSounds, type CustomSoundResult, type ProjectSound } from "./customSound";
 import { eventsFromMetadata, indexFile, MetadataPath, searchEvents, type EventIndex, type EventMatch, type EventQuery, type GameEvent } from "./events";
-import { redcode, type REDcodeApi } from "./redcode";
+import { redcode, type REDcodeApi, type SoundRef } from "./redcode";
 
 type Log = (line: string) => void;
 
@@ -118,7 +118,7 @@ export class SoundEvents {
     if (mine && dir) {
       if (!mine.file || mine.missing) return { ok: false, reason: `${mine.name} is the project's, but its WAV ${mine.file ?? ""} is missing.` };
       const data = fs.readFileSync(path.join(dir, mine.file));
-      this.showPreview({ name: mine.name, hash: 0, loops: false, min: mine.seconds ?? 0, max: mine.seconds ?? 0, tags: ["this project's sound", mine.type] }, [{ sound: 0, data, mime: "audio/wav", label: path.basename(mine.file) }], 1);
+      this.showPreview(mine.name, [`This project's sound: ${mine.type}${mine.seconds ? `, ${mine.seconds} s` : ""}. A quest, scene or script plays it by this name.`], [{ data, mime: "audio/wav", label: path.basename(mine.file) }]);
       return { ok: true, where: "project", variations: 1 };
     }
     const [event] = (await this.events()).filter((e) => e.name.toLowerCase() === name.trim().toLowerCase());
@@ -131,39 +131,50 @@ export class SoundEvents {
           ? `${event.name} is a music cue. Music lives in Wwise's sound banks, which EDGEwave cannot play yet; it will play in the running game through REDnode (REDnode #17).`
           : `${event.name} has no sound effect recordings in the game's index (it may play music, a voice or other events); it can only be heard in the running game, through REDnode (REDnode #17).`,
       };
-    const clips: { sound: number; data: Uint8Array; mime: string }[] = [];
-    for (const s of sounds.slice(0, 12)) {
-      try {
-        const a = await api.sound({ soundHash: s, eventHash: event.hash });
-        clips.push({ sound: s, data: a.data, mime: a.mime });
-      } catch (e) {
-        this.log(`Sound events: ${s} of ${event.name}: ${(e as Error).message}`);
-      }
-    }
-    if (!clips.length) return { ok: false, reason: `REDcode could not read ${event.name}'s sounds; see REDcode's output.` };
-    this.showPreview(event, clips, sounds.length);
+    const shown = await this.hear(event.name, sounds.map((s) => ({ ref: { soundHash: s, eventHash: event.hash }, label: String(s) })), eventNotes(event, sounds.length));
+    if (!shown) return { ok: false, reason: `REDcode could not read ${event.name}'s sounds; see REDcode's output.` };
     return { ok: true, where: "archive", variations: sounds.length };
   }
 
-  private showPreview(event: GameEvent, clips: { sound: number; data: Uint8Array; mime: string; label?: string }[], total: number): void {
+  /**
+   * Plays sounds from the game (the first 12) in the Hear panel, through REDcode: a sound effect's
+   * variations, a voice line, a streamed .wem. False when REDcode could read none of them.
+   */
+  async hear(title: string, refs: { ref: SoundRef; label: string }[], notes: string[]): Promise<boolean> {
+    const api = await redcode();
+    const clips: { data: Uint8Array; mime: string; label: string }[] = [];
+    for (const r of refs.slice(0, 12)) {
+      try {
+        const a = await api.sound(r.ref);
+        clips.push({ data: a.data, mime: a.mime, label: r.label });
+      } catch (e) {
+        this.log(`Hear ${title}: ${r.label}: ${(e as Error).message}`);
+      }
+    }
+    if (!clips.length) return false;
+    if (refs.length > clips.length) notes = [...notes, `${refs.length} recordings, the first ${clips.length} here.`];
+    this.showPreview(title, notes, clips);
+    return true;
+  }
+
+  private showPreview(title: string, notes: string[], clips: { data: Uint8Array; mime: string; label: string }[]): void {
     if (!this.preview) {
       this.preview = vscode.window.createWebviewPanel("edgewave.eventPreview", "EDGEwave: Hear", { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true });
       this.preview.onDidDispose(() => (this.preview = undefined));
     } else this.preview.reveal(vscode.ViewColumn.Beside, true);
     const p = this.preview;
-    p.title = `Hear: ${event.name}`;
+    p.title = `Hear: ${title}`;
     const nonce = Math.random().toString(36).slice(2);
     p.webview.html = `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; media-src blob:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:12px}h2{font-size:1.1em;word-break:break-all}
 .m{color:var(--vscode-descriptionForeground)}button{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:0;padding:4px 10px;margin:2px;cursor:pointer}
 button.on{outline:1px solid var(--vscode-focusBorder)}</style></head><body>
-<h2>${esc(event.name)}</h2>
-<p class="m">${event.loops ? "Loops. " : ""}${event.max ? `${event.min === event.max ? event.max : `${event.min} to ${event.max}`} s. ` : ""}${total} recording${total === 1 ? "" : "s"}${total > clips.length ? `, the first ${clips.length} here` : ""}. Each play picks one, as the game does; these are the raw recordings, without the game's effects.</p>
-<p class="m">${event.tags.map(esc).join(", ")}</p>
+<h2>${esc(title)}</h2>
+${notes.map((n) => `<p class="m">${esc(n)}</p>`).join("")}
 <div id="b"></div>
 <script nonce="${nonce}">
-const clips = ${JSON.stringify(clips.map((c) => ({ label: c.label ?? String(c.sound), mime: c.mime, b64: Buffer.from(c.data).toString("base64") })))};
+const clips = ${JSON.stringify(clips.map((c) => ({ label: c.label, mime: c.mime, b64: Buffer.from(c.data).toString("base64") })))};
 const audio = new Audio(); const b = document.getElementById("b");
 const play = (i) => { const c = clips[i]; const bytes = Uint8Array.from(atob(c.b64), (x) => x.charCodeAt(0));
   audio.src = URL.createObjectURL(new Blob([bytes], { type: c.mime })); audio.play().catch(() => {});
@@ -186,6 +197,15 @@ play(Math.floor(Math.random() * clips.length));
       return { reason: (e as Error).message };
     }
   }
+}
+
+/** What the Hear panel says about a game event: loops, length, its recordings, its tags. */
+export function eventNotes(event: GameEvent, total: number): string[] {
+  const length = event.max ? `${event.min === event.max ? event.max : `${event.min} to ${event.max}`} s. ` : "";
+  return [
+    `${event.loops ? "Loops. " : ""}${length}${total} recording${total === 1 ? "" : "s"}. Each play picks one, as the game does; these are the raw recordings, without the game's effects.`,
+    ...(event.tags.length ? [event.tags.join(", ")] : []),
+  ];
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);

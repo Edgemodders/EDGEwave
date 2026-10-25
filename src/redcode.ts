@@ -46,10 +46,23 @@ export interface ProjectRef {
   packed: string;
 }
 
+/** A file in the game's archives, as REDbridge lists it. */
+export interface GameFileInfo {
+  hash: string;
+  /** Its path in the archives, such as base\localization\en-us\vo\judy_q307_f_2e6b759be83bc000.wem. */
+  name: string;
+  size: number;
+  archive: string;
+}
+
 /** The part of REDcode's REDbridge client EDGEwave uses: its methods mirror REDbridge's JSON-RPC methods. */
 export interface BridgeClient {
   /** cr2w.toJson: a game file as WolvenKit JSON, written to outFile. */
   toJson(path: string, outFile?: string): Promise<{ file?: string; bytes?: number; json?: unknown }>;
+  /** archive.tree: one level of the archives' folders (with their files' counts, every level below) and the files in it; "" is the root. */
+  tree(path?: string): Promise<{ path: string; folders: { name: string; path: string; files: number }[]; files: GameFileInfo[] }>;
+  /** archive.search: files whose path holds the text, the first `limit` (at most 5,000) and how many there are. */
+  search(query: string, limit?: number): Promise<{ total: number; items: GameFileInfo[] }>;
 }
 
 export interface REDcodeApi {
