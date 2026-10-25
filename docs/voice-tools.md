@@ -35,7 +35,7 @@ Speak Line in a line's voice, and Re-Voice by description, make an instant clone
 
 ## Audio format
 
-EDGEwave asks for raw 16-bit PCM (`output_format=pcm_<rate>`) and wraps it as WAV, so no MP3 decoding is needed. The rate is `edgewave.elevenlabs.sampleRate`, 48 kHz by default. ElevenLabs' docs mark only 44.1 kHz as needing the Pro plan; if a plan refuses the rate asked for, EDGEwave uses 24 kHz from then on (the smoke test checks this). Into the Game resamples to what the game needs.
+EDGEwave asks for raw 16-bit PCM (`output_format=pcm_<rate>`) and wraps it as WAV, so no MP3 decoding is needed. The rate is `edgewave.elevenlabs.sampleRate`, 48 kHz by default. ElevenLabs' docs mark only 44.1 kHz as needing the Pro plan; if a plan refuses the rate asked for, EDGEwave uses 24 kHz from then on (the smoke test checks this). Add to Project resamples to what the game needs.
 
 | Setting | Default | |
 |---|---|---|

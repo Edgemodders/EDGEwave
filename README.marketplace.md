@@ -21,10 +21,10 @@ EDGEwave builds on [REDcode for Cyberpunk 2077](https://marketplace.visualstudio
 ## Getting started
 
 1. In REDcode, open or create a mod project.
-2. Find a sound: REDcode's **Browse Game Sounds**, play one, and click **Open in EDGEwave**. Or right-click a `.wav` or `.ogg` file > **Open Sound in EDGEwave…**.
+2. Find a sound: REDcode's **Browse Game Sounds**, play one, and click **Open in EDGEwave**. Or right-click a `.wav` or `.ogg` file > **Open Sound in EDGEwave…**. Or start from nothing: **Create a Sound** (the + in EDGEwave's Sounds view), then drop sound files on it (hold Shift as you drop), or use Add Sound, Generate Sound or Speak Line.
 3. EDGEwave saves a `.edgewave` document next to the sound in your project and opens it in its editor. The document holds your edits, not audio, so the game's sound is never changed on disk.
 4. Edit and mix. **Render WAV** writes the mix as a WAV file.
-5. **Into the Game…** puts the mix into the project, then **Pack** (REDcode's) builds the mod.
+5. **Add to Project…** puts the mix into the project, then **Pack** (REDcode's) builds the mod.
 
 The **EDGEwave** icon in the activity bar lists your sound documents: the project's, and the ones you opened lately.
 
@@ -40,9 +40,11 @@ The **EDGEwave** icon in the activity bar lists your sound documents: the projec
 
 Drag the bar between the Track bar and the Clip bar to give the lanes more room.
 
+Drop sound files from the desktop or the Explorer on the editor, holding Shift: on the lanes, each becomes a new track; on the clip, the first replaces the selected track's sound.
+
 ## Into the game
 
-**Into the Game…** asks what the mix should replace. It lists every game sound effect on a track, the tracks in the mix first:
+**Add to Project…** asks what the mix should replace. It lists every game sound effect on a track, the tracks in the mix first:
 
 | Route | What it does | Beside other mods |
 |---|---|---|

@@ -60,7 +60,7 @@ The owner's request: the lanes need the height more than a single clip's wavefor
 
 ## Moving lanes (2026-10-20)
 
-The owner's request, from A3's step 8: Into the Game names its groups by track number (the lane, top to bottom), so the order of the lanes matters. The first build had a grip per lane; the owner asked for the lane itself, as a clip already drags sideways, so the drag's direction decides (the same day).
+The owner's request, from A3's step 8: Add to Project names its groups by track number (the lane, top to bottom), so the order of the lanes matters. The first build had a grip per lane; the owner asked for the lane itself, as a clip already drags sideways, so the drag's direction decides (the same day).
 
 | You drag a lane | What happens |
 |---|---|
@@ -74,4 +74,21 @@ The first 4 pixels of movement pick the direction, and it holds for the drag: a 
 |---|---|
 | Drop | The track moves there and stays selected; the numbers follow; one edit (Ctrl+Z undoes it) |
 | Menu | Right-click a lane: **Move Up**, **Move Down** |
-| Into the Game | The last choice is kept by sound and event, not by track number, so a move never loses it |
+| Add to Project | The last choice is kept by sound and event, not by track number, so a move never loses it |
+
+## Create a Sound and dropping sound files (2026-10-24)
+
+The owner's request, from EDGEquest's tests: EDGEwave makes sounds itself (Generate Sound, Speak Line, Voice Lines), so a sound need not start from a file. Hand test pending ([Tests](testing.html#a2-mix), steps 14 and 15).
+
+| Part | What it does |
+|---|---|
+| **Create a Sound…** (the + in the Sounds view, `edgewave.newSound`) | Asks for a name and a place, by default `source/raw/edgewave/sounds/New sound.edgewave` in the REDcode project (the workspace folder without one), and opens an empty sound: no tracks, rendering `<name>.wav` beside it. A document may now have no tracks |
+| **Open Sound in EDGEwave…** (the folder button beside it) | A sound file from disk, as before |
+| The empty sound | One empty lane and a note on the clip saying what fills it: dropped files, Add Sound (+), Generate Sound, Speak Line. The track's controls, Render WAV and Add to Project are off until there is a track. Remove now takes the last track too |
+| Drop on the lanes | Each sound file becomes a new track at the start of the mix, the last one selected |
+| Drop on the clip | The first file becomes the selected track's sound: its edits are cleared (their times were the old sound's), its level, pan, rate, start and effects kept. With no track, a new one. Any other files become new tracks |
+| Where the files go | A file from the desktop reaches the page as bytes only, so it is copied into `<name>.sounds/` beside the document (the same file dropped twice is one copy; another with its name gets a number). A file dragged from VS Code's Explorer is used where it is |
+| Which files | `.wav`, `.ogg`, `.mp3`, `.flac`, `.opus`, `.wem`; others are left out with a warning |
+| Undo | One edit per drop (Ctrl+Z). A copy stays in `<name>.sounds` |
+
+**Hold Shift as you drop.** VS Code opens a file dropped on an editor in its own tab unless Shift is held; with Shift, the drop reaches the page. Checked in the smoke test with real desktop drags (DevTools' `Input.dispatchDragEvent` with file paths): with Shift the page took them, without it the page got nothing.

@@ -20,7 +20,7 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 3. **Package and test the package.**
    ```powershell
    npm run package      # edgewave-<version>.vsix in the repo folder
-   npm run vsix-test    # a clean VS Code: installs it, and REDcode from the Marketplace; opens, renders, Into the Game
+   npm run vsix-test    # a clean VS Code: installs it, and REDcode from the Marketplace; opens, renders, Add to Project
    npm run nexus-zip    # dist/EDGEwave-<version>-nexus.zip
    ```
 4. **Commit and push** to `main`.
@@ -39,7 +39,7 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 | `--install-extension edgewave-<version>.vsix` | EDGEwave and REDcode for Cyberpunk 2077 installed (REDcode from the Marketplace, as the dependency) |
 | Quick Open (Ctrl+P) of a `.edgewave` document on a generated tone | The EDGEwave editor opens it and loads the tone |
 | Render WAV | The WAV next to the document |
-| Into the Game…, with no REDcode project open | EDGEwave reaches REDcode's API, which has no project: "Open a REDcode project first" |
+| Add to Project…, with no REDcode project open | EDGEwave reaches REDcode's API, which has no project: "Open a REDcode project first" |
 
 It needs the network (the Marketplace). Found while writing it: a `.edgewave` passed on the command line to a brand-new profile opens as JSON text, since VS Code opens it before it has read the extensions' editors; opened from the Explorer, Quick Open, the Sounds view or REDcode, it gets the EDGEwave editor.
 

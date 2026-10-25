@@ -41,7 +41,7 @@ Each result: `name`, `hash`, `loops`, `min`, `max` (seconds), `tags`, `music`, `
 
 ## A new event
 
-`customSound` makes a WAV into a REDmod custom sound under a new event name, `edgewave_<name>`. It writes the WAV to `source/customSounds/<event>.wav` (48 kHz, 16-bit, its channels kept) and adds the entry to `source/resources/info.json`, as Into the Game's REDmod route does.
+`customSound` makes a WAV into a REDmod custom sound under a new event name, `edgewave_<name>`. It writes the WAV to `source/customSounds/<event>.wav` (48 kHz, 16-bit, its channels kept) and adds the entry to `source/resources/info.json`, as Add to Project's REDmod route does.
 
 | `kind` | REDmod type | |
 |---|---|---|

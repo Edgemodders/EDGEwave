@@ -1,6 +1,6 @@
 # A3 Into the game
 
-Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three rounds, [Tests](testing.html#a3-into-the-game)). Added 2026-10-21, hand test pending: how to hear the result (EDGEwave #4) and the **As a REDnode sound** route (EDGEwave #2). **Into the Game…** puts the mix into the open REDcode project, in a layout the game loads, for REDcode to pack. REDcode's Pack carries the REDmod route's sounds since [REDcode #8](https://github.com/Edgemodders/REDcode/issues/8) (on REDcode main in `0f8ebe3`, 2026-10-16; ships in REDcode 0.10.0).
+Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three rounds, [Tests](testing.html#a3-into-the-game)). Added 2026-10-21, hand test pending: how to hear the result (EDGEwave #4) and the **As a REDnode sound** route (EDGEwave #2). **Add to Project…** puts the mix into the open REDcode project, in a layout the game loads, for REDcode to pack. REDcode's Pack carries the REDmod route's sounds since [REDcode #8](https://github.com/Edgemodders/REDcode/issues/8) (on REDcode main in `0f8ebe3`, 2026-10-16; ships in REDcode 0.10.0).
 
 ## The routes
 
@@ -14,20 +14,20 @@ Status: **done 2026-10-20** (built 2026-10-16; hand test passed after three roun
 
 ## What goes in, and what it replaces
 
-Into the Game makes two separate choices:
+Add to Project makes two separate choices:
 
 | Choice | Decided by |
 |---|---|
 | **What goes in** | The mix of the checked tracks, whichever they are |
-| **What it replaces** | The row you pick in Into the Game: a game sound on any track, checked or not, or an event you name (**Any event**) |
+| **What it replaces** | The row you pick in Add to Project: a game sound on any track, checked or not, or an event you name (**Any event**) |
 
 A game sound's track in the mixer does two jobs: it can be heard (checked), and it names a sound the mix can replace (always, checked or not). So an unchecked game sound track is only there to say which sound to replace.
 
-**Track numbers.** Track 1 is the top lane in the mixer, whether it is checked or not; the tracks are numbered by their lane, top to bottom, and the number never changes when a box is checked or unchecked. Into the Game names its groups by them (`Track 2 · <event> · <hash>`). Add Sound puts a new track at the bottom; drag a lane up or down, or right-click it > **Move Up** or **Move Down**, to change the order ([A2 Mix](a2-mix.html#moving-lanes-2026-10-20)).
+**Track numbers.** Track 1 is the top lane in the mixer, whether it is checked or not; the tracks are numbered by their lane, top to bottom, and the number never changes when a box is checked or unchecked. Add to Project names its groups by them (`Track 2 · <event> · <hash>`). Add Sound puts a new track at the bottom; drag a lane up or down, or right-click it > **Move Up** or **Move Down**, to change the order ([A2 Mix](a2-mix.html#moving-lanes-2026-10-20)).
 
 For a mix of a generated sound and two game sounds:
 
-| Lane | Checked | Into the Game lists it |
+| Lane | Checked | Add to Project lists it |
 |---|---|---|
 | Track 1: a generated sound (a file) | ☑ | Nothing: a file has no game sound to replace |
 | Track 2: the katana equip (a game sound) | ☐ | Under **Track 2 · … · not in the mix** |
@@ -58,9 +58,9 @@ The override's WAV takes the channels of the sound it replaces. The choice (with
 | Override | Pack and Install, then restart the game | A hot deploy (REDcode's Pack and Try, Red Hot Tools' hot folder) of an archive with the game's sound paks crashes the running game a few seconds later ([REDnode's research](https://edgemodders.github.io/REDnode/world.html#h1-limit-sound-paks-crash-a-swap)). REDnode 0.26.8 or later swaps one safely through its `archives.reload` or its MCP tool `archives_reload` (game paused, audio held, the sound index read again); a sound that just played may keep its old version until the game loads it again (for a weapon, equip it again); REDcode is asked to route Pack and Try through it ([REDcode #11](https://github.com/Edgemodders/REDcode/issues/11)) |
 | Replace or Silence (REDmod) | Pack and Install, then start the game (with `-modded`, as REDcode's Run Game does) | REDmod deploys custom sounds when the game starts |
 
-EDGEwave's message after Into the Game says so, and **Pack and Install** runs REDcode's.
+EDGEwave's message after Add to Project says so, and **Pack and Install** runs REDcode's.
 
-**Voice lines** (`.wem`) have no route yet. Into the Game says so and offers the named REDmod route.
+**Voice lines** (`.wem`) have no route yet. Add to Project says so and offers the named REDmod route.
 
 ## As a REDnode sound
 
@@ -138,7 +138,7 @@ So Silence writes a silent WAV, as modders do, and never `mod_skip`. An older `m
 | The REDnode route's manifest edits, names and sample code (pure, `test/rednode.test.ts`) | `src/rednode.ts` |
 | REDmod's types and the `info.json` update, pure, with unit tests | `src/redmod.ts`, `test/` |
 | The document's `game` (the last choice) | `src/doc.ts` |
-| **Into the Game…** in the Mix bar; the page renders the mix at the format a route asks for | `src/editor.ts`, `webview/editor.ts` |
+| **Add to Project…** in the Mix bar; the page renders the mix at the format a route asks for | `src/editor.ts`, `webview/editor.ts` |
 
 ## Tests
 
