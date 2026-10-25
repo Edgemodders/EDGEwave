@@ -21,3 +21,8 @@ tsconfig.json
 CLAUDE.md
 README.md
 .gitignore
+# Sounds made while trying EDGEwave in this folder: never shipped.
+**/*.edgewave
+**/*.gen/**
+**/*.sounds/**
+**/*.wav
