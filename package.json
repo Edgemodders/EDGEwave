@@ -110,6 +110,24 @@
         "command": "edgewave.elevenlabs.voices",
         "title": "ElevenLabs Voices Made by EDGEwave…",
         "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.hearSound",
+        "title": "Hear",
+        "category": "EDGEwave",
+        "icon": "$(play)"
+      },
+      {
+        "command": "edgewave.copySoundName",
+        "title": "Copy Name",
+        "category": "EDGEwave",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "edgewave.revealSound",
+        "title": "Show the WAV",
+        "category": "EDGEwave",
+        "icon": "$(go-to-file)"
       }
     ],
     "configuration": {
@@ -171,6 +189,18 @@
         {
           "command": "edgewave.openFolder",
           "when": "false"
+        },
+        {
+          "command": "edgewave.hearSound",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.copySoundName",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.revealSound",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -227,6 +257,26 @@
           "command": "edgewave.clearRecent",
           "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
           "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.copySoundName",
+          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
+          "group": "inline"
+        },
+        {
+          "command": "edgewave.hearSound",
+          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.copySoundName",
+          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
+          "group": "edgewave@2"
+        },
+        {
+          "command": "edgewave.revealSound",
+          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
+          "group": "edgewave@3"
         }
       ]
     },

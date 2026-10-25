@@ -1,6 +1,8 @@
-// The Sounds view in EDGEwave's activity bar container, in two groups:
+// The Sounds view in EDGEwave's activity bar container, in three groups:
 //   Project  the open folder's sound documents (.edgewave), kept current by a file watcher; the REDcode
 //            project's name beside it when one is open
+//   Project sounds  the project's named sounds (REDmod custom sounds in source/resources/info.json, made with
+//            Add to Project's A new sound): what quests, scenes and scripts play by name. A click plays one
 //   Recent   the sound documents opened lately, from any folder, so a modder can try sounds without a
 //            project (globalState, newest first, the last 20; files gone from disk are dropped)
 // Each sound opens in the editor. With neither, the view shows its welcome text (package.json).
@@ -9,14 +11,16 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { projectSounds, type ProjectSound } from "./customSound";
 import { docLabel, Extension, parseDoc } from "./doc";
 import { ViewType } from "./openSound";
 import { redcode } from "./redcode";
+import { RedmodTypes } from "./redmod";
 
 const RecentState = "edgewave.recentSounds";
 const MaxRecent = 20;
 
-type Group = "project" | "recent";
+type Group = "project" | "named" | "recent";
 
 interface SoundItem {
   kind: "sound";
@@ -30,7 +34,14 @@ interface SoundItem {
   error?: string;
 }
 
-type Node = { kind: "group"; group: Group } | SoundItem | { kind: "note"; group: Group; text: string };
+/** A named sound in the project, by its event name. */
+export interface NamedItem extends ProjectSound {
+  kind: "named";
+  /** The project's folder. */
+  dir: string;
+}
+
+type Node = { kind: "group"; group: Group } | SoundItem | NamedItem | { kind: "note"; group: Group; text: string };
 
 const same = (a: string, b: string) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
 
@@ -38,18 +49,23 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
   private readonly changed = new vscode.EventEmitter<void>();
   readonly onDidChangeTreeData = this.changed.event;
   private projectName: string | undefined;
+  private projectDir: string | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     const watcher = vscode.workspace.createFileSystemWatcher(`**/*${Extension}`);
+    const info = vscode.workspace.createFileSystemWatcher("**/source/resources/info.json");
     const refresh = () => this.refresh();
     context.subscriptions.push(watcher, watcher.onDidCreate(refresh), watcher.onDidDelete(refresh), watcher.onDidChange(refresh), vscode.workspace.onDidChangeWorkspaceFolders(refresh), this.changed);
+    context.subscriptions.push(info, info.onDidCreate(refresh), info.onDidDelete(refresh), info.onDidChange(refresh));
     // The REDcode project's name, when one is open. Without REDcode the view still lists the folder.
     redcode().then(
       (api) => {
         this.projectName = api.project()?.name;
+        this.projectDir = api.project()?.dir;
         context.subscriptions.push(
           api.onDidChangeProject((p) => {
             this.projectName = p?.name;
+            this.projectDir = p?.dir;
             this.refresh();
           }),
         );
@@ -102,6 +118,21 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
     return files.map((uri) => this.read("project", uri)).sort((a, b) => a.uri.fsPath.localeCompare(b.uri.fsPath));
   }
 
+  /** The project whose named sounds are listed: REDcode's, else the open folder with source/. */
+  private namedDir(): string | undefined {
+    return this.projectDir ?? vscode.workspace.workspaceFolders?.map((f) => f.uri.fsPath).find((d) => fs.existsSync(path.join(d, "source")));
+  }
+
+  private named(): NamedItem[] | string {
+    const dir = this.namedDir();
+    if (!dir) return "No project open";
+    try {
+      return projectSounds(dir).map((s) => ({ ...s, kind: "named", dir }));
+    } catch (e) {
+      return (e as Error).message;
+    }
+  }
+
   private async recent(): Promise<SoundItem[]> {
     const all = this.recentFiles();
     const there = all.filter((f) => fs.existsSync(f));
@@ -115,10 +146,16 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
       if (!vscode.workspace.workspaceFolders?.length && !this.recentFiles().some((f) => fs.existsSync(f))) return [];
       return [
         { kind: "group", group: "project" },
+        { kind: "group", group: "named" },
         { kind: "group", group: "recent" },
       ];
     }
     if (node.kind !== "group") return [];
+    if (node.group === "named") {
+      const named = this.named();
+      if (typeof named !== "string" && named.length) return named;
+      return [{ kind: "note", group: "named", text: typeof named === "string" ? named : "None yet: Add to Project > A new sound for this project names one" }];
+    }
     const items = node.group === "project" ? await this.project() : await this.recent();
     if (items.length) return items;
     const text =
@@ -132,10 +169,13 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
 
   getTreeItem(n: Node): vscode.TreeItem {
     if (n.kind === "group") {
-      const item = new vscode.TreeItem(n.group === "project" ? "Project" : "Recent", vscode.TreeItemCollapsibleState.Expanded);
+      const item = new vscode.TreeItem(n.group === "project" ? "Project" : n.group === "named" ? "Project sounds" : "Recent", vscode.TreeItemCollapsibleState.Expanded);
       item.id = `group:${n.group}`;
-      item.contextValue = n.group === "project" ? "edgewave.projectGroup" : "edgewave.recentGroup";
-      if (n.group === "project") {
+      item.contextValue = n.group === "project" ? "edgewave.projectGroup" : n.group === "named" ? "edgewave.namedGroup" : "edgewave.recentGroup";
+      if (n.group === "named") {
+        item.tooltip = "The project's named sounds (REDmod custom sounds in source/resources/info.json): quests, scenes and scripts play each by its name. A click plays one";
+        item.iconPath = new vscode.ThemeIcon("symbol-event");
+      } else if (n.group === "project") {
         const folders = vscode.workspace.workspaceFolders ?? [];
         item.description = this.projectName ?? folders.map((f) => f.name).join(", ");
         item.tooltip = this.projectName ? `REDcode project ${this.projectName}: the sound documents in the open folder` : "The sound documents in the open folder";
@@ -154,6 +194,19 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
         item.contextValue = "edgewave.noFolder";
         item.command = { command: "edgewave.openFolder", title: "Open Folder…" };
       }
+      return item;
+    }
+    if (n.kind === "named") {
+      const item = new vscode.TreeItem(n.name, vscode.TreeItemCollapsibleState.None);
+      item.id = `named:${n.name}`;
+      const kind = RedmodTypes.find((t) => t.type === n.type)?.label ?? n.type;
+      item.description = n.missing ? "WAV missing" : `${kind}${n.seconds !== undefined ? ` · ${n.seconds.toFixed(2)} s` : ""}`;
+      item.tooltip = `${n.name}: a quest, scene or script plays it by this name
+${n.type}${n.file ? `
+${n.file}` : ""}${n.missing ? " (missing)" : ""}`;
+      item.iconPath = new vscode.ThemeIcon(n.missing ? "warning" : n.type === "mod_skip" ? "mute" : "symbol-event");
+      item.contextValue = "edgewave.namedSound";
+      item.command = { command: "edgewave.hearSound", title: "Hear", arguments: [n] };
       return item;
     }
     const item = new vscode.TreeItem(path.basename(n.uri.fsPath, Extension), vscode.TreeItemCollapsibleState.None);

@@ -92,6 +92,8 @@ export interface Render {
 
 /** How Add to Project put this sound in the mod last time, offered first next time. */
 export type IntoGame =
+  /** A new sound in the project: a REDmod custom sound under a new event name, which quests, scenes and scripts play by that name. */
+  | { route: "new"; event: string; type: string }
   /** Replace one sound effect variation in its .opuspak (REDbridge's sound.importWavs, through REDcode's Import); which one (absent before 2026-10-19: track 1's). */
   | { route: "override"; soundHash?: number }
   /** A REDmod custom sound: the game plays the render for this event (all its variations), as type. */

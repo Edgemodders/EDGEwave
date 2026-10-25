@@ -13,6 +13,9 @@ How to keep it:
 
 **New**
 
+- **A new sound for this project…**, first in Add to Project: name the mix (`edgewave_<name>` by default), and quests, scenes and scripts play it by that name, as a REDmod custom sound. Replaces nothing. Pick how it plays in plain words: a sound effect heard from where it plays, or the same everywhere (2D).
+- **Project sounds** in the Sounds view: the project's named sounds, with their type and length. Click one to hear it; copy its name for a quest or a script.
+- Other tools' sound pickers (EDGEwave's `soundEvents`, the MCP server's `sound_events` with `project`) list the project's own sounds first, so EDGEquest offers them without typing a name ([how](https://edgemodders.github.io/EDGEwave/api.html#sound-events)).
 - **Create a Sound** (the + in the Sounds view): a new, empty sound, saved by default in the project's `source/raw/edgewave/sounds`. Fill it with Add Sound, Generate Sound or Speak Line, or by dropping sound files on it.
 - Drop sound files on the editor, holding Shift as you drop: on the lanes each becomes a new track; on the clip the first becomes the selected track's sound, its edits cleared. Files from the desktop are copied beside the sound, into `<name>.sounds`; files from VS Code's Explorer are used where they are.
 - Add to Project: **As a REDnode sound**. A REDnode package plays the mix where its code calls `audio.play`, beside the game's sound, following the game's volume sliders. No REDmod and no `.wem`, so voice lines too. EDGEwave writes the WAV into a package's `sounds` folder and its `rednode-app.json`, or makes a new package, in the project or in the game folder, where REDnode plays it without a restart ([#2](https://github.com/Edgemodders/EDGEwave/issues/2), [how](https://edgemodders.github.io/EDGEwave/a3-game.html#as-a-rednode-sound)).
@@ -23,6 +26,7 @@ How to keep it:
 
 **Changed**
 
+- Add to Project's other routes say what they do: **Replace a game event by name…** (was A REDmod custom sound for an event) and **In a REDnode package, for its code to play…** (was As a REDnode sound), now last.
 - **Into the Game…** is now **Add to Project…**, as other EDGE tools name the same step. It works as before.
 - The Sounds view's + is Create a Sound; Open Sound in EDGEwave… (a sound file from disk) is the folder button beside it.
 - Remove takes the last track too, leaving an empty sound.

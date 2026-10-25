@@ -35,6 +35,16 @@ export interface EventMatch extends GameEvent {
   quest: boolean;
   /** The sound effect variations REDcode's index has for it (hashes), when known. */
   sounds?: number[];
+  /** The project's own sound (a REDmod custom sound): its type and WAV; replaces, when it has a game event's name. */
+  project?: { type: string; file?: string; replaces?: boolean };
+}
+
+/** A project's named sound, as searchEvents takes it (customSound.ts's ProjectSound). */
+export interface OwnSound {
+  name: string;
+  type: string;
+  file?: string;
+  seconds?: number;
 }
 
 /** EDGEwave's own folder, beside EDGEmat's and REDcode's: the MCP server and the event index. */
@@ -98,16 +108,48 @@ export interface EventQuery {
   /** Only events tagged for quests. */
   quest?: boolean;
   limit?: number;
+  /** The project whose own sounds come first: its folder; absent, the open REDcode project's. */
+  project?: string;
 }
 
-/** Events matching a query, names starting with the first word first. */
-export function searchEvents(events: readonly GameEvent[], q: EventQuery, sounds?: ReadonlyMap<number, number[]>): EventMatch[] {
+/**
+ * Events matching a query, names starting with the first word first. A project's own sounds (`own`) come
+ * before the game's, tagged "project" and their type; one with a game event's name replaces it, and stands
+ * in its place.
+ */
+export function searchEvents(events: readonly GameEvent[], q: EventQuery, sounds?: ReadonlyMap<number, number[]>, own: readonly OwnSound[] = []): EventMatch[] {
   const text = (q.query ?? "").trim().toLowerCase();
   const limit = Math.max(1, Math.min(q.limit ?? 50, 1000));
   const words = text.split(/\s+/).filter(Boolean);
   const byHash = /^\d+$/.test(text) ? Number(text) : undefined;
+  const game = new Map(events.map((e) => [e.name.toLowerCase(), e]));
+  const mine = own.map((s): EventMatch => {
+    const was = game.get(s.name.toLowerCase());
+    const secs = s.seconds ?? 0;
+    const m: EventMatch = {
+      name: s.name,
+      hash: wwiseId(s.name),
+      loops: false,
+      min: secs,
+      max: secs,
+      tags: ["project", s.type, ...(was?.tags ?? [])],
+      music: was ? isMusic(was) : false,
+      quest: was ? isQuest(was) : false,
+      project: { type: s.type, ...(s.file ? { file: s.file } : {}), ...(was ? { replaces: true } : {}) },
+    };
+    return m;
+  });
+  const replaced = new Set(mine.map((m) => m.name.toLowerCase()));
   const out: EventMatch[] = [];
+  const firsts: EventMatch[] = [];
+  for (const m of mine) {
+    if (byHash !== undefined ? m.hash !== byHash : !words.every((w) => m.name.toLowerCase().includes(w) || m.tags.some((t) => t.toLowerCase() === w))) continue;
+    if (q.music !== undefined && m.music !== q.music) continue;
+    if (q.quest && !m.quest) continue;
+    firsts.push(m);
+  }
   for (const e of events) {
+    if (replaced.has(e.name.toLowerCase())) continue;
     if (byHash !== undefined ? e.hash !== byHash : !words.every((w) => e.name.toLowerCase().includes(w) || e.tags.some((t) => t.toLowerCase() === w))) continue;
     const m: EventMatch = { ...e, music: isMusic(e), quest: isQuest(e) };
     if (q.music !== undefined && m.music !== q.music) continue;
@@ -117,8 +159,12 @@ export function searchEvents(events: readonly GameEvent[], q: EventQuery, sounds
     out.push(m);
   }
   const first = words[0];
-  if (first) out.sort((a, b) => Number(!a.name.toLowerCase().startsWith(first)) - Number(!b.name.toLowerCase().startsWith(first)) || a.name.localeCompare(b.name));
-  return out.slice(0, limit);
+  const order = (a: EventMatch, b: EventMatch) => Number(!a.name.toLowerCase().startsWith(first)) - Number(!b.name.toLowerCase().startsWith(first)) || a.name.localeCompare(b.name);
+  if (first) {
+    out.sort(order);
+    firsts.sort(order);
+  }
+  return [...firsts, ...out].slice(0, limit);
 }
 
 /** A new event's name for a sound made in EDGEwave: edgewave_<name>, lower case, letters, digits and _. */

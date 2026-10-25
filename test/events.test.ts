@@ -3,6 +3,11 @@
 
 import { test } from "node:test";
 import * as assert from "node:assert/strict";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { encodeWav } from "../src/audio/wav";
+import { projectSounds } from "../src/customSound";
 import { customEventName, eventsFromMetadata, searchEvents, wwiseId } from "../src/events";
 
 const cn = (s: string) => ({ $type: "CName", $storage: "string", $value: s });
@@ -65,4 +70,42 @@ test("customEventName: edgewave_ and a safe name", () => {
   assert.equal(customEventName("Door Knock (2)"), "edgewave_door_knock_2");
   assert.equal(customEventName("edgewave_x"), "edgewave_x");
   assert.throws(() => customEventName("!!"), /needs a name/);
+});
+
+test("searchEvents: the project's own sounds first; one with a game event's name replaces it", () => {
+  const events = eventsFromMetadata(metadata);
+  const own = [
+    { name: "edgewave_door_knock", type: "mod_sfx_low_occlusion", file: "source/customSounds/edgewave_door_knock.wav", seconds: 0.5 },
+    { name: "sa_airdrop_package_land", type: "mod_sfx_2d", file: "source/customSounds/sa_airdrop_package_land.wav" },
+  ];
+  const all = searchEvents(events, {}, undefined, own);
+  assert.deepEqual(all.slice(0, 2).map((e) => e.name), ["edgewave_door_knock", "sa_airdrop_package_land"]);
+  assert.equal(all.filter((e) => e.name === "sa_airdrop_package_land").length, 1);
+  assert.deepEqual(all[0].project, { type: "mod_sfx_low_occlusion", file: "source/customSounds/edgewave_door_knock.wav" });
+  assert.equal(all[0].max, 0.5);
+  assert.equal(all[1].project?.replaces, true);
+  assert.ok(all[1].quest && all[1].tags.includes("project"));
+  assert.deepEqual(searchEvents(events, { query: "knock" }, undefined, own).map((e) => e.name), ["edgewave_door_knock"]);
+  assert.deepEqual(searchEvents(events, { query: "project" }, undefined, own).length, 2);
+  assert.equal(searchEvents(events, { music: true }, undefined, own).some((e) => e.project), false);
+});
+
+test("projectSounds: info.json's custom sounds with their WAV's length; a missing WAV is marked", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ew-own-"));
+  try {
+    assert.deepEqual(projectSounds(dir), []);
+    fs.mkdirSync(path.join(dir, "source", "resources"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "source", "customSounds"), { recursive: true });
+    fs.writeFileSync(path.join(dir, "source", "customSounds", "edgewave_a.wav"), encodeWav({ sampleRate: 48000, channels: [new Float32Array(24000)] }));
+    fs.writeFileSync(path.join(dir, "source", "resources", "info.json"), JSON.stringify({ name: "m", customSounds: [{ name: "edgewave_a", type: "mod_sfx_2d", file: "edgewave_a.wav" }, { name: "edgewave_b", type: "mod_sfx_room", file: "edgewave_b.wav" }, { name: "x_skip", type: "mod_skip" }] }));
+    assert.deepEqual(projectSounds(dir), [
+      { name: "edgewave_a", type: "mod_sfx_2d", file: "source/customSounds/edgewave_a.wav", seconds: 0.5 },
+      { name: "edgewave_b", type: "mod_sfx_room", file: "source/customSounds/edgewave_b.wav", missing: true },
+      { name: "x_skip", type: "mod_skip" },
+    ]);
+    fs.writeFileSync(path.join(dir, "source", "resources", "info.json"), "{ nope");
+    assert.throws(() => projectSounds(dir), /not valid JSON/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

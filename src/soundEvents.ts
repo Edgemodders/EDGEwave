@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { customSoundNote, makeCustomSound, type CustomSoundResult } from "./customSound";
+import { customSoundNote, makeCustomSound, projectSounds, type CustomSoundResult, type ProjectSound } from "./customSound";
 import { eventsFromMetadata, indexFile, MetadataPath, searchEvents, type EventIndex, type EventMatch, type EventQuery, type GameEvent } from "./events";
 import { redcode, type REDcodeApi } from "./redcode";
 
@@ -96,14 +96,33 @@ export class SoundEvents {
     const events = await this.events();
     const api = await redcode();
     const sounds = await this.variations(api).catch(() => undefined);
-    return searchEvents(events, q, sounds);
+    return searchEvents(events, q, sounds, this.own(q.project ?? api.project()?.dir));
   }
 
-  /** Plays an event's sound effect variations in a preview; a reason when it has none to play here. */
-  async play(name: string): Promise<{ ok: true; where: "archive"; variations: number } | { ok: false; reason: string }> {
-    const [event] = (await this.events()).filter((e) => e.name.toLowerCase() === name.trim().toLowerCase());
-    if (!event) return { ok: false, reason: `The game has no sound event named ${name}.` };
+  /** A project's named sounds; none when it has none or its info.json cannot be read (logged). */
+  own(projectDir: string | undefined): ProjectSound[] {
+    if (!projectDir) return [];
+    try {
+      return projectSounds(projectDir);
+    } catch (e) {
+      this.log(`Project sounds: ${(e as Error).message}`);
+      return [];
+    }
+  }
+
+  /** Plays an event's sound effect variations in a preview (a project sound: its WAV); a reason when it has none to play here. */
+  async play(name: string, projectDir?: string): Promise<{ ok: true; where: "archive" | "project"; variations: number } | { ok: false; reason: string }> {
     const api = await redcode();
+    const dir = projectDir ?? api.project()?.dir;
+    const mine = this.own(dir).find((s) => s.name.toLowerCase() === name.trim().toLowerCase());
+    if (mine && dir) {
+      if (!mine.file || mine.missing) return { ok: false, reason: `${mine.name} is the project's, but its WAV ${mine.file ?? ""} is missing.` };
+      const data = fs.readFileSync(path.join(dir, mine.file));
+      this.showPreview({ name: mine.name, hash: 0, loops: false, min: mine.seconds ?? 0, max: mine.seconds ?? 0, tags: ["this project's sound", mine.type] }, [{ sound: 0, data, mime: "audio/wav", label: path.basename(mine.file) }], 1);
+      return { ok: true, where: "project", variations: 1 };
+    }
+    const [event] = (await this.events()).filter((e) => e.name.toLowerCase() === name.trim().toLowerCase());
+    if (!event) return { ok: false, reason: `The game has no sound event named ${name}, and the project no sound of that name.` };
     const sounds = (await this.variations(api)).get(event.hash) ?? [];
     if (!sounds.length)
       return {
@@ -126,7 +145,7 @@ export class SoundEvents {
     return { ok: true, where: "archive", variations: sounds.length };
   }
 
-  private showPreview(event: GameEvent, clips: { sound: number; data: Uint8Array; mime: string }[], total: number): void {
+  private showPreview(event: GameEvent, clips: { sound: number; data: Uint8Array; mime: string; label?: string }[], total: number): void {
     if (!this.preview) {
       this.preview = vscode.window.createWebviewPanel("edgewave.eventPreview", "EDGEwave: Hear", { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true }, { enableScripts: true });
       this.preview.onDidDispose(() => (this.preview = undefined));
@@ -144,13 +163,13 @@ button.on{outline:1px solid var(--vscode-focusBorder)}</style></head><body>
 <p class="m">${event.tags.map(esc).join(", ")}</p>
 <div id="b"></div>
 <script nonce="${nonce}">
-const clips = ${JSON.stringify(clips.map((c) => ({ sound: c.sound, mime: c.mime, b64: Buffer.from(c.data).toString("base64") })))};
+const clips = ${JSON.stringify(clips.map((c) => ({ label: c.label ?? String(c.sound), mime: c.mime, b64: Buffer.from(c.data).toString("base64") })))};
 const audio = new Audio(); const b = document.getElementById("b");
 const play = (i) => { const c = clips[i]; const bytes = Uint8Array.from(atob(c.b64), (x) => x.charCodeAt(0));
   audio.src = URL.createObjectURL(new Blob([bytes], { type: c.mime })); audio.play().catch(() => {});
   [...b.children].forEach((x, j) => x.classList.toggle("on", j === i)); };
-clips.forEach((c, i) => { const x = document.createElement("button"); x.textContent = "Play " + c.sound; x.onclick = () => play(i); b.append(x); });
-const r = document.createElement("button"); r.textContent = "Play a random one"; r.onclick = () => play(Math.floor(Math.random() * clips.length)); b.append(r);
+clips.forEach((c, i) => { const x = document.createElement("button"); x.textContent = "Play " + c.label; x.onclick = () => play(i); b.append(x); });
+if (clips.length > 1) { const r = document.createElement("button"); r.textContent = "Play a random one"; r.onclick = () => play(Math.floor(Math.random() * clips.length)); b.append(r); }
 play(Math.floor(Math.random() * clips.length));
 </script></body></html>`;
   }

@@ -1,8 +1,11 @@
 // Add to Project (A3): puts the mix (the tracks whose lanes are checked) into the open REDcode project,
 // in a layout the game loads, for REDcode's pack. What it replaces is a separate choice: any game sound
 // effect on a track, those in the mix first, so a mix of a game sound and a file can override that sound.
-// Two routes, both chosen in a quick pick and remembered in the document (doc.game):
+// The routes, chosen in a quick pick and remembered in the document (doc.game):
 //
+// - A new sound for the project (first): a REDmod custom sound under a new event name, edgewave_<name>
+//   by default, which quests, scenes and scripts play by that name. Replaces nothing. The project's
+//   named sounds are listed in the Sounds view and by soundEvents, for other tools to pick.
 // - Override one sound effect variation: a 48 kHz WAV with the original's channels, named after the
 //   sound's hash, imported by REDcode (REDbridge's sound.importWavs writes the .opuspak and
 //   sfx_container.opusinfo into source/archive). Exact, but mods that do this do not combine: each
@@ -22,8 +25,11 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { audible } from "./audio/mix";
 import { formatDoc, looksLikeVoice, parseDoc, sourceLabel, type IntoGame, type SoundDoc, type Track } from "./doc";
-import { redcode, type ProjectRef } from "./redcode";
-import { RedmodTypes, silenced, soundFileFor, upsertCustomSound } from "./redmod";
+import { projectSounds } from "./customSound";
+import { customEventName } from "./events";
+import { redcode, type ProjectRef, type REDcodeApi } from "./redcode";
+import { RedmodTypes, silenced, soundFileFor, upsertCustomSound, type RedmodType } from "./redmod";
+import { readIndex } from "./soundEvents";
 import { AppsDir, Manifest, newManifest, newModScript, playLine, readManifest, SoundCategories, soundFile, soundNameFor, upsertSound, validId, validSoundName } from "./rednode";
 
 /** Renders the mix through the page at a rate, with a track's source's channels ({track}: the sound it replaces) or a count. */
@@ -46,7 +52,14 @@ type SfxTrack = Track & { source: Extract<Track["source"], { kind: "sfx" }> };
 function routes(doc: SoundDoc): Item[] {
   const inMix = new Set(audible(doc.tracks).map((t) => t.id));
   const sfx = (t: Track): t is SfxTrack => t.source.kind === "sfx";
-  const items: Item[] = [];
+  const items: Item[] = [
+    { label: "This project", kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: "$(add) A new sound for this project…",
+      detail: "Name it, and quests, scenes and scripts play it by that name, as a REDmod custom sound. Replaces nothing. EDGEquest and EDGEwave's Sounds view list it.",
+      route: "new",
+    },
+  ];
   const hashes = new Set<number>();
   const events = new Set<string>();
   const group = (t: SfxTrack) => {
@@ -79,22 +92,24 @@ function routes(doc: SoundDoc): Item[] {
   const own = doc.tracks.filter((t) => inMix.has(t.id) && !sfx(t)).map((t) => `track ${doc.tracks.indexOf(t) + 1}`);
   const none = own.length && !doc.tracks.some((t) => inMix.has(t.id) && sfx(t));
   items.push(
-    { label: "Any event", kind: vscode.QuickPickItemKind.Separator },
+    { label: "Any game event", kind: vscode.QuickPickItemKind.Separator },
     {
-      label: "$(package) A REDmod custom sound for an event…",
+      label: "$(package) Replace a game event by name…",
       detail: none
-        ? `No track in the mix is a game sound effect (${own.join(", ")}), so name the audio event the game should play this mix for, or add the sound it replaces as a track.`
-        : "Name the audio event the game should play this mix for (REDcode's sound list shows the names).",
+        ? `No track in the mix is a game sound effect (${own.join(", ")}): name the game's event this mix plays in place of (EDGEwave's Game Assets and REDcode's sound list show the names), or add the sound it replaces as a track.`
+        : "Name the game's event this mix plays in place of, every variation, with REDmod (EDGEwave's Game Assets and REDcode's sound list show the names).",
       route: "redmodNamed",
-    },
-    { label: "REDnode", kind: vscode.QuickPickItemKind.Separator },
-    {
-      label: "$(play) As a REDnode sound, played from a package's code…",
-      detail: "Replaces nothing: a REDnode package plays this mix where its code calls audio.play, beside the game's sound. No REDmod and no .wem, so voice lines too. Needs REDnode in the game.",
-      route: "rednode",
     },
   );
   for (const t of doc.tracks) if (!inMix.has(t.id) && sfx(t)) group(t);
+  items.push(
+    { label: "REDnode", kind: vscode.QuickPickItemKind.Separator },
+    {
+      label: "$(play) In a REDnode package, for its code to play…",
+      detail: "Only that package's code plays it (audio.play), beside the game's sound; quests cannot post it. No REDmod and no .wem, so voice lines too. Needs REDnode in the game.",
+      route: "rednode",
+    },
+  );
   // Marked in its label and its group's heading: a description is small, dim and cut off first.
   const chosen = lastItem(items, doc.game);
   if (chosen) {
@@ -110,6 +125,7 @@ function lastItem(items: Item[], last: IntoGame | undefined): Item | undefined {
   if (!last) return undefined;
   if (last.route === "override") return items.find((i) => i.route === "override" && (last.soundHash === undefined || i.soundHash === last.soundHash));
   if (last.route === "rednode") return items.find((i) => i.route === "rednode");
+  if (last.route === "new") return items.find((i) => i.route === "new");
   return items.find((i) => i.route === last.route && i.event === last.event) ?? items.find((i) => i.route === "redmodNamed" && last.route === "redmod");
 }
 
@@ -132,6 +148,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   const chosen = await vscode.window.showQuickPick(routes(doc), { title: "Add to Project: what should the mix replace?" });
   if (!chosen?.route) return;
   if (chosen.route === "rednode") return asRednodeSound(document, doc, project, api.gamePath(), renderFor, log);
+  if (chosen.route === "new") return newProjectSound(document, doc, project, api, { track: inMix[0].id }, renderFor, log);
   // The channels of the sound replaced; for a named event, the first track in the mix.
   const channels = { track: (chosen.track ?? inMix[0]).id };
 
@@ -198,6 +215,80 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   else if (pick === "Pack") {
     const r = await api.pack();
     void vscode.window.showInformationMessage(`REDcode packed the mod into ${path.relative(project.dir, r.packedDir) || r.packedDir}.`);
+  }
+}
+
+/** The plain choices for a new sound's type, then the rest of REDmod's. */
+const NewTypes: { type: RedmodType; label: string; detail: string }[] = [
+  { type: "mod_sfx_low_occlusion", label: "A sound effect, heard from where it plays", detail: "Fades with distance and is not muffled much: a quest or scene sound, a voice-over (REDmod's low occlusion)" },
+  { type: "mod_sfx_2d", label: "The same everywhere (2D)", detail: "No position: music, a phone or interface sound, a sound in V's head. On the effects slider: REDmod has no music type" },
+];
+
+/** Add to Project > A new sound for this project: the mix as a REDmod custom sound under a new event name. */
+async function newProjectSound(document: vscode.TextDocument, doc: SoundDoc, project: ProjectRef, api: REDcodeApi, channels: { track: string }, renderFor: RenderFor, log: vscode.OutputChannel): Promise<void> {
+  const last = doc.game?.route === "new" ? doc.game : undefined;
+  const gameEvents = new Set((readIndex(api.gamePath())?.events ?? []).map((e) => e.name.toLowerCase()));
+  const mine = new Map(projectSoundsOf(project.dir).map((s) => [s.name.toLowerCase(), s]));
+  let suggested = last?.event;
+  if (!suggested) {
+    try {
+      suggested = customEventName(path.basename(document.uri.fsPath, path.extname(document.uri.fsPath)));
+    } catch {
+      suggested = "edgewave_sound";
+    }
+  }
+  const name = (
+    await vscode.window.showInputBox({
+      title: "A new sound for this project: its name",
+      prompt: "Quests, scenes and scripts play it by this name. Letters, digits and _; edgewave_ in front keeps it apart from the game's own events",
+      value: suggested,
+      valueSelection: suggested.startsWith("edgewave_") ? [9, suggested.length] : undefined,
+      validateInput: (v) => {
+        const n = v.trim();
+        if (!/^[a-z0-9_]+$/i.test(n)) return "Letters, digits and _ only";
+        if (gameEvents.has(n.toLowerCase())) return { message: `${n} is one of the game's events: the game would play this in place of it. Pick another name, or use Replace a game event.`, severity: vscode.InputBoxValidationSeverity.Error };
+        const had = mine.get(n.toLowerCase());
+        if (had && n.toLowerCase() !== last?.event.toLowerCase()) return { message: `The project has a sound named ${n} already (${had.file ?? had.type}); this one would take its place.`, severity: vscode.InputBoxValidationSeverity.Warning };
+        return undefined;
+      },
+    })
+  )?.trim();
+  if (!name) return;
+  type TypeItem = vscode.QuickPickItem & { type?: RedmodType; more?: boolean };
+  const lastType = last?.type ?? mine.get(name.toLowerCase())?.type;
+  const plain: TypeItem[] = NewTypes.map((t) => ({ label: t.label + (t.type === lastType ? " · last time" : ""), description: t.type, detail: t.detail, type: t.type }));
+  plain.sort((a, b) => Number(b.type === lastType) - Number(a.type === lastType));
+  let t: TypeItem | undefined = await vscode.window.showQuickPick([...plain, { label: "$(list-unordered) Another of REDmod's types…", more: true }], { title: `A new sound for this project: how does the game play ${name}?` });
+  if (t?.more) t = await vscode.window.showQuickPick(RedmodTypes.map((x): TypeItem => ({ label: x.label, description: x.type, detail: x.detail, type: x.type })), { title: `How does the game play ${name}?` });
+  if (!t?.type) return;
+  const out = path.join(project.dir, "source", "customSounds", soundFileFor(name));
+  if (!(await mayReplace(out, name, doc.game))) return;
+  const wav = await renderFor(Rate, channels);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, wav);
+  const info = path.join(project.resources, "info.json");
+  writeInfo(info, upsertCustomSound(readMaybe(info), { name, type: t.type, file: path.basename(out), gain: 1, pitch: 0 }));
+  log.appendLine(`Add to Project: a new sound ${name} (${t.type}) in ${path.relative(project.dir, out)}`);
+  await remember(document, doc, { route: "new", event: name, type: t.type });
+  const redmodOff = !vscode.workspace.getConfiguration("redcode").get<boolean>("pack.redmod", false);
+  const note = redmodOff ? " REDcode packs it only as a REDmod (the redcode.pack.redmod setting)." : "";
+  const actions = ["Copy Name", "Pack and Install", ...(redmodOff ? ["Open Setting"] : [])];
+  void vscode.commands.executeCommand("edgewave.refreshSounds");
+  const pick = await vscode.window.showInformationMessage(
+    `${name} is a sound in the project now: a quest, scene or script plays it by that name (${path.relative(project.dir, out)}, ${t.type}).${note} To hear it in the game: Pack and Install, then restart the game; REDmod reads custom sounds when the game starts.`,
+    ...actions,
+  );
+  if (pick === "Copy Name") await vscode.env.clipboard.writeText(name);
+  else if (pick === "Open Setting") await vscode.commands.executeCommand("workbench.action.openSettings", "redcode.pack.redmod");
+  else if (pick === "Pack and Install") await vscode.commands.executeCommand("redcode.packAndInstall");
+}
+
+/** The project's named sounds, or none when its info.json cannot be read. */
+function projectSoundsOf(dir: string) {
+  try {
+    return projectSounds(dir);
+  } catch {
+    return [];
   }
 }
 

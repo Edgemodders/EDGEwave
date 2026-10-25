@@ -276,7 +276,8 @@ await run("document.getElementById('intoGame').click()");
 await sleep(1200);
 const firstRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 6).map((r) => r.textContent.trim())`);
 log("add to project, second time", JSON.stringify(firstRows));
-const lastFirst = /^Override sound 42/.test(firstRows[0] ?? "") && !/last time/.test(firstRows[0]) && firstRows.some((r) => /^Override sound 43/.test(r) && /last time/.test(r));
+// A new sound for this project is always first; then the game sounds, in the mixer's order.
+const lastFirst = /^A new sound for this project/.test(firstRows[0] ?? "") && /^Override sound 42/.test(firstRows[1] ?? "") && !/last time/.test(firstRows[1]) && firstRows.some((r) => /^Override sound 43/.test(r) && /last time/.test(r));
 await pickFirst("Replace the event smoke_event");
 await pickFirst(""); // 2D
 const info = path.join(T, "proj", "source", "resources", "info.json");
@@ -448,13 +449,13 @@ const checksOk =
   JSON.stringify(checksAfter) === JSON.stringify([true, true, true, true, true, true]) &&
   JSON.stringify(checksOnly) === JSON.stringify([false, false, true, false, false, false]) &&
   JSON.stringify(mutes) === JSON.stringify([true, true, false, true, true, true]) && lastMarked &&
-  /^\$?\(?.*A REDmod custom sound for an event/.test(fileRows[0] ?? "") && /No track in the mix is a game sound effect \(track 3\)/.test(fileRows[0] ?? "");
+  /^A new sound for this project/.test(fileRows[0] ?? "") && /^Replace a game event by name/.test(fileRows[1] ?? "") && /No track in the mix is a game sound effect \(track 3\)/.test(fileRows[1] ?? "");
 if (!checksOk) finish(false, "the lanes' checkboxes or Only This Track did not set the mix");
 
 // As a REDnode sound (EDGEwave #2): no package yet and no game folder, so New package in the project,
 // its id from the mod's name, the sound named after the document, Sound effects (no voice in the mix).
 await run("document.getElementById('intoGame').click()");
-await pickFirst("As a REDnode sound");
+await pickFirst("In a REDnode package");
 await pickFirst(""); // New package in the project…
 await pickFirst(""); // id: smoke
 await pickFirst(""); // name: 42
@@ -565,9 +566,9 @@ log("api", JSON.stringify(apiOut));
 const customWav = path.join(T, "proj", "source", "customSounds", "edgewave_smoke_knock.wav");
 const infoNow = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "resources", "info.json"), "utf8"));
 const apiOk = apiOut.apiVersion === 1 && !apiOut.error
-  && apiOut.events.map((e) => e.name).join() === "smoke_event,smoke_second,mus_smoke_01_START" && apiOut.events[0].sounds?.join() === "42" && apiOut.events[0].quest === true
+  && apiOut.events.map((e) => e.name).join() === "smoke_event,smoke_second,mus_smoke_01_START" && apiOut.events[0].project?.replaces === true && apiOut.events[0].quest === true
   && apiOut.music.map((e) => e.name).join() === "mus_smoke_01_START" && apiOut.music[0].loops === true
-  && apiOut.play.ok === true && apiOut.play.variations === 1 && apiOut.playMusic.ok === false && /music cue/.test(apiOut.playMusic.reason)
+  && apiOut.play.ok === true && apiOut.play.where === "project" && apiOut.play.variations === 1 && apiOut.playMusic.ok === false && /music cue/.test(apiOut.playMusic.reason)
   && apiOut.custom.event === "edgewave_smoke_knock" && apiOut.custom.type === "mod_sfx_low_occlusion" && fs.existsSync(customWav) && fs.readFileSync(customWav).readUInt32LE(24) === 48000
   && infoNow.customSounds.some((c) => c.name === "edgewave_smoke_knock" && c.file === "edgewave_smoke_knock.wav")
   && apiOut.status === undefined && fs.existsSync(path.join(T, "home", "events.json"));
@@ -680,6 +681,35 @@ const createOk = empty.render === true && empty.project === "Add to Project…" 
   && copies.join() === "hat.wav,kick.wav,snare.wav";
 if (!createOk) finish(false, "Create a Sound or dropping sound files did not do what it should");
 
+// Add to Project > A new sound for this project, its name as suggested (edgewave_smoke_new), the first
+// type (a sound effect, low occlusion): a REDmod custom sound under a new name, listed in the Sounds view's
+// Project sounds and by the API's soundEvents (the project's sounds first).
+await key("Escape", "Escape", 27);
+await nrun("document.getElementById('intoGame').click()");
+await sleep(1200);
+const newRows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].slice(0, 3).map((r) => r.textContent.trim())`);
+await key("Enter", "Enter", 13); // A new sound for this project…
+await pickFirst(""); // the name, as suggested
+await pickFirst(""); // A sound effect, heard from where it plays
+const newWav = path.join(T, "proj", "source", "customSounds", "edgewave_smoke_new.wav");
+await waitFile(newWav, 20);
+await sleep(800);
+await key("Escape", "Escape", 27); // the notification
+const newInfo = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "resources", "info.json"), "utf8")).customSounds.find((c) => c.name === "edgewave_smoke_new");
+const newGame = JSON.parse(fs.readFileSync(newFile, "utf8")).game;
+let namedRows = [];
+for (let i = 0; i < 10; i++) {
+  namedRows = await evalIn(bench, `[...document.querySelectorAll('.part.sidebar .monaco-list-row')].filter((r) => r.offsetParent).map((r) => r.textContent.trim())`);
+  if (namedRows.some((r) => r.startsWith("edgewave_smoke_new"))) break;
+  await sleep(500);
+}
+log("new sound", JSON.stringify({ newRows, newInfo, newGame, wav: fs.existsSync(newWav) ? wavFormat(newWav) : null, namedRows }));
+const at = (g) => namedRows.findIndex((r) => r === g || r.startsWith(g + " ") || r.startsWith(g));
+const newOk = /^A new sound for this project/.test(newRows[0] ?? "") && newInfo?.type === "mod_sfx_low_occlusion" && newInfo.file === "edgewave_smoke_new.wav"
+  && wavFormat(newWav).rate === 48000 && newGame?.route === "new" && newGame.event === "edgewave_smoke_new"
+  && at("Project sounds") > 0 && namedRows.some((r) => r.startsWith("edgewave_smoke_new")) && namedRows.some((r) => r.startsWith("edgewave_smoke_knock"));
+if (!newOk) finish(false, "A new sound for this project did not name the sound in the project");
+
 const t1 = doc.tracks[0], t2 = doc.tracks[1];
 const ops = t1.edits.map((e) => e.op).join(",");
 if (doc.edgewave !== 2 || ops !== "trim,fade,cut,paste" || t1.edits[3].from.after !== 2 || doc.render.sampleRate !== 44100 || t1.voice !== true) finish(false, "the saved document does not hold track 1's edits");
@@ -693,4 +723,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds" : "render or mix checks failed");

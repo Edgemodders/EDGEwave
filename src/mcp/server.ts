@@ -18,7 +18,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { z } from "zod";
-import { customSoundNote, makeCustomSound } from "../customSound";
+import { customSoundNote, makeCustomSound, projectSounds } from "../customSound";
 import { DefaultBaseUrl, ElevenLabs } from "../elevenlabs";
 import { indexFile, searchEvents, type EventIndex } from "../events";
 import { checkLines, lineStatus, type Voices } from "../voice";
@@ -170,14 +170,21 @@ server.registerTool(
     description:
       "Searches the game's sound events by name: the game's own list (base\\sound\\event\\eventsmetadata.json in the user's game; 2.31 names every event). " +
       "Every word must be in the name, or be one of its tags; a decimal number finds an event by its Wwise hash. music: true keeps music cues (mus_*, quest music tags), false leaves them out; quest: true keeps events tagged for quests. " +
-      "A quest node posts an event by its name. Each has its hash, loops, min and max length in seconds, and tags.",
-    inputSchema: { query: z.string().default(""), music: z.boolean().optional(), quest: z.boolean().optional(), limit: z.number().int().min(1).max(500).default(50) },
+      "A quest node posts an event by its name. Each has its hash, loops, min and max length in seconds, and tags. " +
+      "With project, the project's own named sounds (REDmod custom sounds in its source/resources/info.json, made with Add to Project or sound_custom) come first, with project: { type, file }, and replaces: true when one has a game event's name.",
+    inputSchema: {
+      query: z.string().default(""),
+      music: z.boolean().optional(),
+      quest: z.boolean().optional(),
+      limit: z.number().int().min(1).max(500).default(50),
+      project: z.string().optional().describe("The WolvenKit project's folder, for its own sounds"),
+    },
     annotations: { readOnlyHint: true },
   },
-  async ({ query, music, quest, limit }) => {
+  async ({ query, music, quest, limit, project }) => {
     try {
       const ix = events();
-      const found = searchEvents(ix.events, { query, music, quest, limit });
+      const found = searchEvents(ix.events, { query, music, quest, limit }, undefined, project ? projectSounds(project) : []);
       return text({ events: found, builtFrom: ix.game.path, built: ix.built });
     } catch (e) {
       return failure(e);

@@ -10,7 +10,7 @@ import { connectAssistant, installServer, registerWithEditor } from "./mcp";
 import { newSound, openFile, openSound, ViewType } from "./openSound";
 import type { SoundRef } from "./redcode";
 import { SoundEvents } from "./soundEvents";
-import { SoundsView } from "./soundsView";
+import { SoundsView, type NamedItem } from "./soundsView";
 import { isV, type VoiceLine } from "./voice";
 import { loadRecord } from "./voiceBatch";
 import { VoiceLines } from "./voiceLines";
@@ -52,6 +52,22 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     vscode.commands.registerCommand("edgewave.clearRecent", () => sounds.clearRecent()),
     // With no folder, VS Code's own Open Folder dialog.
     vscode.commands.registerCommand("edgewave.openFolder", () => vscode.commands.executeCommand("vscode.openFolder")),
+    // The Sounds view's Project sounds: hear one, copy its name for a quest or script, show its WAV.
+    vscode.commands.registerCommand("edgewave.hearSound", async (n?: NamedItem) => {
+      if (!n) return;
+      try {
+        const r = await events.play(n.name, n.dir);
+        if (!r.ok) void vscode.window.showInformationMessage(`EDGEwave: ${r.reason}`);
+      } catch (e) {
+        void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+      }
+    }),
+    vscode.commands.registerCommand("edgewave.copySoundName", async (n?: NamedItem) => {
+      if (!n) return;
+      await vscode.env.clipboard.writeText(n.name);
+      vscode.window.setStatusBarMessage(`EDGEwave: copied ${n.name}`, 3000);
+    }),
+    vscode.commands.registerCommand("edgewave.revealSound", (n?: NamedItem) => n?.file && vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(path.join(n.dir, n.file)))),
     vscode.commands.registerCommand("edgewave.voiceLines", () => openRecordedQuest(voiceLines)),
     vscode.commands.registerCommand("edgewave.connectAssistant", () => connectAssistant(context, (l) => log.appendLine(l))),
   );

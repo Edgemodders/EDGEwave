@@ -19,10 +19,10 @@ export interface EDGEwaveApi {
   voiceLines(o: { quest: string; lines: VoiceLine[]; voices?: Voices; archiveDir?: string; project?: string }): Promise<VoiceRecord>;
   /** The quest's voice.json, or undefined when nothing is voiced yet. */
   voiceStatus(quest: string, project?: string): Promise<VoiceRecord | undefined>;
-  /** The game's sound events matching a query (the game's own list, 2.31: every event named). */
+  /** The project's own named sounds first (project set), then the game's sound events matching a query (the game's own list, 2.31: every event named). */
   soundEvents(o: EventQuery): Promise<EventMatch[]>;
-  /** Plays an event's sound effect recordings in EDGEwave's preview, or says why it cannot. */
-  playEvent(o: { name: string }): Promise<{ ok: true; where: "archive"; variations: number } | { ok: false; reason: string }>;
+  /** Plays an event's sound effect recordings, or a project sound's WAV, in EDGEwave's preview, or says why it cannot. */
+  playEvent(o: { name: string; project?: string }): Promise<{ ok: true; where: "archive" | "project"; variations: number } | { ok: false; reason: string }>;
   /** A sound made in EDGEwave as a new event a quest can post: a REDmod custom sound, edgewave_<name>. */
   customSound(o: { project?: string; wav: string | Uint8Array; name: string; kind?: "sfx" | "music" }): Promise<(CustomSoundResult & { note: string }) | { reason: string }>;
 }
@@ -49,8 +49,8 @@ export function makeApi(version: string, voiceLines: VoiceLines, events: SoundEv
     async voiceStatus(quest, project) {
       return voiceLines.status(await projectDir(project), quest);
     },
-    soundEvents: (o) => events.search(o ?? {}),
-    playEvent: (o) => events.play(o.name),
+    soundEvents: async (o) => events.search({ ...o, project: o?.project ?? (await projectDir().catch(() => undefined)) }),
+    playEvent: async (o) => events.play(o.name, o.project ?? (await projectDir().catch(() => undefined))),
     customSound: (o) => events.custom(o),
   };
 }
