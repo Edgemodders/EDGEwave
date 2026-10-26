@@ -112,6 +112,12 @@
         "category": "EDGEwave"
       },
       {
+        "command": "edgewave.stopSound",
+        "title": "Stop Sound",
+        "category": "EDGEwave",
+        "icon": "$(debug-stop)"
+      },
+      {
         "command": "edgewave.hearSound",
         "title": "Hear",
         "category": "EDGEwave",

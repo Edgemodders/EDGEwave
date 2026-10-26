@@ -3,7 +3,7 @@
 // tone) and smoke_second (sounds 43, 1.5 s at 660 Hz, and 44, 0.5 s at 880 Hz, both mono).
 // Opens sound 42 in EDGEwave three seconds after startup. Its bridge's toJson gives a small
 // eventsmetadata.json (smoke_event, smoke_second and a music cue). Two commands call EDGEwave's own API as
-// EDGEquest does: Smoke: EDGEwave API (sound events, hearing one, a custom sound; the results in api.json) and
+// EDGEquest does: Smoke: EDGEwave API (sound events, hearing one, playing one with no tab, a custom sound; the results in api.json) and
 // Smoke: Voice Lines (a quest's two lines; voiceLines.json when the panel closes). Smoke: New Empty Sound
 // runs Create a Sound with a known path (the real command asks with a save dialog).
 const vscode = require("vscode");
@@ -44,6 +44,13 @@ exports.activate = (context) => {
         out.music = await api.soundEvents({ music: true });
         out.play = await api.playEvent({ name: "smoke_event" });
         out.playMusic = await api.playEvent({ name: "mus_smoke_01_START" });
+        // #8: with show false one recording plays at once, and no Hear tab opens for it.
+        const tabs = () => vscode.window.tabGroups.all.flatMap((g) => g.tabs.map((t) => t.label));
+        out.tabsBefore = tabs();
+        out.quiet = await api.playEvent({ name: "smoke_second", show: false });
+        out.quietAgain = await api.playEvent({ name: "smoke_second", show: false });
+        await api.stopSound();
+        out.tabsAfter = tabs();
         fs.writeFileSync(path.join(T, "knock.wav"), tone(0.5, 24000, 1, 300));
         out.custom = await api.customSound({ wav: path.join(T, "knock.wav"), name: "Smoke Knock" });
         out.status = await api.voiceStatus("smoke_quest");

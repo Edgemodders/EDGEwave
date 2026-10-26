@@ -6,6 +6,7 @@
 // changes. Hearing an event plays its sound effect variations from the archive, through REDcode, in a small
 // preview. Music cues are in Wwise's sound banks, which EDGEwave reads only from A4; they play in the running
 // game once REDnode can be asked (REDnode #17). A new event is a REDmod custom sound (src/customSound.ts).
+// With show false (EDGEwave #8, EDGEquest's picker), one recording plays at once, with no tab (src/player.ts).
 
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -13,9 +14,13 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { customSoundNote, makeCustomSound, projectSounds, type CustomSoundResult, type ProjectSound } from "./customSound";
 import { eventsFromMetadata, indexFile, MetadataPath, searchEvents, type EventIndex, type EventMatch, type EventQuery, type GameEvent } from "./events";
+import { QuietPlayer } from "./player";
 import { redcode, type REDcodeApi, type SoundRef } from "./redcode";
 
 type Log = (line: string) => void;
+
+/** What playEvent answers: where the sound came from, its recordings, and the one played when there was no tab. */
+export type PlayResult = { ok: true; where: "archive" | "project"; variations: number; played?: string } | { ok: false; reason: string };
 
 /** The game's audio archive: when it changes, the event list is built again. */
 function gameStamp(gamePath: string): string {
@@ -43,8 +48,12 @@ export class SoundEvents {
   private index?: Promise<GameEvent[]>;
   private sounds?: Promise<Map<number, number[]>>;
   private preview?: vscode.WebviewPanel;
+  private readonly player: QuietPlayer;
 
-  constructor(private readonly context: vscode.ExtensionContext, private readonly log: Log) {}
+  constructor(private readonly context: vscode.ExtensionContext, private readonly log: Log) {
+    this.player = new QuietPlayer(log);
+    context.subscriptions.push(this.player);
+  }
 
   /** The game's events: from EDGEwave's folder, or built from the game through REDcode's bridge. */
   events(): Promise<GameEvent[]> {
@@ -96,6 +105,8 @@ export class SoundEvents {
     const events = await this.events();
     const api = await redcode();
     const sounds = await this.variations(api).catch(() => undefined);
+    // A picker that searches may play one next: the player starts now, so that sound does not wait.
+    this.player.warm();
     return searchEvents(events, q, sounds, this.own(q.project ?? api.project()?.dir));
   }
 
@@ -110,14 +121,23 @@ export class SoundEvents {
     }
   }
 
-  /** Plays an event's sound effect variations in a preview (a project sound: its WAV); a reason when it has none to play here. */
-  async play(name: string, projectDir?: string): Promise<{ ok: true; where: "archive" | "project"; variations: number } | { ok: false; reason: string }> {
+  /**
+   * Plays an event's sound effect variations in the Hear tab (a project sound: its WAV); a reason when it has
+   * none to play here. With show false, one of them (picked as the game does) plays at once, with no tab,
+   * stopping the sound playing.
+   */
+  async play(name: string, projectDir?: string, show = true): Promise<PlayResult> {
+    if (!show) {
+      const why = QuietPlayer.unavailable();
+      if (why) return { ok: false, reason: why };
+    }
     const api = await redcode();
     const dir = projectDir ?? api.project()?.dir;
     const mine = this.own(dir).find((s) => s.name.toLowerCase() === name.trim().toLowerCase());
     if (mine && dir) {
       if (!mine.file || mine.missing) return { ok: false, reason: `${mine.name} is the project's, but its WAV ${mine.file ?? ""} is missing.` };
       const data = fs.readFileSync(path.join(dir, mine.file));
+      if (!show) return this.quiet(data, "project", 1, path.basename(mine.file));
       this.showPreview(mine.name, [`This project's sound: ${mine.type}${mine.seconds ? `, ${mine.seconds} s` : ""}. A quest, scene or script plays it by this name.`], [{ data, mime: "audio/wav", label: path.basename(mine.file) }]);
       return { ok: true, where: "project", variations: 1 };
     }
@@ -131,9 +151,37 @@ export class SoundEvents {
           ? `${event.name} is a music cue. Music lives in Wwise's sound banks, which EDGEwave cannot play yet; it will play in the running game through REDnode (REDnode #17).`
           : `${event.name} has no sound effect recordings in the game's index (it may play music, a voice or other events); it can only be heard in the running game, through REDnode (REDnode #17).`,
       };
+    if (!show) {
+      const pick = sounds[Math.floor(Math.random() * sounds.length)];
+      let a;
+      try {
+        a = await api.sound({ soundHash: pick, eventHash: event.hash });
+      } catch (e) {
+        this.log(`Play ${event.name}: ${pick}: ${(e as Error).message}`);
+        return { ok: false, reason: `REDcode could not read ${event.name}'s sound ${pick}; see REDcode's output.` };
+      }
+      if (a.mime !== "audio/wav") return { ok: false, reason: `REDcode gave ${event.name}'s sound ${pick} as ${a.mime}, which plays only in the Hear tab (show: true).` };
+      return this.quiet(a.data, "archive", sounds.length, String(pick));
+    }
     const shown = await this.hear(event.name, sounds.map((s) => ({ ref: { soundHash: s, eventHash: event.hash }, label: String(s) })), eventNotes(event, sounds.length));
     if (!shown) return { ok: false, reason: `REDcode could not read ${event.name}'s sounds; see REDcode's output.` };
     return { ok: true, where: "archive", variations: sounds.length };
+  }
+
+  /** Plays a WAV with no tab (src/player.ts). */
+  private async quiet(wav: Uint8Array, where: "archive" | "project", variations: number, played: string): Promise<PlayResult> {
+    try {
+      await this.player.play(wav);
+      return { ok: true, where, variations, played };
+    } catch (e) {
+      this.log(`Play ${played}: ${(e as Error).message}`);
+      return { ok: false, reason: `EDGEwave could not play ${played} without its Hear tab: ${(e as Error).message}` };
+    }
+  }
+
+  /** Stops the sound playing with no tab, if one is. */
+  stop(): Promise<void> {
+    return this.player.stop();
   }
 
   /**

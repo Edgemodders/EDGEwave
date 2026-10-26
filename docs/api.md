@@ -19,8 +19,22 @@ if (api?.apiVersion === 1) { ... }
 | `voiceLines({ quest, lines, voices?, archiveDir?, project? })` | Opens [Voice Lines](voice-lines.html#the-voice-lines-panel) on these lines, adding them to the quest's panel when it is open. One line opens the panel on it. Resolves with `voice.json` when the panel closes. `lines` as in [the contract](voice-lines.html#the-contract). `project`: the project's folder, else REDcode's open project, else the workspace folder with `source/` |
 | `voiceStatus(quest, project?)` | The quest's `voice.json`, with `voices`, or `undefined` when nothing is voiced yet |
 | `soundEvents({ query?, music?, quest?, limit?, project? })` | The project's own named sounds, then the game's sound events, matching a query. See [Sound events](#sound-events) |
-| `playEvent({ name, project? })` | Plays an event's sound effect recordings in EDGEwave's **Hear** panel: `{ ok: true, where: "archive", variations }`; a project sound plays its WAV (`where: "project"`). A music cue, or an event with no recordings, gives `{ ok: false, reason }` |
+| `playEvent({ name, project?, show? })` | Plays an event's sound effect recordings in EDGEwave's **Hear** panel: `{ ok: true, where: "archive", variations }`; a project sound plays its WAV (`where: "project"`). A music cue, or an event with no recordings, gives `{ ok: false, reason }`. With `show: false` ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), added 2026-10-26), see [Playing with no tab](#playing-with-no-tab) |
+| `stopSound()` | Stops the sound `playEvent` is playing with `show: false`, if one is. Also the command **EDGEwave: Stop Sound** |
 | `customSound({ project?, wav, name, kind? })` | A sound as a new event a quest can post: `{ event, file, type, note }`, or `{ reason }`. See [A new event](#a-new-event) |
+
+## Playing with no tab
+
+`playEvent({ name, show: false })` plays at once, for a picker's ▶. No tab opens or comes forward.
+
+| | |
+|---|---|
+| What plays | One recording, picked at random as the game does: `played` in the result names it (the sound's number, or a project sound's file). The Hear panel (`show` left out) still has all of them |
+| Again | A second call stops the first sound and plays the new one. `stopSound()` stops it |
+| How | A hidden Windows player in EDGEwave's extension host (a PowerShell with `System.Media.SoundPlayer`), not a webview, so no click is needed first. It starts when `soundEvents` is first called, or on the first play (about a second); later sounds start at once |
+| Where it cannot | Not on Windows: `{ ok: false, reason }`; call again without `show: false` for the Hear panel. A recording REDcode does not give as WAV, a music cue, or an event with no recordings: a reason, as with the panel |
+
+*Unverified:* that the hidden player is heard on every Windows setup. It plays through Windows' default output device, whatever VS Code's own sound uses.
 
 ## Sound events
 

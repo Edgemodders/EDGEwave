@@ -65,6 +65,8 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
         void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
       }
     }),
+    // A sound another tool played with playEvent's show: false (#8).
+    vscode.commands.registerCommand("edgewave.stopSound", () => events.stop()),
     vscode.commands.registerCommand("edgewave.copySoundName", async (n?: NamedItem) => {
       if (!n) return;
       await vscode.env.clipboard.writeText(n.name);

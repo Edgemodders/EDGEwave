@@ -569,6 +569,8 @@ const apiOk = apiOut.apiVersion === 1 && !apiOut.error
   && apiOut.events.map((e) => e.name).join() === "smoke_event,smoke_second,mus_smoke_01_START" && apiOut.events[0].project?.replaces === true && apiOut.events[0].quest === true
   && apiOut.music.map((e) => e.name).join() === "mus_smoke_01_START" && apiOut.music[0].loops === true
   && apiOut.play.ok === true && apiOut.play.where === "project" && apiOut.play.variations === 1 && apiOut.playMusic.ok === false && /music cue/.test(apiOut.playMusic.reason)
+  && [apiOut.quiet, apiOut.quietAgain].every((q) => q.ok === true && q.where === "archive" && q.variations === 2 && ["43", "44"].includes(q.played))
+  && !apiOut.tabsAfter.includes("Hear: smoke_second")
   && apiOut.custom.event === "edgewave_smoke_knock" && apiOut.custom.type === "mod_sfx_low_occlusion" && fs.existsSync(customWav) && fs.readFileSync(customWav).readUInt32LE(24) === 48000
   && infoNow.customSounds.some((c) => c.name === "edgewave_smoke_knock" && c.file === "edgewave_smoke_knock.wav")
   && apiOut.status === undefined && fs.existsSync(path.join(T, "home", "events.json"));
@@ -767,4 +769,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound" : "render or mix checks failed");

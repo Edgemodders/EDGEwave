@@ -8,7 +8,7 @@ import * as vscode from "vscode";
 import type { EventMatch, EventQuery } from "./events";
 import { redcode } from "./redcode";
 import type { CustomSoundResult } from "./customSound";
-import type { SoundEvents } from "./soundEvents";
+import type { PlayResult, SoundEvents } from "./soundEvents";
 import { checkLines, type VoiceLine, type VoiceRecord, type Voices } from "./voice";
 import type { VoiceLines } from "./voiceLines";
 
@@ -21,8 +21,13 @@ export interface EDGEwaveApi {
   voiceStatus(quest: string, project?: string): Promise<VoiceRecord | undefined>;
   /** The project's own named sounds first (project set), then the game's sound events matching a query (the game's own list, 2.31: every event named). */
   soundEvents(o: EventQuery): Promise<EventMatch[]>;
-  /** Plays an event's sound effect recordings, or a project sound's WAV, in EDGEwave's preview, or says why it cannot. */
-  playEvent(o: { name: string; project?: string }): Promise<{ ok: true; where: "archive" | "project"; variations: number } | { ok: false; reason: string }>;
+  /**
+   * Plays an event's sound effect recordings, or a project sound's WAV, in EDGEwave's Hear tab, or says why it
+   * cannot. With show false, one recording plays at once with no tab (Windows), stopping the one playing (#8).
+   */
+  playEvent(o: { name: string; project?: string; show?: boolean }): Promise<PlayResult>;
+  /** Stops the sound playEvent is playing with show false, if one is. */
+  stopSound(): Promise<void>;
   /** A sound made in EDGEwave as a new event a quest can post: a REDmod custom sound, edgewave_<name>. */
   customSound(o: { project?: string; wav: string | Uint8Array; name: string; kind?: "sfx" | "music" }): Promise<(CustomSoundResult & { note: string }) | { reason: string }>;
 }
@@ -50,7 +55,8 @@ export function makeApi(version: string, voiceLines: VoiceLines, events: SoundEv
       return voiceLines.status(await projectDir(project), quest);
     },
     soundEvents: async (o) => events.search({ ...o, project: o?.project ?? (await projectDir().catch(() => undefined)) }),
-    playEvent: async (o) => events.play(o.name, o.project ?? (await projectDir().catch(() => undefined))),
+    playEvent: async (o) => events.play(o.name, o.project ?? (await projectDir().catch(() => undefined)), o.show !== false),
+    stopSound: () => events.stop(),
     customSound: (o) => events.custom(o),
   };
 }
