@@ -12,7 +12,7 @@ The source of EDGEwave's Nexus Mods page lives here, so updates are edits in the
 | Field | Value |
 |---|---|
 | Mod name | EDGEwave |
-| Version | EDGEwave's version, from `package.json` (the first release is planned as 0.1.0) |
+| Version | EDGEwave's version, from `package.json`; the release sets it |
 | Category | Modders Resources and Tutorials, as REDcode (check the list for Cyberpunk 2077 when creating the page) |
 | Brief overview | A sound studio for Cyberpunk 2077 modding in VS Code: open the game's sounds, edit, mix, add effects, make sounds and voices with ElevenLabs, and put them into your mod. Needs REDcode. A VS Code extension, not a game mod. (255 characters at most; this is 221) |
 | Author | Edgemodders |

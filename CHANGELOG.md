@@ -11,37 +11,23 @@ How to keep it:
 
 ## Unreleased
 
-**New**
-
-- Game Assets: a **▶** on every sound plays it at once, without opening a tab; **▶** again while it plays stops it. An event plays one of its variations; a voice line's `.wem` is decoded from Ogg Vorbis in EDGEwave. Windows only for now.
-- **EDGEwave Voice for REDnode**, a game mod: other REDnode mods speak lines of text on demand, such as an AI companion's replies, in a voice you set up, through ElevenLabs with your own key. Lines are cached, so a line spoken before plays at once without spending credits. **EDGEwave: Voices for REDnode…** installs it in the game and names your voices; it is also its own download on each GitHub release ([how](https://edgemodders.github.io/EDGEwave/rednode-voice.html)).
-
-**Other**
-
-- Each release now updates the [Nexus Mods page](https://www.nexusmods.com/cyberpunk2077/mods/35493) too: the extension as the main file, EDGEwave Voice for REDnode as an optional file, the changelog and the description.
-
-**Fixed**
-
-- Unsaved changes to a sound (such as a track added from Game Assets) were lost when the VS Code window reloaded, though the tab stayed marked unsaved. EDGEwave now puts them back, still unsaved until you save.
-- Speak Line: **Set ElevenLabs API Key…** could not be clicked when the dialog started on the selected line's own voice (the voice list is dimmed then); the message and its buttons are now once, on the dialog's message line.
-- The Hear tab for one voice line said **Play Play**; it says **Play**.
-- Game Assets: a group of files is named by the start its files share, without the `_…` that read as a name cut off, and its count says what it counts (`1,234 files`).
-- When the ElevenLabs API key is missing or refused ("Invalid API key"), Generate Sound, Speak Line, Re-Voice and Voice Lines now say so with a **Set ElevenLabs API Key…** button and a link to where to make one; the voices load again once it is set.
+## 0.2.0 (2026-10-27)
 
 **New**
 
-- Other tools' ▶ buttons play a sound at once, without opening EDGEwave's Hear tab: `playEvent` with `show: false` plays one of the event's recordings, and a second ▶ stops the first. **EDGEwave: Stop Sound** stops it. Windows only for now ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), [how](https://edgemodders.github.io/EDGEwave/api.html#playing-with-no-tab)).
 - **Game Assets** in EDGEwave's activity bar: the game's sounds only, so there is no going to REDcode and back. Sound effects by event, voice lines by language and folder, music and streamed sounds; big folders grouped by name. Click to hear one; add it to the open sound, open it in EDGEwave, or copy its name. **Filter** takes words or `*` patterns, as REDcode's does ([how](https://edgemodders.github.io/EDGEwave/game-assets.html)).
-- **A new sound for this project…**, first in Add to Project: name the mix (`edgewave_<name>` by default), and quests, scenes and scripts play it by that name, as a REDmod custom sound. Replaces nothing. Pick how it plays in plain words: a sound effect heard from where it plays, or the same everywhere (2D).
-- **Project sounds** in the Sounds view: the project's named sounds, with their type and length. Click one to hear it; copy its name for a quest or a script.
-- Other tools' sound pickers (EDGEwave's `soundEvents`, the MCP server's `sound_events` with `project`) list the project's own sounds first, so EDGEquest offers them without typing a name ([how](https://edgemodders.github.io/EDGEwave/api.html#sound-events)).
+- Game Assets: a **▶** on every sound plays it at once, without opening a tab; **▶** again while it plays stops it. An event plays one of its variations; a voice line's `.wem` is decoded from Ogg Vorbis in EDGEwave. Windows only for now.
 - **Create a Sound** (the + in the Sounds view): a new, empty sound, saved by default in the project's `source/raw/edgewave/sounds`. Fill it with Add Sound, Generate Sound or Speak Line, or by dropping sound files on it.
 - Drop sound files on the editor, holding Shift as you drop: on the lanes each becomes a new track; on the clip the first becomes the selected track's sound, its edits cleared. Files from the desktop are copied beside the sound, into `<name>.sounds`; files from VS Code's Explorer are used where they are.
-- Add to Project: **As a REDnode sound**. A REDnode package plays the mix where its code calls `audio.play`, beside the game's sound, following the game's volume sliders. No REDmod and no `.wem`, so voice lines too. EDGEwave writes the WAV into a package's `sounds` folder and its `rednode-app.json`, or makes a new package, in the project or in the game folder, where REDnode plays it without a restart ([#2](https://github.com/Edgemodders/EDGEwave/issues/2), [how](https://edgemodders.github.io/EDGEwave/a3-game.html#as-a-rednode-sound)).
-
+- **A new sound for this project…**, first in Add to Project: name the mix (`edgewave_<name>` by default), and quests, scenes and scripts play it by that name, as a REDmod custom sound. Replaces nothing. Pick how it plays in plain words: a sound effect heard from where it plays, or the same everywhere (2D).
+- **Project sounds** in the Sounds view: the project's named sounds, with their type and length. Click one to hear it; copy its name for a quest or a script.
 - **Voice Lines** for a quest: EDGEquest hands over a quest's dialogue lines, and EDGEwave voices them through ElevenLabs, two takes for V (female and male) and one for anyone else, named as the game names voice files. Pick a voice per speaker, Generate All or one line, play each take, swap in a recording, go back to the previous take, or edit a take in the studio. Lines whose words changed show as changed and are voiced again; `eleven_v3` follows the lines' delivery tags such as `[softly]` ([#5](https://github.com/Edgemodders/EDGEwave/issues/5), [how](https://edgemodders.github.io/EDGEwave/voice-lines.html)).
+- **EDGEwave Voice for REDnode**, a game mod: other REDnode mods speak lines of text on demand, such as an AI companion's replies, in a voice you set up, through ElevenLabs with your own key. Lines are cached, so a line spoken before plays at once without spending credits. **EDGEwave: Voices for REDnode…** installs it in the game and names your voices; it is also its own download on each GitHub release and on Nexus Mods ([how](https://edgemodders.github.io/EDGEwave/rednode-voice.html)).
 - Sound events for quests: other tools search the game's own list of sound events (every event in 2.31 has its name), hear one, and make a sound into a new event a quest can post, as a REDmod custom sound ([#7](https://github.com/Edgemodders/EDGEwave/issues/7), [how](https://edgemodders.github.io/EDGEwave/api.html#sound-events)).
+- Other tools' sound pickers (EDGEwave's `soundEvents`, the MCP server's `sound_events` with `project`) list the project's own sounds first, so EDGEquest offers them without typing a name ([how](https://edgemodders.github.io/EDGEwave/api.html#sound-events)).
+- Other tools' ▶ buttons play a sound at once, without opening EDGEwave's Hear tab: `playEvent` with `show: false` plays one of the event's recordings, and a second ▶ stops the first. **EDGEwave: Stop Sound** stops it. Windows only for now ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), [how](https://edgemodders.github.io/EDGEwave/api.html#playing-with-no-tab)).
 - An API for other EDGE extensions, and an MCP server for assistants such as Claude Code: voice a quest's lines, see which are voiced, list voices, search sound events, make a new event. **EDGEwave: Connect an Assistant (MCP)…** sets it up ([how](https://edgemodders.github.io/EDGEwave/api.html)).
+- Add to Project: **As a REDnode sound**. A REDnode package plays the mix where its code calls `audio.play`, beside the game's sound, following the game's volume sliders. No REDmod and no `.wem`, so voice lines too. EDGEwave writes the WAV into a package's `sounds` folder and its `rednode-app.json`, or makes a new package, in the project or in the game folder, where REDnode plays it without a restart ([#2](https://github.com/Edgemodders/EDGEwave/issues/2), [how](https://edgemodders.github.io/EDGEwave/a3-game.html#as-a-rednode-sound)).
 
 **Changed**
 
@@ -54,7 +40,13 @@ How to keep it:
 
 **Fixed**
 
+- Unsaved changes to a sound (such as a track added from Game Assets) were lost when the VS Code window reloaded, though the tab stayed marked unsaved. EDGEwave now puts them back, still unsaved until you save.
+- When the ElevenLabs API key is missing or refused ("Invalid API key"), Generate Sound, Speak Line, Re-Voice and Voice Lines said so with no way to fix it there. They now show **Set ElevenLabs API Key…** and a link to where to make one, on the dialog's message line; the voices load again once it is set.
 - Open Sound in EDGEwave… in REDcode's Project view shows on sound files only (`.wem`, `.wav`, `.ogg`, `.opus`, `.mp3`, `.flac`), not on every file such as an `.mlsetup` ([#6](https://github.com/Edgemodders/EDGEwave/issues/6)).
+
+**Other**
+
+- Each release now updates the [Nexus Mods page](https://www.nexusmods.com/cyberpunk2077/mods/35493) too: the extension as the main file, EDGEwave Voice for REDnode as an optional file, the changelog and the description.
 
 ## 0.1.0 (2026-10-20)
 

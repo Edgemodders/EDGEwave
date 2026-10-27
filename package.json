@@ -4,7 +4,7 @@
   "description": "The sound studio for Cyberpunk 2077 modding: edit, mix and re-voice the game's sounds and put them into your mod. Builds on REDcode.",
   "preview": true,
   "publisher": "edgemodders",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "galleryBanner": {
     "color": "#08090d",
