@@ -14,13 +14,14 @@ Counted in game 2.31 through REDbridge:
 
 Sound banks (202 `.bnk`) and the `.opuspak` files themselves are not listed: they do not play on their own.
 
-**Big folders are grouped** by the parts of the names, split at `_`, without a voice line's ending (`_f_` or `_m_` and its 16-digit id): `judy_…`, then `judy_q307_…`, then the files. A level holds at most 400 items; a group of one shows as its item.
+**Big folders are grouped** by the parts of the names, split at `_`, without a voice line's ending (`_f_` or `_m_` and its 16-digit id): `judy`, then `judy_q307`, then the files; a group shows the start its names share and how many it holds (`1,234 files`). A level holds at most 400 items; a group of one shows as its item. When the view is narrow, VS Code cuts the count before the name.
 
 ## What it does
 
 | Action | |
 |---|---|
 | Click | Plays it in the **Hear** panel, through REDcode: an event's variations (one at random, as the game does), a variation, a voice line, a streamed sound |
+| **▶** (hover; added 2026-10-27) | Plays it at once with no tab, through the hidden Windows player (as `playEvent` with `show: false`): an event plays one of its variations. **▶** again while it plays stops it; **EDGEwave: Stop Sound** too. A `.wem` comes from REDcode as Ogg Vorbis and is decoded in EDGEwave (libvorbis in WebAssembly, from `@wasm-audio-decoders/ogg-vorbis`, MIT; its LGPL Ogg parser is not used: `src/audio/ogg.ts` splits the pages). When it cannot play, a message offers the Hear tab |
 | **Add to the Open Sound** (the + beside it) | A new track on the sound whose EDGEwave editor was active last (a voice line marked as one). With none open, it offers to open the sound on its own, or Create a Sound |
 | **Open in EDGEwave** (inline) | The sound in its own document, as REDcode's Open in EDGEwave does |
 | **Copy Name** (right-click) | An event's name, for a quest or a script; a file's path; a variation's hash |

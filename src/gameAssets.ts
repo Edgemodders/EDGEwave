@@ -231,9 +231,11 @@ export class GameAssets implements vscode.TreeDataProvider<AssetNode> {
       }
       case "sfxGroup":
       case "fileGroup": {
-        const item = new vscode.TreeItem(`${n.prefix}_…`, open);
+        // The shared start of the names inside, in full; the count after it, which the view cuts first when narrow.
+        const item = new vscode.TreeItem(n.prefix, open);
         item.id = `${n.kind}:${n.kind === "fileGroup" ? n.folder : ""}:${n.prefix}:${this.filter?.pattern ?? ""}`;
-        item.description = `${n.count.toLocaleString("en-US")}`;
+        item.description = `${n.count.toLocaleString("en-US")} ${n.kind === "sfxGroup" ? "events" : "files"}`;
+        item.tooltip = `${n.count.toLocaleString("en-US")} ${n.kind === "sfxGroup" ? "events" : "files"} whose names start with ${n.prefix}_`;
         item.iconPath = new vscode.ThemeIcon("folder");
         return item;
       }
@@ -311,9 +313,33 @@ export class GameAssets implements vscode.TreeDataProvider<AssetNode> {
         const ok = await this.events.hear(`${n.event.name} · ${n.soundHash}`, [{ ref: { soundHash: n.soundHash, eventHash: n.event.hash }, label: `Variation ${n.index + 1}` }], [`Sound ${n.soundHash}, variation ${n.index + 1} of ${n.event.sounds.length}: the raw recording, without the game's effects.`]);
         if (!ok) throw new Error(`REDcode could not read sound ${n.soundHash}; see REDcode's output`);
       } else if (n?.kind === "file") {
-        const ok = await this.events.hear(baseName(n.file.name), [{ ref: { path: n.file.name }, label: "Play" }], [n.file.name, `${formatSize(n.file.size)} in ${n.file.archive}.`]);
+        const ok = await this.events.hear(baseName(n.file.name), [{ ref: { path: n.file.name }, label: baseName(n.file.name) }], [n.file.name, `${formatSize(n.file.size)} in ${n.file.archive}.`]);
         if (!ok) throw new Error(`REDcode could not read ${baseName(n.file.name)}; see REDcode's output`);
       }
+    } catch (e) {
+      void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+    }
+  }
+
+  /** ▶ on a sound: plays it at once with no tab (an event: one of its variations); again while it plays stops it. */
+  async play(n?: AssetNode): Promise<void> {
+    const refs =
+      n?.kind === "event"
+        ? n.event.sounds.map((s) => ({ ref: { soundHash: s, eventHash: n.event.hash }, label: String(s) }))
+        : n?.kind === "variation"
+          ? [{ ref: { soundHash: n.soundHash, eventHash: n.event.hash }, label: String(n.soundHash) }]
+          : n?.kind === "file"
+            ? [{ ref: { path: n.file.name }, label: baseName(n.file.name) }]
+            : [];
+    if (!n || !refs.length) return;
+    const name = n.kind === "file" ? baseName(n.file.name) : n.kind === "event" || n.kind === "variation" ? n.event.name : "";
+    try {
+      const r = await this.events.playQuiet(n.kind === "file" ? n.file.name : `${n.kind}:${refs.map((x) => x.label).join()}`, refs);
+      if (!r.ok) {
+        const hear = "Open in the Hear Tab";
+        if ((await vscode.window.showWarningMessage(`EDGEwave: ${r.reason}`, hear)) === hear) await this.hear(n);
+      } else if ("stopped" in r) vscode.window.setStatusBarMessage(`EDGEwave: stopped ${name}`, 2000);
+      else vscode.window.setStatusBarMessage(`EDGEwave: playing ${name}${r.variations > 1 ? ` (${r.played}, one of ${r.variations})` : ""}; ▶ again stops it`, 4000);
     } catch (e) {
       void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
     }

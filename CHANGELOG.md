@@ -13,10 +13,14 @@ How to keep it:
 
 **New**
 
+- Game Assets: a **▶** on every sound plays it at once, without opening a tab; **▶** again while it plays stops it. An event plays one of its variations; a voice line's `.wem` is decoded from Ogg Vorbis in EDGEwave. Windows only for now.
 - **EDGEwave Voice for REDnode**, a game mod: other REDnode mods speak lines of text on demand, such as an AI companion's replies, in a voice you set up, through ElevenLabs with your own key. Lines are cached, so a line spoken before plays at once without spending credits. **EDGEwave: Voices for REDnode…** installs it in the game and names your voices; it is also its own download on each GitHub release ([how](https://edgemodders.github.io/EDGEwave/rednode-voice.html)).
 
 **Fixed**
 
+- Speak Line: **Set ElevenLabs API Key…** could not be clicked when the dialog started on the selected line's own voice (the voice list is dimmed then); the button is now also on the dialog's message line.
+- The Hear tab for one voice line said **Play Play**; it says **Play**.
+- Game Assets: a group of files is named by the start its files share, without the `_…` that read as a name cut off, and its count says what it counts (`1,234 files`).
 - When the ElevenLabs API key is missing or refused ("Invalid API key"), Generate Sound, Speak Line, Re-Voice and Voice Lines now say so with a **Set ElevenLabs API Key…** button and a link to where to make one; the voices load again once it is set.
 
 **New**

@@ -12,7 +12,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { customSoundNote, makeCustomSound, projectSounds, type CustomSoundResult, type ProjectSound } from "./customSound";
+import { oggToWav } from "./audio/ogg";
+import { customSoundNote, makeCustomSound, projectSounds, wavSeconds, type CustomSoundResult, type ProjectSound } from "./customSound";
 import { eventsFromMetadata, indexFile, MetadataPath, searchEvents, type EventIndex, type EventMatch, type EventQuery, type GameEvent } from "./events";
 import { QuietPlayer } from "./player";
 import { redcode, type REDcodeApi, type SoundRef } from "./redcode";
@@ -49,6 +50,8 @@ export class SoundEvents {
   private sounds?: Promise<Map<number, number[]>>;
   private preview?: vscode.WebviewPanel;
   private readonly player: QuietPlayer;
+  /** What plays with no tab now, and until when, so ▶ on it again stops it. */
+  private now?: { key: string; until: number };
 
   constructor(private readonly context: vscode.ExtensionContext, private readonly log: Log) {
     this.player = new QuietPlayer(log);
@@ -137,7 +140,7 @@ export class SoundEvents {
     if (mine && dir) {
       if (!mine.file || mine.missing) return { ok: false, reason: `${mine.name} is the project's, but its WAV ${mine.file ?? ""} is missing.` };
       const data = fs.readFileSync(path.join(dir, mine.file));
-      if (!show) return this.quiet(data, "project", 1, path.basename(mine.file));
+      if (!show) return this.quiet(data, "audio/wav", "project", 1, path.basename(mine.file));
       this.showPreview(mine.name, [`This project's sound: ${mine.type}${mine.seconds ? `, ${mine.seconds} s` : ""}. A quest, scene or script plays it by this name.`], [{ data, mime: "audio/wav", label: path.basename(mine.file) }]);
       return { ok: true, where: "project", variations: 1 };
     }
@@ -160,18 +163,26 @@ export class SoundEvents {
         this.log(`Play ${event.name}: ${pick}: ${(e as Error).message}`);
         return { ok: false, reason: `REDcode could not read ${event.name}'s sound ${pick}; see REDcode's output.` };
       }
-      if (a.mime !== "audio/wav") return { ok: false, reason: `REDcode gave ${event.name}'s sound ${pick} as ${a.mime}, which plays only in the Hear tab (show: true).` };
-      return this.quiet(a.data, "archive", sounds.length, String(pick));
+      return this.quiet(a.data, a.mime, "archive", sounds.length, String(pick));
     }
     const shown = await this.hear(event.name, sounds.map((s) => ({ ref: { soundHash: s, eventHash: event.hash }, label: String(s) })), eventNotes(event, sounds.length));
     if (!shown) return { ok: false, reason: `REDcode could not read ${event.name}'s sounds; see REDcode's output.` };
     return { ok: true, where: "archive", variations: sounds.length };
   }
 
-  /** Plays a WAV with no tab (src/player.ts). */
-  private async quiet(wav: Uint8Array, where: "archive" | "project", variations: number, played: string): Promise<PlayResult> {
+  /** Plays audio with no tab (src/player.ts), which takes WAV: Ogg (a .wem from REDcode) is decoded first. */
+  private async quiet(data: Uint8Array, mime: string, where: "archive" | "project", variations: number, played: string, key = played): Promise<PlayResult> {
     try {
+      const wav = mime === "audio/wav" ? data : mime === "audio/ogg" ? await oggToWav(data) : undefined;
+      if (!wav) return { ok: false, reason: `${played} is ${mime}, which plays only in the Hear tab.` };
       await this.player.play(wav);
+      let seconds = 0;
+      try {
+        seconds = wavSeconds(wav);
+      } catch {
+        // A WAV without a length: ▶ again plays it again.
+      }
+      this.now = { key, until: Date.now() + seconds * 1000 };
       return { ok: true, where, variations, played };
     } catch (e) {
       this.log(`Play ${played}: ${(e as Error).message}`);
@@ -181,7 +192,31 @@ export class SoundEvents {
 
   /** Stops the sound playing with no tab, if one is. */
   stop(): Promise<void> {
+    this.now = undefined;
     return this.player.stop();
+  }
+
+  /**
+   * Plays a game sound with no tab (Game Assets' ▶): one of `refs` at random, as the game picks a variation.
+   * ▶ again on the same item while it plays stops it.
+   */
+  async playQuiet(key: string, refs: { ref: SoundRef; label: string }[]): Promise<PlayResult | { ok: true; stopped: true }> {
+    const why = QuietPlayer.unavailable();
+    if (why) return { ok: false, reason: why };
+    if (this.now?.key === key && Date.now() < this.now.until) {
+      await this.stop();
+      return { ok: true, stopped: true };
+    }
+    const pick = refs[Math.floor(Math.random() * refs.length)];
+    if (!pick) return { ok: false, reason: "Nothing to play." };
+    let a;
+    try {
+      a = await (await redcode()).sound(pick.ref);
+    } catch (e) {
+      this.log(`Play ${pick.label}: ${(e as Error).message}`);
+      return { ok: false, reason: `REDcode could not read ${pick.label}: ${(e as Error).message}` };
+    }
+    return this.quiet(a.data, a.mime, "archive", refs.length, pick.label, key);
   }
 
   /**
@@ -227,7 +262,7 @@ const audio = new Audio(); const b = document.getElementById("b");
 const play = (i) => { const c = clips[i]; const bytes = Uint8Array.from(atob(c.b64), (x) => x.charCodeAt(0));
   audio.src = URL.createObjectURL(new Blob([bytes], { type: c.mime })); audio.play().catch(() => {});
   [...b.children].forEach((x, j) => x.classList.toggle("on", j === i)); };
-clips.forEach((c, i) => { const x = document.createElement("button"); x.textContent = "Play " + c.label; x.onclick = () => play(i); b.append(x); });
+clips.forEach((c, i) => { const x = document.createElement("button"); x.textContent = clips.length === 1 ? "Play" : "Play " + c.label; x.onclick = () => play(i); b.append(x); });
 if (clips.length > 1) { const r = document.createElement("button"); r.textContent = "Play a random one"; r.onclick = () => play(Math.floor(Math.random() * clips.length)); b.append(r); }
 play(Math.floor(Math.random() * clips.length));
 </script></body></html>`;

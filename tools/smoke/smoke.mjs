@@ -25,6 +25,8 @@ for (const f of ["api.json", "voiceLines.json", "home"]) fs.rmSync(path.join(T, 
 fs.mkdirSync(path.join(T, "game"), { recursive: true });
 fs.mkdirSync(path.join(T, "proj", "source", "raw"), { recursive: true });
 fs.cpSync(path.join(here, "stub"), path.join(T, "stub"), { recursive: true });
+// The stub's .wem: a made Ogg Vorbis tone.
+fs.copyFileSync(path.join(repo, "test", "fixtures", "tone.ogg"), path.join(T, "tone.ogg"));
 // SMOKE_SLOW=2 doubles every wait and the time limit, for a busy machine (other VS Code windows open).
 const slow = Math.max(1, Number(process.env.SMOKE_SLOW) || 1);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms * slow));
@@ -344,7 +346,7 @@ const clickDialogButton = async (text) => {
 // No key: Speak Line's voice list asks for one; Escape leaves the list saying so, with Set ElevenLabs API
 // Key… Set there a wrong key (the stand-in refuses bad-key with a 401), then the right one: the voices load.
 const keyBox = () => run(`for (let i = 0; i < 40 && !document.querySelector('#dialog .voices .keyfix') && !document.querySelector('#dialog .voice'); i++) await new Promise((r) => setTimeout(r, 250));
-  return { text: document.querySelector('#dialog .voices')?.textContent ?? '', fix: !!document.querySelector('#dialog .voices .keyfix button.primary'), voices: document.querySelectorAll('#dialog .voice').length }`);
+  return { text: document.querySelector('#dialog .voices')?.textContent ?? '', fix: !!document.querySelector('#dialog .voices .keyfix button.primary'), statusFix: !!document.querySelector('#dialog .status .keyfix button.primary:not(:disabled)'), voices: document.querySelectorAll('#dialog .voice').length }`);
 await run("document.getElementById('speakLine').click()");
 await sleep(1500);
 await key("Escape", "Escape", 27); // the key's input box
@@ -363,7 +365,8 @@ await sleep(1000);
 const goodKey = await keyBox();
 log("api key", JSON.stringify({ noKey, badKey, goodKey }));
 await run("document.querySelector('#dialog .x').click()");
-const keyOk = noKey.fix && /No ElevenLabs API key/.test(noKey.text) && badKey.fix && /refused the API key: Invalid API key/.test(badKey.text) && !goodKey.fix && goodKey.voices === 1;
+// The buttons are on the dialog's status line too, which is never dimmed (the voice list is, for the line's own voice).
+const keyOk = noKey.fix && noKey.statusFix && badKey.statusFix && /No ElevenLabs API key/.test(noKey.text) && badKey.fix && /refused the API key: Invalid API key/.test(badKey.text) && !goodKey.fix && goodKey.voices === 1;
 if (!keyOk) finish(false, "a missing or wrong ElevenLabs key did not offer Set ElevenLabs API Key");
 
 // Generate Sound makes takes in the dialog; only the one added becomes a track.
@@ -767,6 +770,22 @@ await sleep(2000);
 const rowsFiltered = await assetRows();
 const added = await clickAsset("judy_smoke_f_000000000000002a.wem", ".action-label[aria-label='Add to the Open Sound'], .action-label[title='Add to the Open Sound']");
 await sleep(1200);
+// ▶ on the voice line plays it with no tab (the stub gives a .wem as Ogg Vorbis, as REDcode does: decoded to WAV
+// for the hidden player); ▶ again while it plays stops it. The status bar says which.
+const tabsBeforePlay = await evalIn(bench, "document.querySelectorAll('.tab').length");
+const statusText = () => evalIn(bench, "document.querySelector('.part.statusbar')?.textContent ?? ''");
+const playButton = ".action-label[aria-label='Play'], .action-label[title='Play']";
+const played = await clickAsset("judy_smoke_f_000000000000002a.wem", playButton);
+let playStatus = "";
+for (let i = 0; i < 20 && !/playing judy_smoke/.test(playStatus); i++) { await sleep(300); playStatus = await statusText(); }
+await clickAsset("judy_smoke_f_000000000000002a.wem", playButton);
+let stopStatus = "";
+for (let i = 0; i < 20 && !/stopped judy_smoke/.test(stopStatus); i++) { await sleep(300); stopStatus = await statusText(); }
+const tabsAfterPlay = await evalIn(bench, "document.querySelectorAll('.tab').length");
+const playOk = played && /playing judy_smoke_f_000000000000002a\.wem/.test(playStatus) && /stopped judy_smoke_f_000000000000002a\.wem/.test(stopStatus) && tabsAfterPlay === tabsBeforePlay;
+const toasts = await evalIn(bench, "[...document.querySelectorAll('.notification-toast, .notifications-center .monaco-list-row')].map((t) => t.textContent.trim()).join(' | ')");
+log("game assets play", JSON.stringify({ toasts, played, playStatus: playStatus.match(/EDGEwave: [^]*?(?=\s{2}|$)/)?.[0], stopStatus: stopStatus.match(/EDGEwave: [^]*?(?=\s{2}|$)/)?.[0], tabsBeforePlay, tabsAfterPlay }));
+if (!playOk) finish(false, "Game Assets' play button did not play and stop the voice line without a tab");
 // Save Smoke New (the sound added to) from its tab.
 await evalIn(bench, "[...document.querySelectorAll('.tab')].find((t) => t.textContent.includes('Smoke New'))?.click()");
 await sleep(600);
@@ -793,4 +812,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");

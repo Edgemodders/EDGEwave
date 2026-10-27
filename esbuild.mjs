@@ -9,7 +9,13 @@ const watch = process.argv.includes("--watch");
 const tests = process.argv.includes("--tests");
 const production = process.argv.includes("--production");
 
-const common = { bundle: true, sourcemap: !production, minify: production, logLevel: "info" };
+// The Ogg Vorbis decoder's MIT parts (src/audio/ogg.ts), by file: its package exports only its whole decoder,
+// which brings codec-parser (LGPL-3.0), not bundled.
+const alias = {
+  "edgewave-vorbis-common": "@wasm-audio-decoders/common",
+  "edgewave-vorbis-wasm": "./node_modules/@wasm-audio-decoders/ogg-vorbis/src/EmscriptenWasm.js",
+};
+const common = { bundle: true, sourcemap: !production, minify: production, logLevel: "info", alias };
 
 const extension = {
   ...common,

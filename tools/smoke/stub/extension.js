@@ -88,8 +88,10 @@ exports.activate = (context) => {
     onDidChangeProject: new vscode.EventEmitter().event,
     soundIndex: async () => ({ count: 3, events: [{ hash: 7, name: "smoke_event", tags: [], sounds: [42] }, { hash: 8, name: "smoke_second", tags: ["smoke"], sounds: [43, 44] }] }),
     sound: async (ref) => {
-      // A game file (the Game Assets' voice lines): a 1 s mono tone, as REDcode serves a .wem decoded.
-      if (ref.path) return { data: tone(1, 48000, 1, 500), mime: "audio/wav", codec: "Vorbis", channels: 1, sampleRate: 48000, name: ref.path.split("\\").pop() };
+      // A game file (the Game Assets' voice lines): a .wem comes as Ogg Vorbis, as REDcode serves it (a made tone,
+      // test/fixtures/tone.ogg, copied beside the stub by smoke.mjs); anything else as a 1 s mono WAV tone.
+      if (ref.path?.endsWith(".wem")) return { data: require("fs").readFileSync(path.join(T, "tone.ogg")), mime: "audio/ogg", codec: "Vorbis", channels: 1, sampleRate: 48000, name: ref.path.split("\\").pop() };
+      if (ref.path) return { data: tone(1, 48000, 1, 500), mime: "audio/wav", codec: "PCM", channels: 1, sampleRate: 48000, name: ref.path.split("\\").pop() };
       const s = { 42: [2, 2, 440], 43: [1.5, 1, 660], 44: [0.5, 1, 880] }[ref.soundHash];
       if (!s) throw new Error("no such sound");
       return { data: tone(s[0], 48000, s[1], s[2]), mime: "audio/wav", codec: "PCM", channels: s[1], sampleRate: 48000, name: `${ref.soundHash}.wav` };

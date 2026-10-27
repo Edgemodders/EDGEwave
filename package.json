@@ -141,6 +141,12 @@
         "icon": "$(go-to-file)"
       },
       {
+        "command": "edgewave.playGameSound",
+        "title": "Play",
+        "category": "EDGEwave",
+        "icon": "$(play)"
+      },
+      {
         "command": "edgewave.gameAssets.filter",
         "title": "Filter the Game's Sounds",
         "category": "EDGEwave",
@@ -264,6 +270,10 @@
           "when": "false"
         },
         {
+          "command": "edgewave.playGameSound",
+          "when": "false"
+        },
+        {
           "command": "edgewave.openGameSound",
           "when": "false"
         },
@@ -365,6 +375,11 @@
           "command": "edgewave.revealSound",
           "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
           "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.playGameSound",
+          "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
+          "group": "inline@0"
         },
         {
           "command": "edgewave.addGameSound",
@@ -471,6 +486,7 @@
     "@types/vscode": "1.80.0",
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^4.0.0",
+    "@wasm-audio-decoders/ogg-vorbis": "0.1.20",
     "esbuild": "^0.28.2",
     "ovsx": "^1.3.0",
     "typescript": "~5.9.3",
