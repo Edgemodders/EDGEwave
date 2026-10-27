@@ -9,10 +9,21 @@
 #                                               (raise the version in package.json) or CHANGELOG.md has
 #                                               no section for the version (the release notes,
 #                                               tools/release-notes.mjs)
+#   ... and "Update Nexus Mods" ticked          also, after the GitHub release, updates the Nexus page
+#                                               (35493, tools/nexus/nexus.mjs, the NEXUS_KEY secret):
+#                                               the Nexus zip as the main file's new version (the old one
+#                                               archived, Mod Manager Download off), EDGEwave Voice's zip
+#                                               as the optional file's new version when its version is
+#                                               new (Mod Manager Download on), the version's changelog,
+#                                               and nexus/description.bbcode. It checks first, before
+#                                               anything is published, and stops if the description
+#                                               changed on Nexus since the last pull (npm run nexus:pull,
+#                                               merge, commit, run again). If the Nexus step fails after
+#                                               the other stores, run tools/nexus/nexus.mjs release on
+#                                               the dev PC with the same arguments
 #
-# One .vsix for every platform: EDGEwave has no native parts. The Nexus zip (tools/nexus-zip.mjs) is
-# uploaded to Nexus by hand. Both tokens are Edgemodders organisation secrets, shared with REDcode's and
-# EDGEdeck's workflows. Release gate: make a release only after every hand test of the phases in it has
+# One .vsix for every platform: EDGEwave has no native parts. The tokens are Edgemodders organisation
+# secrets, shared with REDcode's, EDGEdeck's and REDnode's workflows. Release gate: make a release only after every hand test of the phases in it has
 # passed (docs/testing.md).
 name: Publish
 
@@ -21,6 +32,10 @@ on:
     inputs:
       release:
         description: Make a release (publishes to the Marketplace and Open VSX, and tags this commit v<version>). Only after every hand test has passed
+        type: boolean
+        default: false
+      nexus:
+        description: Update Nexus Mods (with Make a release) - upload both zips, the changelog and the page's description
         type: boolean
         default: false
 
@@ -35,6 +50,8 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the tags: the Nexus check compares with the previous release's description
 
       - uses: actions/setup-node@v5
         with:
@@ -47,6 +64,11 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           node tools/release-notes.mjs "${version}" --out "${RUNNER_TEMP}/notes.md" || { echo "::error::CHANGELOG.md has no section for ${version}: rename Unreleased first"; exit 1; }
+          node tools/release-notes.mjs "${version}" --nexus --out "${RUNNER_TEMP}/nexus-notes.txt"
+          if [ "${{ inputs.nexus }}" = "true" ] && [ "${{ inputs.release }}" != "true" ]; then
+            echo "::error::Update Nexus Mods needs Make a release ticked too"
+            exit 1
+          fi
           if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
             if [ "${{ inputs.release }}" = "true" ]; then
               echo "::error::v${version} is released already: raise the version in package.json"
@@ -54,7 +76,15 @@ jobs:
             fi
             echo "::warning::v${version} is released already; this run only packages"
           fi
-          { echo "VERSION=${version}"; echo "VSIX=${GITHUB_WORKSPACE}/dist/edgewave-${version}.vsix"; } >> "$GITHUB_ENV"
+          voice=$(node -p "require('./rednode/edgewave-voice/rednode-app.json').version")
+          { echo "VERSION=${version}"; echo "VOICE_VERSION=${voice}"; echo "VSIX=${GITHUB_WORKSPACE}/dist/edgewave-${version}.vsix"; } >> "$GITHUB_ENV"
+
+      # Before anything is published: Nexus takes this release, and its description has no edit the repo lacks.
+      - name: Nexus Mods can take this release
+        if: ${{ inputs.release && inputs.nexus }}
+        env:
+          NEXUS_KEY: ${{ secrets.NEXUS_KEY }}
+        run: node tools/nexus/nexus.mjs check --version "${VERSION}" --file "voice=${VOICE_VERSION}"
 
       - run: npm ci
       - run: npm run typecheck
@@ -105,3 +135,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "v${VERSION}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" dist/edgewave-voice-*.zip --target "${GITHUB_SHA}" --title "EDGEwave ${VERSION}" --notes-file "${RUNNER_TEMP}/notes.md"
+
+      - name: Nexus Mods
+        if: ${{ inputs.release && inputs.nexus && !cancelled() && steps.package.outcome == 'success' }}
+        env:
+          NEXUS_KEY: ${{ secrets.NEXUS_KEY }}
+        run: |
+          node tools/nexus/nexus.mjs release --version "${VERSION}" --zip "dist/EDGEwave-${VERSION}-nexus.zip" \
+            --notes "${RUNNER_TEMP}/nexus-notes.txt" --file "voice=dist/edgewave-voice-${VOICE_VERSION}.zip@${VOICE_VERSION}"

@@ -22,14 +22,22 @@ The source of EDGEwave's Nexus Mods page lives here, so updates are edits in the
 | Permissions | MIT: open source, free to modify and redistribute with the license notice |
 | Tags | Modders resource, utility, tools, audio |
 
-## Before the first upload
+## The page and the release
 
-| To do | Why |
+The page is [35493](https://www.nexusmods.com/cyberpunk2077/mods/35493), first uploaded by hand (0.1.0, 2026-10-21). From 0.2.0 the Publish workflow's **Update Nexus Mods** box keeps it current ([Release](https://edgemodders.github.io/EDGEwave/release.html)), through `tools/nexus/nexus.mjs` (copied from REDnode's on 2026-10-27, extended for a second file) and the organisation's `NEXUS_KEY`.
+
+| File | What it says |
 |---|---|
-| ~~Publish EDGEwave to the Marketplace and Open VSX~~ | Done 2026-10-20 (0.1.0): the description's links to `Edgemodders.edgewave` and `edgemodders/edgewave` work |
-| The four screenshots | The description has placeholders in cyan italics, `(Screenshot N: ...)`. Save each picture in `nexus/images/` (WebP), push, then replace its line with `[img]https://raw.githubusercontent.com/Edgemodders/EDGEwave/main/nexus/images/<name>[/img]` and a one-line caption, as REDcode's page does. Uploading it to the page's Images tab too puts it in the gallery |
-| The STATUS box | Updated 2026-10-20: every part tested by hand. Change it when the preview flag goes |
-| The Nexus zip | `npm run nexus-zip` builds it after `npm run package`; the publish workflow attaches it to the GitHub release ([Release](https://edgemodders.github.io/EDGEwave/release.html)) |
+| `nexus.json` | The page, the main file's upload settings (`upload`) and the optional file's (`files.voice`), the ids `pull` found, and the hash of the description last pulled |
+| `description.bbcode` | The description. The release pushes it when it differs from the live one, but only when the live one is the one last pulled or the one the previous release pushed; otherwise it stops, so an edit made on Nexus is never lost |
+
+| Command | Does |
+|---|---|
+| `npm run nexus:status` | The page's version, both files and their versions, and whether the description matches |
+| `npm run nexus:pull` | The live description into `description.bbcode`, the ids into `nexus.json`. Then `git diff nexus/` and merge. With `-- --ids-only`, the ids and the live description's hash, keeping the repo's description |
+| `node tools/nexus/nexus.mjs check --version <v> --file voice=<v>` | What a release would do, and whether it may |
+
+Pulled 2026-10-27: the live page had the owner's six screenshots and the 0.1.0 text; the repo's text was merged with them (the screenshots stay on Nexus's own image host).
 
 ## The download
 
@@ -51,8 +59,9 @@ File description on Nexus:
 
 1. Edit `description.bbcode` here, commit, push.
 2. Check it: `node tools/check-bbcode.mjs nexus/description.bbcode`.
-3. Paste the whole file into the description field on Nexus and save.
-4. For a new version: upload the release's Nexus zip as the main file with the version from `package.json`, Mod Manager Download off. Archive the old file. Paste the output of `npm run release:notes -- --nexus` into the page's changelog for that version: one plain line per change, from `CHANGELOG.md`.
+3. The next release pushes it (above). To push it sooner, paste it into the description on Nexus, then `npm run nexus:pull -- --ids-only` so the repo knows the live one.
+
+The optional file, **EDGEwave Voice for REDnode** (`edgewave-voice-<version>.zip`, from `tools/rednode-zip.mjs`): a game mod, so Mod Manager Download is on; it unzips into the game folder as `red4ext/plugins/REDnode/apps/edgewave-voice/`. Its version is its own, and the release uploads it only when that version is not on Nexus yet.
 
 Keep these in step with the extension (its README and CHANGELOG):
 

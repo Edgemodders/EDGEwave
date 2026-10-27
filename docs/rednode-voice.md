@@ -6,7 +6,7 @@ Status: **built 2026-10-27** at the owner's request; hand test in the game pendi
 
 | | |
 |---|---|
-| A game mod | `edgewave-voice`, a REDnode package (a Node mod with a service file). Downloaded on its own from EDGEwave's [GitHub releases](https://github.com/Edgemodders/EDGEwave/releases) (`edgewave-voice-<version>.zip`), or installed by EDGEwave's **Voices for REDnode…** |
+| A game mod | `edgewave-voice`, a REDnode package (a Node mod with a service file). Needs REDnode 0.36 or later (a package's own sounds, secrets, the window builder, and services with their descriptions and tools; no newer REDnode is needed). Downloaded on its own from EDGEwave's [GitHub releases](https://github.com/Edgemodders/EDGEwave/releases) or [Nexus page](https://www.nexusmods.com/cyberpunk2077/mods/35493) (an optional file, `edgewave-voice-<version>.zip`), or installed by EDGEwave's **Voices for REDnode…** |
 | Speech | ElevenLabs text to speech, with the player's own API key. Model `eleven_flash_v2_5` unless `voices.json` says otherwise; 24 kHz mono |
 | Plays | Through REDnode's audio on the game's **Dialogue** slider; pauses in menus |
 | Cache | Each line is kept as a WAV in the package's `.cache` folder: the same text in the same voice plays again at once, with no credits spent. Up to 200 MB; the lines used longest ago go first |

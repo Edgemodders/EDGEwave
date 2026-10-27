@@ -1,0 +1,28 @@
+{
+  "page": 35493,
+  "upload": {
+    "name": "EDGEwave",
+    "category": "main",
+    "primary": false,
+    "modManager": false,
+    "archivePrevious": true,
+    "description": "EDGEwave {version}, the VS Code extension: not a game mod, so no Mod Manager Download. Needs REDcode. Extract, then in VS Code: Extensions view, ..., Install from VSIX. Or install it from the Marketplace or Open VSX, which add REDcode and update themselves."
+  },
+  "files": {
+    "voice": {
+      "name": "EDGEwave Voice for REDnode",
+      "category": "optional",
+      "primary": false,
+      "modManager": true,
+      "archivePrevious": true,
+      "description": "EDGEwave Voice {version}, a REDnode package (a game mod): other REDnode mods speak lines of text on demand, through ElevenLabs with your own key. Needs REDnode 0.36 or later. Install with Vortex or EDGEdeck, or extract into the game folder; set up its voices in VS Code with EDGEwave: Voices for REDnode..."
+    }
+  },
+  "mod": "14315126033061",
+  "file": 8202438,
+  "pulled": {
+    "sha256": "535449e91ddc39f9e2f8a83d04be2a088701851a649994543a36bab19095bac1",
+    "at": "2026-10-27T12:37:17.031Z",
+    "version": "0.1.0"
+  }
+}

@@ -10,7 +10,7 @@ const line = await voice.speak('Choom, you look like hell.', 'judy');
 voice.$on('ended', (e) => { if (e.id === line.id) console.log('done'); });
 ```
 
-- Needs REDnode in the game, an ElevenLabs account and its API key. Each new line spends your ElevenLabs credits; a line spoken before plays from the cache.
+- Needs REDnode 0.36 or later in the game, an ElevenLabs account and its API key. Each new line spends your ElevenLabs credits; a line spoken before plays from the cache.
 - Set up its voices in VS Code with EDGEwave: **EDGEwave: Voices for REDnode…**. That also installs or updates this package.
 - In the game, open **EDGEwave Voice** from REDnode's launcher (F10) and paste your key once. It is kept encrypted with your Windows account.
 

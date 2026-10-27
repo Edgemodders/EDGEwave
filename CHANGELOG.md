@@ -16,6 +16,10 @@ How to keep it:
 - Game Assets: a **▶** on every sound plays it at once, without opening a tab; **▶** again while it plays stops it. An event plays one of its variations; a voice line's `.wem` is decoded from Ogg Vorbis in EDGEwave. Windows only for now.
 - **EDGEwave Voice for REDnode**, a game mod: other REDnode mods speak lines of text on demand, such as an AI companion's replies, in a voice you set up, through ElevenLabs with your own key. Lines are cached, so a line spoken before plays at once without spending credits. **EDGEwave: Voices for REDnode…** installs it in the game and names your voices; it is also its own download on each GitHub release ([how](https://edgemodders.github.io/EDGEwave/rednode-voice.html)).
 
+**Other**
+
+- Each release now updates the [Nexus Mods page](https://www.nexusmods.com/cyberpunk2077/mods/35493) too: the extension as the main file, EDGEwave Voice for REDnode as an optional file, the changelog and the description.
+
 **Fixed**
 
 - Unsaved changes to a sound (such as a track added from Game Assets) were lost when the VS Code window reloaded, though the tab stayed marked unsaved. EDGEwave now puts them back, still unsaved until you save.
