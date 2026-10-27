@@ -57,6 +57,7 @@ type FromPage =
   | { type: "voiceTool"; id: number; req: VoiceRequest }
   | { type: "setKey" }
   | { type: "keyHelp" }
+  | { type: "restored" }
   | { type: "error"; text: string };
 
 type Pick = vscode.QuickPickItem & { pick?: "file" | "path"; event?: { hash: number; name: string | null; tags: string[]; sounds: number[] } };
@@ -151,10 +152,21 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
         post({ type: "renderFor", id, rate, channels });
       });
 
-    /** Sends the document; the page asks for the sources it has not got. */
+    /**
+     * Sends the document, and whether it differs from the file on disk (the page keeps unsaved edits across a
+     * reload; document.isDirty is not yet true when the change event comes); the page asks for the sources it
+     * has not got.
+     */
     const sendDoc = () => {
       try {
-        post({ type: "doc", doc: parseDoc(document.getText()) });
+        const text = document.getText();
+        let onDisk: string | undefined;
+        try {
+          onDisk = document.uri.scheme === "file" ? fs.readFileSync(document.uri.fsPath, "utf8") : undefined;
+        } catch {
+          // Not on disk (yet): unsaved.
+        }
+        post({ type: "doc", doc: parseDoc(text), dirty: text !== onDisk });
       } catch (e) {
         post({ type: "invalid", text: (e as Error).message });
       }
@@ -173,7 +185,14 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
     const changed = vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document.uri.toString() === document.uri.toString() && e.contentChanges.length) void sendDoc();
     });
-    panel.onDidDispose(() => changed.dispose());
+    // Saved: the page's unsaved copy is the saved one now.
+    const saved = vscode.workspace.onDidSaveTextDocument((d) => {
+      if (d.uri.toString() === document.uri.toString()) void sendDoc();
+    });
+    panel.onDidDispose(() => {
+      changed.dispose();
+      saved.dispose();
+    });
 
     webview.onDidReceiveMessage(async (m: FromPage) => {
       switch (m.type) {
@@ -228,6 +247,10 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
           return;
         case "keyHelp":
           this.voices.keyHelp();
+          return;
+        case "restored":
+          this.log.appendLine(`Restored the unsaved edits to ${document.uri.fsPath} after a window reload`);
+          void vscode.window.showInformationMessage(`EDGEwave: ${path.basename(document.uri.fsPath)} has its unsaved changes back from before the window reloaded. Save (Ctrl+S) to keep them, or File > Revert File to drop them.`);
           return;
         case "error":
           this.log.appendLine(`Page: ${m.text}`);

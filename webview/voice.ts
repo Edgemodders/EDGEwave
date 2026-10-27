@@ -234,10 +234,10 @@ function voiceList(status: Status) {
       },
       (e) => {
         voices = null;
-        const p = el("p", { class: "status error", textContent: (e as Error).message });
+        // A key problem: the list says so in a line, and the dialog's status line (never dimmed, unlike the
+        // list for Speak Line in the line's own voice) has the message and the buttons, once.
+        const p = el("p", { class: "status error", textContent: isKeyError(e) ? "Your voices need an ElevenLabs API key: see below." : (e as Error).message });
         if (isKeyError(e)) {
-          p.append(keyFix((m) => host.send(m)));
-          // The list may be dimmed (Speak Line in the line's own voice): the status line is never.
           status(...failure(e));
           afterKey.push(() => {
             list.replaceChildren(el("p", { class: "dim", textContent: "Loading your ElevenLabs voices…" }));

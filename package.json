@@ -473,6 +473,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p webview/tsconfig.json --noEmit",
     "test": "node esbuild.mjs --tests && node --test \"dist-test/*.test.cjs\"",
     "smoke": "node tools/smoke/smoke.mjs",
+    "smoke:reload": "node tools/smoke/reload.mjs",
     "vscode:prepublish": "node esbuild.mjs --production",
     "package": "vsce package --no-dependencies --readme-path README.marketplace.md",
     "nexus-zip": "node tools/nexus-zip.mjs",

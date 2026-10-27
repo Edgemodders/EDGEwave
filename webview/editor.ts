@@ -15,8 +15,13 @@ import { buildMix } from "./graph";
 import { keySet, setupVoiceTools, voiceToolResult } from "./voice";
 
 declare function acquireVsCodeApi(): { postMessage(m: unknown): void; getState(): ViewState | undefined; setState(s: ViewState): void };
-/** What the page keeps per editor tab (not in the document): the lanes' height, once the splitter is dragged. */
-type ViewState = { lanesHeight?: number };
+/**
+ * What the page keeps per editor tab (not in the document): the lanes' height, once the splitter is dragged, and
+ * the unsaved document (`scratch`: the text as saved, `base`, and as edited, `doc`). VS Code keeps a tab's state
+ * across a window reload and drops it with the tab; it marks a custom editor's tab unsaved after a reload but
+ * gives the extension the file as saved (seen in VS Code 1.143), so the page puts its unsaved edits back.
+ */
+type ViewState = { lanesHeight?: number; scratch?: { base: string; doc: string } };
 const vscode = acquireVsCodeApi();
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const send = (m: unknown) => vscode.postMessage(m);
@@ -65,9 +70,34 @@ const len = () => {
 
 // ---- messages from the host -----------------------------------------------------------------------
 
+/** The first document since the page loaded: where unsaved edits lost to a window reload are put back. */
+let firstDoc = true;
+
+/** Keeps the unsaved document in the tab's state; the saved one becomes the base. */
+function keepScratch(text: string, dirty: boolean) {
+  const s = vscode.getState() ?? {};
+  vscode.setState({ ...s, scratch: dirty ? { base: s.scratch?.base ?? text, doc: text } : { base: text, doc: text } });
+}
+
 window.addEventListener("message", async (e) => {
   const m = e.data;
   if (m.type === "doc") {
+    const text = JSON.stringify(m.doc);
+    if (firstDoc) {
+      firstDoc = false;
+      const scratch = vscode.getState()?.scratch;
+      // The file as saved, while this tab had unsaved edits on top of it: a reload lost them. Back as unsaved edits.
+      if (!m.dirty && scratch && scratch.base === text && scratch.doc !== text) {
+        try {
+          send({ type: "edit", doc: JSON.parse(scratch.doc) });
+          send({ type: "restored" });
+          return;
+        } catch {
+          // Not a document any more: drop it.
+        }
+      }
+    }
+    keepScratch(text, !!m.dirty);
     const same = doc && JSON.stringify(doc) === JSON.stringify(m.doc);
     const before = doc ? new Set(doc.tracks.map((t) => t.id)) : null;
     doc = m.doc as SoundDoc;

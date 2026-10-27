@@ -10,6 +10,7 @@ Last updated 2026-10-24.
 |---|---|---|---|---|
 | [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-10-27 | Pass, 60 tests |
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-10-27 | Pass |
+| [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-10-27 | Pass |
 | [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-10-20 | Pass: `edgewave-0.1.0.vsix` with REDcode 0.10.2 |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
@@ -85,7 +86,7 @@ On a busy machine (other VS Code windows running), `SMOKE_SLOW=2` doubles every 
 | A2 | The splitter: drag it far up, then one lane down; double-click it | The lanes go to one lane, then two; double-click fits every track, as far as the waveform's least height (110 px) allows |
 | A2 | Moving lanes: drag track 1's clip sideways with a little wobble; drag track 3's lane up above track 1; right-click the top lane > Move Down; Ctrl+Z | The sideways drag moves the clip in time and keeps the order; the drop line shows; track 3 keeps its start; the order is 1, 3, 2, then 3, 1, 2 after the undo (one edit) |
 | V1 | Every request | Carries the key, except the voice preview's (a public URL) |
-| V1 | Speak Line with no key (the password box closed with Escape), then **Set ElevenLabs API Key…** in the voice list with `bad-key` (the stand-in answers 401 `invalid_api_key`), then with the right key | The voice list says "No ElevenLabs API key is set yet." with the button, and the dialog's status line has it too (enabled); then "ElevenLabs refused the API key: Invalid API key…" with the button; then the voices load, no button |
+| V1 | Speak Line with no key (the password box closed with Escape), then **Set ElevenLabs API Key…** on the dialog's status line with `bad-key` (the stand-in answers 401 `invalid_api_key`), then with the right key | The status line says "No ElevenLabs API key is set yet." with the buttons (enabled), the voice list only that it needs a key (no second set of buttons); then "ElevenLabs refused the API key: Invalid API key…"; then the voices load, no buttons |
 | A1 | The Sounds view | **Project** first, with the REDcode project's name, then **Recent**; 42 under each |
 | V2 | `playEvent({ name: "smoke_second", show: false })` twice, then `stopSound` ([#8](https://github.com/Edgemodders/EDGEwave/issues/8)) | Each answers `ok`, `where: "archive"`, 2 variations, `played` 43 or 44; no **Hear: smoke_second** tab opens. The stub's tone really plays through the speakers (the hidden player); nothing checks that it is heard |
 | V2 | The API, from the stub: `soundEvents`, `playEvent`, `customSound` | The events from the bridge's file, `smoke_event` with its sound 42 and the quest tag, the music cue as music and looping; `smoke_event` plays in the Hear panel, the music cue gives a reason; `edgewave_smoke_knock.wav` at 48 kHz and its `info.json` entry as `mod_sfx_low_occlusion`; the index in the smoke's own EDGEwave folder |
@@ -96,6 +97,18 @@ On a busy machine (other VS Code windows running), `SMOKE_SLOW=2` doubles every 
 | Game Assets | The view (the stub's bridge has two English voice lines, German subtitles only, a streamed `.wem` and a `.bnk`): open Sound effects, Voice lines, Base game; click `smoke_event`; Filter `judy`; Judy's line's **Add to the Open Sound** | Sound effects, Voice lines, Music and streamed sounds; `smoke_event` and `smoke_second` (2 variations); en-us, not de-de; the Hear panel `Hear: smoke_event`; the filter shows only Judy's line (with its folder), no event; Smoke New gets it as track 3, a game source marked as a voice line |
 
 Last run 2026-10-27, with `SMOKE_SLOW=2`: **pass** (`PASS A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab`). Without it, on a machine busy with other VS Code windows, four runs failed at four different quick-pick steps (their fixed waits ran out); the same happened once on the code before this change.
+
+### Reload test: unsaved edits survive a window reload
+
+`npm run smoke:reload` (`tools/smoke/reload.mjs`, after `npm run build`; it uses the VS Code `npm run smoke` downloaded). Added 2026-10-27 after the owner's finding: a voice line added from Game Assets' + was gone after **Developer: Reload Window**. VS Code 1.143 keeps the tab marked unsaved after a reload but gives a custom editor the file as saved, so the edit was lost. The page now keeps its unsaved document in the tab's state, which VS Code keeps across a reload and drops with the tab, and puts it back when the document comes back as saved; EDGEwave says so in a message.
+
+| Step | Expected |
+|---|---|
+| Sound 42 opens (the stand-in REDcode, once); Game Assets' + adds Judy's line (`edgewave.addGameSound`) | 2 lanes, the tab unsaved, the file still 1 track |
+| **Developer: Reload Window** | 2 lanes again; the document unsaved with 2 tracks; the file still 1 track; "Restored the unsaved edits" logged once |
+| Ctrl+S on the tab, then reload again | The file has 2 tracks; after the reload the document is saved, with 2 tracks, and nothing is put back |
+
+Last run 2026-10-27: **pass**.
 
 ### Spike: decoding and encoding in VS Code's webview
 
@@ -279,7 +292,7 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 8. **Into the game.** Add to Project on a document with a Re-Voiced line (the named REDmod route, as for any voice line). Expect: the render at 48 kHz, as for any mix.
 9. **Clean up.** **EDGEwave: ElevenLabs Voices Made by EDGEwave…**: the clone and the saved remix are listed; delete them. Expect: they are gone from your ElevenLabs account's voices.
 10. **Errors.** **EDGEwave: Set ElevenLabs API Key** with a wrong key, then Generate Sound. Expect: the dialog shows ElevenLabs' message (such as "Invalid API key"), nothing is added. Set the right key again.
-11. **No key, or a wrong one** (the owner's request, 2026-10-27; round 1 the same day: with a voice line selected, the dialog starts on its own voice, which dimmed the voice list and its button; the button is now also on the status line). Select a voice line's track first. **EDGEwave: Clear ElevenLabs API Key**, then **Speak Line…**; close the password box with Escape. Expect: the voice list says no key is set, with **Set ElevenLabs API Key…** and **Where to make one**. **Where to make one** opens ElevenLabs' help. **Set ElevenLabs API Key…** with a wrong key: the list says ElevenLabs refused it, with the buttons again. Then the right key: the voices load. The same in **Voice Lines**: with a wrong key, **Generate** shows the message and the button there.
+11. **No key, or a wrong one** (the owner's request, 2026-10-27; round 1 the same day: with a voice line selected, the dialog starts on its own voice, which dimmed the voice list and its button; round 2: the message and buttons showed twice. Now once, on the status line; the list says it needs a key). Select a voice line's track first. **EDGEwave: Clear ElevenLabs API Key**, then **Speak Line…**; close the password box with Escape. Expect: the voice list says no key is set, with **Set ElevenLabs API Key…** and **Where to make one**. **Where to make one** opens ElevenLabs' help. **Set ElevenLabs API Key…** with a wrong key: the list says ElevenLabs refused it, with the buttons again. Then the right key: the voices load. The same in **Voice Lines**: with a wrong key, **Generate** shows the message and the button there.
 
 ### EDGEwave Voice for REDnode
 

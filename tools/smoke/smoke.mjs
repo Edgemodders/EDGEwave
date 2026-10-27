@@ -345,19 +345,20 @@ const clickDialogButton = async (text) => {
 
 // No key: Speak Line's voice list asks for one; Escape leaves the list saying so, with Set ElevenLabs API
 // Key… Set there a wrong key (the stand-in refuses bad-key with a 401), then the right one: the voices load.
-const keyBox = () => run(`for (let i = 0; i < 40 && !document.querySelector('#dialog .voices .keyfix') && !document.querySelector('#dialog .voice'); i++) await new Promise((r) => setTimeout(r, 250));
-  return { text: document.querySelector('#dialog .voices')?.textContent ?? '', fix: !!document.querySelector('#dialog .voices .keyfix button.primary'), statusFix: !!document.querySelector('#dialog .status .keyfix button.primary:not(:disabled)'), voices: document.querySelectorAll('#dialog .voice').length }`);
+// The key's message and buttons are once in the dialog, on its status line (never dimmed); the voice list only says why it is empty.
+const keyBox = () => run(`for (let i = 0; i < 40 && !document.querySelector('#dialog .status .keyfix') && !document.querySelector('#dialog .voice'); i++) await new Promise((r) => setTimeout(r, 250));
+  return { text: document.querySelector('#dialog .voices')?.textContent ?? '', status: document.querySelector('#dialogBox > .status')?.textContent ?? '', fix: !!document.querySelector('#dialog .voices .keyfix'), statusFix: !!document.querySelector('#dialogBox > .status .keyfix button.primary:not(:disabled)'), voices: document.querySelectorAll('#dialog .voice').length }`);
 await run("document.getElementById('speakLine').click()");
 await sleep(1500);
 await key("Escape", "Escape", 27); // the key's input box
 const noKey = await keyBox();
-await run("document.querySelector('#dialog .voices .keyfix button.primary').click()");
+await run("document.querySelector('#dialog .status .keyfix button.primary').click()");
 await sleep(1500);
 await cdp("Input.insertText", { text: "bad-key" });
 await key("Enter", "Enter", 13);
 await sleep(1000);
 const badKey = await keyBox();
-await run("document.querySelector('#dialog .voices .keyfix button.primary').click()");
+await run("document.querySelector('#dialog .status .keyfix button.primary').click()");
 await sleep(1500);
 await cdp("Input.insertText", { text: "smoke-key" });
 await key("Enter", "Enter", 13);
@@ -365,8 +366,9 @@ await sleep(1000);
 const goodKey = await keyBox();
 log("api key", JSON.stringify({ noKey, badKey, goodKey }));
 await run("document.querySelector('#dialog .x').click()");
-// The buttons are on the dialog's status line too, which is never dimmed (the voice list is, for the line's own voice).
-const keyOk = noKey.fix && noKey.statusFix && badKey.statusFix && /No ElevenLabs API key/.test(noKey.text) && badKey.fix && /refused the API key: Invalid API key/.test(badKey.text) && !goodKey.fix && goodKey.voices === 1;
+// The buttons are on the dialog's status line only, which is never dimmed (the voice list is, for the line's own voice).
+const keyOk = !noKey.fix && noKey.statusFix && /need an ElevenLabs API key/.test(noKey.text) && /No ElevenLabs API key/.test(noKey.status)
+  && !badKey.fix && badKey.statusFix && /refused the API key: Invalid API key/.test(badKey.status) && !goodKey.statusFix && goodKey.voices === 1;
 if (!keyOk) finish(false, "a missing or wrong ElevenLabs key did not offer Set ElevenLabs API Key");
 
 // Generate Sound makes takes in the dialog; only the one added becomes a track.
