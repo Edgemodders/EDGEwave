@@ -69,12 +69,17 @@ jobs:
       - name: Nexus zip
         run: node tools/nexus-zip.mjs
 
+      # EDGEwave Voice, the REDnode package: a game mod, so its own download beside the vsix.
+      - name: EDGEwave Voice zip
+        run: node tools/rednode-zip.mjs
+
       - uses: actions/upload-artifact@v7
         with:
           name: edgewave-${{ env.VERSION }}
           path: |
             dist/edgewave-${{ env.VERSION }}.vsix
             dist/EDGEwave-${{ env.VERSION }}-nexus.zip
+            dist/edgewave-voice-*.zip
 
       - name: VS Code Marketplace
         if: ${{ inputs.release }}
@@ -99,4 +104,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${VERSION}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" --target "${GITHUB_SHA}" --title "EDGEwave ${VERSION}" --notes-file "${RUNNER_TEMP}/notes.md"
+          gh release create "v${VERSION}" "${VSIX}" "dist/EDGEwave-${VERSION}-nexus.zip" dist/edgewave-voice-*.zip --target "${GITHUB_SHA}" --title "EDGEwave ${VERSION}" --notes-file "${RUNNER_TEMP}/notes.md"

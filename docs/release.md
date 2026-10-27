@@ -8,7 +8,7 @@ How a version of EDGEwave goes out: to the VS Code Marketplace and Open VSX by t
 |---|---|---|
 | VS Code Marketplace | `edgemodders.edgewave`, which installs `edgemodders.redcode-cyberpunk` with it | `vsce publish` in the workflow (`VSCE_PAT`) |
 | Open VSX | `edgemodders/edgewave` | `ovsx publish` in the workflow (`OVSX_PAT`) |
-| GitHub release `v<version>` | The `.vsix`, the Nexus zip and the version's CHANGELOG section; it tags the commit | `gh release create` in the workflow |
+| GitHub release `v<version>` | The `.vsix`, the Nexus zip, `edgewave-voice-<version>.zip` (EDGEwave Voice, a REDnode package: a game mod, its own version) and the version's CHANGELOG section; it tags the commit | `gh release create` in the workflow; the package zip by `tools/rednode-zip.mjs` |
 | Nexus Mods | `EDGEwave-<version>-nexus.zip`: the `.vsix`, `README.txt`, `LICENSE.txt` | `tools/nexus-zip.mjs`; uploaded by hand ([nexus/README.md](https://github.com/Edgemodders/EDGEwave/blob/main/nexus/README.md)) |
 
 The `.vsix` is one file for every platform: EDGEwave has no native parts and no runtime dependencies. It holds the two bundles in `dist/` (minified, no source maps: `node esbuild.mjs --production`, vsce's prepublish), `media/editor.css`, the icons, the Marketplace README (`README.marketplace.md`, through `--readme-path`), the CHANGELOG and the LICENSE; `.vscodeignore` leaves out the rest. The repo's own `README.md` stays the GitHub page.
@@ -22,6 +22,7 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
    npm run package      # edgewave-<version>.vsix in the repo folder
    npm run vsix-test    # a clean VS Code: installs it, and REDcode from the Marketplace; opens, renders, Add to Project
    npm run nexus-zip    # dist/EDGEwave-<version>-nexus.zip
+   npm run rednode-zip  # dist/edgewave-voice-<version>.zip, EDGEwave Voice for REDnode (its version is in rednode/edgewave-voice/rednode-app.json)
    ```
 4. **Commit and push** to `main`.
 5. **Publish** (the owner): Actions > **Publish** > **Run workflow** on `main`.
