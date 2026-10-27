@@ -1,0 +1,10 @@
+{
+  "id": "edgewave-voice",
+  "name": "EDGEwave Voice",
+  "version": "0.1.0",
+  "author": "Edgemodders",
+  "description": "Speaks lines of text in a voice, on demand, for other mods: their dialogue written as they go, spoken through ElevenLabs with your own key. Set up its voices in VS Code with EDGEwave.",
+  "main": "mod.mjs",
+  "service": "service.mjs",
+  "open": true
+}

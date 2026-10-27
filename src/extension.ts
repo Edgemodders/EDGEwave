@@ -15,6 +15,7 @@ import { SoundsView, type NamedItem } from "./soundsView";
 import { isV, type VoiceLine } from "./voice";
 import { loadRecord } from "./voiceBatch";
 import { VoiceLines } from "./voiceLines";
+import { voicesForRednode } from "./voicePackage/install";
 import { VoiceTools } from "./voiceTools";
 
 export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
@@ -40,6 +41,14 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     vscode.commands.registerCommand("edgewave.newSound", (file?: string) => newSound(file)),
     vscode.commands.registerCommand("edgewave.elevenlabs.setKey", () => voices.setKey()),
     vscode.commands.registerCommand("edgewave.elevenlabs.clearKey", () => voices.clearKey()),
+    // EDGEwave Voice, the REDnode package: install it in the game and name its voices.
+    vscode.commands.registerCommand("edgewave.rednodeVoice", async () => {
+      try {
+        await voicesForRednode(context, voices, log);
+      } catch (e) {
+        void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+      }
+    }),
     vscode.commands.registerCommand("edgewave.elevenlabs.voices", async () => {
       try {
         await voices.manageVoices();

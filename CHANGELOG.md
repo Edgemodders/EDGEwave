@@ -11,6 +11,10 @@ How to keep it:
 
 ## Unreleased
 
+**New**
+
+- **EDGEwave Voice for REDnode**, a game mod: other REDnode mods speak lines of text on demand, such as an AI companion's replies, in a voice you set up, through ElevenLabs with your own key. Lines are cached, so a line spoken before plays at once without spending credits. **EDGEwave: Voices for REDnode…** installs it in the game and names your voices; it is also its own download on each GitHub release ([how](https://edgemodders.github.io/EDGEwave/rednode-voice.html)).
+
 **Fixed**
 
 - When the ElevenLabs API key is missing or refused ("Invalid API key"), Generate Sound, Speak Line, Re-Voice and Voice Lines now say so with a **Set ElevenLabs API Key…** button and a link to where to make one; the voices load again once it is set.

@@ -38,6 +38,8 @@ nav:
     url: /voice-lines.html
   - title: API and MCP
     url: /api.html
+  - title: Voice for REDnode
+    url: /rednode-voice.html
   - title: Tests
     url: /testing.html
   - title: Release

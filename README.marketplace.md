@@ -66,6 +66,8 @@ Voice lines (`.wem`) cannot go into the game as voice lines yet: making a `.wem`
 | **Speak Line…** | A line spoken in one of your ElevenLabs voices, or in the selected game line's voice |
 | **Re-Voice…** | The selected line's words, timing and delivery in another voice: describe the change (such as `female, calm`) or pick one of your voices |
 
+**EDGEwave Voice for REDnode** lets other REDnode mods speak lines of text on demand in a voice you set up; **EDGEwave: Voices for REDnode…** installs it in the game ([how](https://edgemodders.github.io/EDGEwave/rednode-voice.html)).
+
 Set your key with **EDGEwave: Set ElevenLabs API Key**. It is kept in VS Code's secret storage. Using a game line's voice makes an instant voice clone in your ElevenLabs account; EDGEwave asks once before the first clone, reuses it for that line, and **EDGEwave: ElevenLabs Voices Made by EDGEwave…** lists the clones for deletion. A game line's voice belongs to a real voice actor: use clones only for your own mods, and follow ElevenLabs' terms.
 
 **Translate** is planned.

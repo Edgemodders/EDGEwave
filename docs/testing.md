@@ -8,7 +8,7 @@ Last updated 2026-10-24.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-10-27 | Pass, 55 tests |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-10-27 | Pass, 59 tests |
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-10-27 | Pass |
 | [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-10-20 | Pass: `edgewave-0.1.0.vsix` with REDcode 0.10.2 |
@@ -19,6 +19,8 @@ Last updated 2026-10-24.
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds; steps 9 and 10 (2026-10-21), 11 and 12 (2026-10-24) to test |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-10-20 | Pass, first round; step 11 (2026-10-27) to test |
 | [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | | To run |
+| [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | | To run |
+| [EDGEwave Voice: REDnode's describer and the package's wiring](#edgewave-voice-for-rednode) | By script, no game | Voice for REDnode | 2026-10-27 | Pass |
 | [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | | To run |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
 
@@ -35,7 +37,7 @@ npm test
 
 Expected: no errors, `dist/extension.js` and `dist/editor.js` written, and every unit test passing. The **Check** workflow (`.github/workflows/check.yml`) runs the same on every push to `main` that changes code, and on pull requests.
 
-The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, `src/doc.ts` and `src/redmod.ts`, and `test/elevenlabs.test.ts`, over the ElevenLabs client against a stand-in server on localhost:
+The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, `src/doc.ts` and `src/redmod.ts`, `test/elevenlabs.test.ts`, over the ElevenLabs client against a stand-in server on localhost, and `test/voicePackage.test.ts`, over EDGEwave Voice for REDnode with stand-ins for REDnode and ElevenLabs:
 
 | Area | Tests |
 |---|---|
@@ -44,7 +46,8 @@ The unit tests are in `test/edits.test.ts`, over the pure code in `src/audio/`, 
 | Documents | A round trip, and what is not a document is rejected; an A1 document (version 1) opens as one track; voice lines are found by their folder (`vo`, `vo_holocall`, `vo_helmet`, `vo_rewinded`) or, for a copy on disk, by their name |
 | Mix | The checked tracks are in the mix (out of it is saved as `mute`); a document with `solo` opens as the tracks it let be heard; the end is the latest track's end at its rate, plus reverb tails; presets are fresh copies with every parameter known |
 | REDmod | A custom sound is added to `info.json`, keeping its other fields; the same event replaces its entry; a skip has no file; gain and pitch stay 0 to 1; silence is the render with its samples zeroed, the same format and length; every type but `mod_skip` is offered once |
-| ElevenLabs | A sound effect asks for PCM at the rate, with the key, and clamps its length and prompt influence; speech, speech-to-speech and a clone send each endpoint's fields (JSON, or multipart with the WAV); voices page through; a remix's base64 previews become WAVs; a saved remix sends its fields; errors read as their message (`detail.message`, a validation list, or text); a refused output format is told apart from a bad key; PCM becomes a mono WAV; file names from prompts end on a whole word |
+| ElevenLabs | A sound effect asks for PCM at the rate, with the key, and clamps its length and prompt influence; speech, speech-to-speech and a clone send each endpoint's fields (JSON, or multipart with the WAV); voices page through; a remix's base64 previews become WAVs; a saved remix sends its fields; errors read as their message (`detail.message`, a validation list, or text); a refused output format is told apart from a bad key; a refused key is told apart from a used-up quota; PCM becomes a mono WAV; file names from prompts end on a whole word |
+| EDGEwave Voice | A voice by its name (any case), an ElevenLabs id, or the default; an unknown name lists the names; the cache's name follows the voice, model and text, and the oldest files go first past the limit; `voices.json` keeps a voice's name and the default and names new ones; speaking asks for the key, makes a line once (two at once share one request) and then plays it from the cache on the dialogue slider, sends `ended` with the caller, and says when the key is refused, the text empty or too long, or the voice unknown |
 
 ### Smoke test: VS Code with a stand-in REDcode
 
@@ -276,6 +279,20 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 9. **Clean up.** **EDGEwave: ElevenLabs Voices Made by EDGEwave…**: the clone and the saved remix are listed; delete them. Expect: they are gone from your ElevenLabs account's voices.
 10. **Errors.** **EDGEwave: Set ElevenLabs API Key** with a wrong key, then Generate Sound. Expect: the dialog shows ElevenLabs' message (such as "Invalid API key"), nothing is added. Set the right key again.
 11. **No key, or a wrong one** (the owner's request, 2026-10-27). **EDGEwave: Clear ElevenLabs API Key**, then **Speak Line…**; close the password box with Escape. Expect: the voice list says no key is set, with **Set ElevenLabs API Key…** and **Where to make one**. **Where to make one** opens ElevenLabs' help. **Set ElevenLabs API Key…** with a wrong key: the list says ElevenLabs refused it, with the buttons again. Then the right key: the voices load. The same in **Voice Lines**: with a wrong key, **Generate** shows the message and the button there.
+
+### EDGEwave Voice for REDnode
+
+What is built: [EDGEwave Voice for REDnode](rednode-voice.html). Needs REDnode in the game (with a REDcode game folder set), an ElevenLabs key, and a voice EDGEwave made (Speak Line in a line's voice) or any voice in your account. Each new line spends credits.
+
+Checked by script on 2026-10-27, no game: REDnode's own describer (`node packages/rednode/bin/rednode.mjs describe service.mjs` in the REDnode repo) reads the five functions and the `ended` event with no warnings; the built package, loaded with a stand-in `rednode` module, opens its window without a key, answers `status` and `voices`, and `speak` with an unknown voice says so.
+
+1. **Install.** **EDGEwave: Voices for REDnode…**. Expect: your ElevenLabs voices, EDGEwave's own first; pick two. Expect: a message naming them (such as `judy`), and `red4ext/plugins/REDnode/apps/edgewave-voice/` in the game folder with `voices.json`. **Open voices.json**: the two, the first the default.
+2. **The key.** Start the game, **F10**, open **EDGEwave Voice** from the launcher. Expect: "No key yet". Paste the key (**Copy the Key** from step 1's message), **Enter**. Expect: "Key set"; the field empties.
+3. **Try a line.** **Speak**. Expect: the line in the default voice within a few seconds, on the Dialogue slider (turn Dialogue down: it follows). Speak it again: at once, "from the cache". Tell me how long the first took.
+4. **From another mod.** In REDnode's Mod log or a small test mod: `const v = await service.connect('edgewave-voice'); await v.speak('Second voice here.', '<your second name>')`. Expect: that voice; the `ended` event when it finishes.
+5. **Errors.** Speak with a name that is not set up: the message lists the names. **Forget the key**, then **Speak**: "No ElevenLabs API key yet". Paste a wrong key: "ElevenLabs refused the API key".
+6. **Again.** Restart the game. Expect: the window starts closed (a key is set); the launcher shows it again; the cached line plays at once.
+7. **The zip.** From a release (or `npm run build` and `npm run rednode-zip`), unzip `edgewave-voice-<version>.zip` into the game folder over step 1's copy. Expect: the same package; `voices.json` is not in the zip, so yours stays.
 
 ### Game Assets
 

@@ -1,5 +1,6 @@
 // Bundles the extension (CommonJS, VS Code's module loader), the editor and Voice Lines pages (browser
-// scripts) and the MCP server. `node esbuild.mjs --watch` rebuilds on change; `--tests` bundles test/*.test.ts for
+// scripts), the MCP server and EDGEwave Voice, the REDnode package (dist/rednode/edgewave-voice: its files from
+// rednode/edgewave-voice and its engine, core.mjs, from src/voicePackage/core.ts). `node esbuild.mjs --watch` rebuilds on change; `--tests` bundles test/*.test.ts for
 // `node --test "dist-test/*.test.cjs"`; `--production` (vsce's prepublish) minifies, with no source maps.
 import * as esbuild from "esbuild";
 import * as fs from "node:fs";
@@ -43,6 +44,22 @@ const mcp = {
   define: { __VERSION__: JSON.stringify(version) },
 };
 
+// EDGEwave Voice's engine, an ES module for REDnode's Node mods (Node 20 in the host). Its other files are copied.
+const voicePackageDir = "dist/rednode/edgewave-voice";
+const voicePackage = {
+  ...common,
+  sourcemap: false,
+  platform: "node",
+  format: "esm",
+  target: "node20",
+  entryPoints: ["src/voicePackage/core.ts"],
+  outfile: `${voicePackageDir}/core.mjs`,
+};
+function copyVoicePackage() {
+  fs.mkdirSync(voicePackageDir, { recursive: true });
+  for (const f of fs.readdirSync("rednode/edgewave-voice")) fs.copyFileSync(`rednode/edgewave-voice/${f}`, `${voicePackageDir}/${f}`);
+}
+
 const testBuild = {
   ...common,
   platform: "node",
@@ -55,5 +72,10 @@ const testBuild = {
 };
 
 if (tests) await esbuild.build(testBuild);
-else if (watch) await Promise.all([extension, page, voiceLinesPage, mcp].map(async (o) => (await esbuild.context(o)).watch()));
-else await Promise.all([extension, page, voiceLinesPage, mcp].map((o) => esbuild.build(o)));
+else if (watch) {
+  copyVoicePackage();
+  await Promise.all([extension, page, voiceLinesPage, mcp, voicePackage].map(async (o) => (await esbuild.context(o)).watch()));
+} else {
+  copyVoicePackage();
+  await Promise.all([extension, page, voiceLinesPage, mcp, voicePackage].map((o) => esbuild.build(o)));
+}

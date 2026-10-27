@@ -162,6 +162,11 @@ export class VoiceTools {
     }
   }
 
+  /** The voices EDGEwave made in the modder's account (clones of lines, saved remixes), for Voices for REDnode. */
+  made(): { id: string; name: string; kind: "clone" | "remix" }[] {
+    return this.madeVoices().map(({ id, name, kind }) => ({ id, name, kind }));
+  }
+
   private madeVoices(): MadeVoice[] {
     return this.context.globalState.get<MadeVoice[]>(VoicesState) ?? [];
   }

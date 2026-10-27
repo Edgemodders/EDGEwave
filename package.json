@@ -112,6 +112,11 @@
         "category": "EDGEwave"
       },
       {
+        "command": "edgewave.rednodeVoice",
+        "title": "Voices for REDnode…",
+        "category": "EDGEwave"
+      },
+      {
         "command": "edgewave.stopSound",
         "title": "Stop Sound",
         "category": "EDGEwave",
@@ -456,6 +461,7 @@
     "vscode:prepublish": "node esbuild.mjs --production",
     "package": "vsce package --no-dependencies --readme-path README.marketplace.md",
     "nexus-zip": "node tools/nexus-zip.mjs",
+    "rednode-zip": "node tools/rednode-zip.mjs",
     "release:notes": "node tools/release-notes.mjs",
     "vsix-test": "node tools/vsix-test.mjs"
   },
