@@ -20,6 +20,8 @@ Each result (for Generate Sound, the take added) is a mono WAV in the document's
 | Where | VS Code's secret storage (the operating system's keychain), never in settings or the document. The owner chose this over a setting on 2026-10-18 |
 | Asked for | The first time a tool calls ElevenLabs, in a password box |
 | Commands | **EDGEwave: Set ElevenLabs API Key**, **EDGEwave: Clear ElevenLabs API Key** |
+| Missing or refused | Added 2026-10-27 at the owner's request. When there is no key (the password box closed) or ElevenLabs refuses it (a 401 that is not a used-up quota), the dialog, its voice list, or the Voice Lines panel says so, with **Set ElevenLabs API Key…** and **Where to make one** (ElevenLabs' help page). Once a key is set there, the voices and models load again; a request that failed is tried again by its button |
+| Where to make one | elevenlabs.io > Developers > API Keys. A new key is restricted by default: turn on text to speech, voices, sound effects and voice changer ([ElevenLabs' help](https://help.elevenlabs.io/hc/en-us/articles/14599447207697-How-do-I-authorize-myself-using-an-API-key)) |
 | In the page | Never: the page sends its request to the extension, which calls ElevenLabs |
 
 ## Cloning a voice

@@ -112,7 +112,7 @@ server.registerTool(
       if (archiveDir && r.record.archiveDir !== archiveDir) saveRecord(project, { ...loadRecord(project, quest), archiveDir });
       return text({
         voiced: r.voiced.length,
-        failed: r.failed,
+        failed: r.failed.map(({ id, message }) => ({ id, message })),
         characters: r.characters,
         model: r.model,
         sampleRate: r.rate,

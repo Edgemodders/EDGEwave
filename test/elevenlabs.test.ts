@@ -6,7 +6,7 @@ import * as assert from "node:assert/strict";
 import * as http from "node:http";
 import type { AddressInfo } from "node:net";
 import { decodeWav } from "../src/audio/wav";
-import { ElevenLabs, ElevenLabsError, errorText, formatRefused, pcmToWav, slug } from "../src/elevenlabs";
+import { ElevenLabs, ElevenLabsError, errorText, formatRefused, keyRefused, pcmToWav, slug } from "../src/elevenlabs";
 
 interface Seen {
   method: string;
@@ -143,4 +143,14 @@ test("ElevenLabs: PCM becomes a mono WAV; file names from prompts", () => {
   assert.equal(slug("A heavy metal door slams, in a concrete corridor!"), "a-heavy-metal-door-slams-in-a");
   assert.equal(slug("¡Olé! Café"), "ole-cafe");
   assert.equal(slug("…"), "sound");
+});
+
+test("ElevenLabs: a refused key is told apart from a used-up quota and a refused format", () => {
+  assert.ok(keyRefused(new ElevenLabsError(401, "Invalid API key", "invalid_api_key")));
+  assert.ok(keyRefused(new ElevenLabsError(401, "No ElevenLabs API key is set yet.", "missing_api_key")));
+  assert.ok(keyRefused(new ElevenLabsError(401, "The API key is missing the permission voices_read", "missing_permissions")));
+  assert.ok(!keyRefused(new ElevenLabsError(401, "This request exceeds your quota of 10000", "quota_exceeded")));
+  assert.ok(!keyRefused(new ElevenLabsError(403, "pcm_44100 needs the Pro tier", "output_format_not_allowed")));
+  assert.ok(!keyRefused(new ElevenLabsError(500, "Server error")));
+  assert.ok(!keyRefused(new Error("Invalid API key")));
 });

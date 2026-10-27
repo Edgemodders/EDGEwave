@@ -73,6 +73,7 @@ header .ai #translate { border-color: var(--line); color: var(--dim); }
 .dialog .actions.left { justify-content: flex-start; }
 .dialog .status { margin: 0; font-size: 12px; color: var(--cyan); min-height: 1em; }
 .dialog .status.error { color: var(--red); }
+.keyfix { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 input[type="number"], select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border, var(--line)); padding: 2px 4px; font: inherit; font-family: var(--mono); font-size: 12px; }
 input[type="number"] { width: 58px; }
 input:focus, select:focus { outline: 1px solid var(--accent); outline-offset: -1px; }

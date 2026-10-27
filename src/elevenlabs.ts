@@ -75,6 +75,15 @@ export function formatRefused(e: unknown): boolean {
   return /output_format|output format|tier|subscription|plan/i.test(`${e.code ?? ""} ${e.message}`);
 }
 
+/**
+ * Whether an error means the API key is missing, wrong or lacks a permission, so another key may fix it.
+ * ElevenLabs answers 401 for those, and also for a used-up quota, which a key does not fix.
+ */
+export function keyRefused(e: unknown): boolean {
+  if (!(e instanceof ElevenLabsError) || e.status !== 401 || formatRefused(e)) return false;
+  return !/quota|credit/i.test(`${e.code ?? ""} ${e.message}`);
+}
+
 export class ElevenLabs {
   constructor(private readonly key: string, private readonly base = DefaultBaseUrl) {}
 

@@ -11,7 +11,13 @@ import { ElevenLabs } from "./elevenlabs";
 import { ViewType } from "./openSound";
 import { gendersOf, isV, lineStatus, needsBoth, type Gender, type VoiceLine, type VoiceRecord, type Voices } from "./voice";
 import { DefaultModel, keepTake, loadRecord, restorePrevious, saveRecord, studioDoc, voiceBatch } from "./voiceBatch";
-import type { VoiceTools } from "./voiceTools";
+import { VoiceTools } from "./voiceTools";
+
+/** An error for the page: its message, and key when a new ElevenLabs key may fix it. */
+const failure = (e: unknown): { message: string; key?: true } => {
+  const f = VoiceTools.failure(e);
+  return { message: f.error, key: f.key };
+};
 
 const NamesState = "edgewave.voiceLines.voiceNames";
 
@@ -45,7 +51,9 @@ type FromPage =
   | { type: "cancel" }
   | { type: "record"; id: string; gender: Gender; wav: unknown }
   | { type: "previous"; id: string }
-  | { type: "studio"; id: string; gender: Gender };
+  | { type: "studio"; id: string; gender: Gender }
+  | { type: "setKey" }
+  | { type: "keyHelp" };
 
 const bytes = (x: unknown): Uint8Array => (x instanceof Uint8Array ? x : Uint8Array.from(Object.values(x as Record<string, number>)));
 
@@ -97,7 +105,7 @@ export class VoiceLines {
     };
     this.panels.set(key, p);
     panel.webview.html = this.html(panel.webview, dist, media);
-    panel.webview.onDidReceiveMessage((m: FromPage) => this.handle(p, m).catch((e) => p.send({ type: "error", message: (e as Error).message })));
+    panel.webview.onDidReceiveMessage((m: FromPage) => this.handle(p, m).catch((e) => p.send({ type: "error", ...failure(e) })));
     panel.onDidDispose(() => {
       this.panels.delete(key);
       if (p.busy) p.busy.cancelled = true;
@@ -164,6 +172,13 @@ export class VoiceLines {
       case "preview":
         p.send({ type: "preview", ...(await ElevenLabs.fetchPreview(m.url)) });
         return;
+      // A missing or refused ElevenLabs key: the page's buttons (webview/keyFix.ts).
+      case "setKey":
+        p.send({ type: "keySet", ok: !!(await this.tools.setKey()) });
+        return;
+      case "keyHelp":
+        this.tools.keyHelp();
+        return;
       case "setVoice": {
         const record = loadRecord(p.o.projectDir, p.o.quest);
         const was = record.voices[m.speaker];
@@ -228,7 +243,10 @@ export class VoiceLines {
         cancelled: () => busy.cancelled,
       });
       this.log.appendLine(`Voice Lines: ${p.o.quest}: ${r.voiced.length} voiced, ${r.failed.length} failed, ${r.characters} characters, ${r.rate} Hz, ${r.model}`);
-      if (r.failed.length) p.send({ type: "error", message: `${r.failed.length} line${r.failed.length === 1 ? "" : "s"} could not be voiced: ${r.failed[0].message}` });
+      if (r.failed.length) {
+        const f = failure(r.failed[0].error ?? new Error(r.failed[0].message));
+        p.send({ type: "error", ...f, message: `${r.failed.length} line${r.failed.length === 1 ? "" : "s"} could not be voiced: ${f.message}` });
+      }
     } finally {
       p.busy = undefined;
       this.push(p);

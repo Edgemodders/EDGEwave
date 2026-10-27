@@ -7,6 +7,7 @@
 import type { Audio } from "../src/audio/edits";
 import { encodeWav } from "../src/audio/wav";
 import { sourceKey, sourceLabel, type Track } from "../src/doc";
+import { isKeyError, keyError, keyFix } from "./keyFix";
 
 export interface VoiceHost {
   send(m: unknown): void;
@@ -39,6 +40,14 @@ let nextId = 1;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 let voices: Promise<Voice[]> | null = null;
 let models: Promise<{ models: Model[]; speechModel: string; voiceChangerModel: string }> | null = null;
+/** The open dialog's status line, and what to load again once a new API key is set. */
+let dialogStatus: Status | null = null;
+let afterKey: (() => void)[] = [];
+
+/** A form's status line: a message, an error, or an error a new API key may fix (with its buttons). */
+type Status = (t: string, error?: boolean, key?: boolean) => void;
+/** An error's arguments for a status line. */
+const failure = (e: unknown): [string, boolean, boolean] => [(e as Error).message, true, isKeyError(e)];
 
 /** One request to the host; resolves with its answer. */
 function ask<T>(req: Record<string, unknown>): Promise<T> {
@@ -50,12 +59,23 @@ function ask<T>(req: Record<string, unknown>): Promise<T> {
 }
 
 /** The host's answer to a request. */
-export function voiceToolResult(m: { id: number; ok: boolean; result?: unknown; error?: string }) {
+export function voiceToolResult(m: { id: number; ok: boolean; result?: unknown; error?: string; key?: boolean }) {
   const p = pending.get(m.id);
   pending.delete(m.id);
   if (!p) return;
   if (m.ok) p.resolve(m.result);
-  else p.reject(new Error(m.error ?? "The request failed"));
+  else p.reject(m.key ? keyError(m.error ?? "No ElevenLabs API key") : new Error(m.error ?? "The request failed"));
+}
+
+/** The host's answer to Set ElevenLabs API Key: with a key, the voices and models load again. */
+export function keySet(ok: boolean) {
+  if (!ok) return;
+  voices = null;
+  models = null;
+  const again = afterKey;
+  afterKey = [];
+  for (const f of again) f();
+  dialogStatus?.("The key is set. Try again.");
 }
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -98,7 +118,7 @@ async function playBytes(data: Uint8Array | Record<string, number>, button: HTML
   playing = { stop: () => src.stop(), button };
 }
 
-function playButton(get: () => Promise<Uint8Array>, status: (t: string, error?: boolean) => void): HTMLButtonElement {
+function playButton(get: () => Promise<Uint8Array>, status: Status): HTMLButtonElement {
   const b = el("button", { type: "button", className: "icon", title: "Play the preview", ariaLabel: "Play the preview" });
   b.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5 13.5 8 4 13.5z" fill="currentColor"/></svg>';
   b.addEventListener("click", async () => {
@@ -115,18 +135,21 @@ function playButton(get: () => Promise<Uint8Array>, status: (t: string, error?: 
 
 function close() {
   stopPreview();
+  dialogStatus = null;
+  afterKey = [];
   $("dialog").hidden = true;
   $("dialogBox").replaceChildren();
 }
 
 /** Opens the dialog with a title, a body, and a status line the form writes to. */
-function open(title: string, intro: string, body: (status: (t: string, error?: boolean) => void, busy: (b: boolean) => void) => HTMLElement[]) {
+function open(title: string, intro: string, body: (status: Status, busy: (b: boolean) => void) => HTMLElement[]) {
   const box = $("dialogBox");
   const status = el("p", { class: "status" });
-  const setStatus = (t: string, error = false) => {
-    status.textContent = t;
+  const setStatus: Status = (t, error = false, key = false) => {
+    status.replaceChildren(t, ...(key ? [keyFix((m) => host.send(m))] : []));
     status.classList.toggle("error", error);
   };
+  dialogStatus = setStatus;
   const x = el("button", { type: "button", class: "x", title: "Close (Escape)", textContent: "×" });
   x.addEventListener("click", close);
   const parts = body(setStatus, (b) => box.classList.toggle("busy", b));
@@ -154,7 +177,7 @@ function line() {
 }
 
 /** Runs a request with the form busy; closes the dialog when it worked, unless `stay`. */
-async function run(button: HTMLButtonElement, status: (t: string, error?: boolean) => void, busy: (b: boolean) => void, working: string, f: () => Promise<unknown>, stay = false) {
+async function run(button: HTMLButtonElement, status: Status, busy: (b: boolean) => void, working: string, f: () => Promise<unknown>, stay = false) {
   button.disabled = true;
   busy(true);
   status(working);
@@ -162,7 +185,7 @@ async function run(button: HTMLButtonElement, status: (t: string, error?: boolea
     await f();
     if (!stay) close();
   } catch (e) {
-    status((e as Error).message, true);
+    status(...failure(e));
   } finally {
     button.disabled = false;
     busy(false);
@@ -171,7 +194,7 @@ async function run(button: HTMLButtonElement, status: (t: string, error?: boolea
 
 // ---- the voice list, shared by Speak Line and Re-Voice ---------------------------------------------------
 
-function voiceList(status: (t: string, error?: boolean) => void) {
+function voiceList(status: Status) {
   let chosen: Voice | undefined;
   const search = el("input", { type: "search", placeholder: "Search by name, gender, accent…" });
   const list = el("div", { class: "voices" }, el("p", { class: "dim", textContent: "Loading your ElevenLabs voices…" }));
@@ -202,17 +225,28 @@ function voiceList(status: (t: string, error?: boolean) => void) {
     );
   };
   search.addEventListener("input", show);
-  voices ??= ask<Voice[]>({ op: "voices" });
-  voices.then(
-    (v) => {
-      all = v;
-      show();
-    },
-    (e) => {
-      voices = null;
-      list.replaceChildren(el("p", { class: "status error", textContent: (e as Error).message }));
-    },
-  );
+  const load = () => {
+    voices ??= ask<Voice[]>({ op: "voices" });
+    voices.then(
+      (v) => {
+        all = v;
+        show();
+      },
+      (e) => {
+        voices = null;
+        const p = el("p", { class: "status error", textContent: (e as Error).message });
+        if (isKeyError(e)) {
+          p.append(keyFix((m) => host.send(m)));
+          afterKey.push(() => {
+            list.replaceChildren(el("p", { class: "dim", textContent: "Loading your ElevenLabs voices…" }));
+            load();
+          });
+        }
+        list.replaceChildren(p);
+      },
+    );
+  };
+  load();
   return { element: el("div", { class: "voicepick" }, search, list), chosen: () => chosen };
 }
 
@@ -220,15 +254,21 @@ function voiceList(status: (t: string, error?: boolean) => void) {
 function modelMenu(kind: "speech" | "voiceChange") {
   const s = el("select");
   s.append(new Option("ElevenLabs' default", ""));
-  models ??= ask({ op: "models" });
-  models.then(
-    (m) => {
-      const start = kind === "speech" ? m.speechModel : m.voiceChangerModel;
-      for (const x of m.models.filter((x) => x[kind])) s.append(new Option(x.name === x.id ? x.id : `${x.name} (${x.id})`, x.id));
-      if ([...s.options].some((o) => o.value === start)) s.value = start;
-    },
-    () => (models = null),
-  );
+  const load = () => {
+    models ??= ask({ op: "models" });
+    models.then(
+      (m) => {
+        const start = kind === "speech" ? m.speechModel : m.voiceChangerModel;
+        for (const x of m.models.filter((x) => x[kind])) s.append(new Option(x.name === x.id ? x.id : `${x.name} (${x.id})`, x.id));
+        if ([...s.options].some((o) => o.value === start)) s.value = start;
+      },
+      (e) => {
+        models = null;
+        if (isKeyError(e)) afterKey.push(load);
+      },
+    );
+  };
+  load();
   return s;
 }
 
@@ -372,7 +412,7 @@ function reVoice() {
             }),
           );
         })
-        .catch((e) => status((e as Error).message, true))
+        .catch((e) => status(...failure(e)))
         .finally(() => {
           make.disabled = false;
           busy(false);

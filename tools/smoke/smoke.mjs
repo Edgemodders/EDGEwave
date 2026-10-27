@@ -53,6 +53,7 @@ const elevenServer = http.createServer((req, res) => {
     const fmt = url.searchParams.get("output_format");
     eleven.push({ method: req.method, path: url.pathname, fmt, key: req.headers["xi-api-key"], body: body.slice(0, 400) });
     const json = (o, status = 200) => { res.writeHead(status, { "content-type": "application/json" }); res.end(JSON.stringify(o)); };
+    if (req.headers["xi-api-key"] === "bad-key") return json({ detail: { status: "invalid_api_key", message: "Invalid API key" } }, 401);
     if (fmt === "pcm_48000") return json({ detail: { status: "output_format_not_allowed", message: "pcm_48000 is not available on your plan" } }, 403);
     const rate = fmt ? Number(fmt.split("_")[1]) : 24000;
     const p = url.pathname;
@@ -319,7 +320,8 @@ const silenceOk =
   docGame?.route === "skip" && docGame.type === "mod_sfx_2d";
 if (!silenceOk) finish(false, "Silence the event did not write a silent WAV");
 
-// Voice tools, against the stand-in ElevenLabs: Generate Sound (asks for the key), Speak Line in a
+// Voice tools, against the stand-in ElevenLabs: Speak Line with no key, then a wrong one, set from the
+// dialog's own button; Generate Sound; Speak Line in a
 // picked voice (with its preview), Speak Line in track 1's voice (the clone consent), Re-Voice by
 // description (remix previews, reusing the clone). Each adds a track.
 const tracksNow = () => run("return document.getElementById('trackName').textContent");
@@ -339,15 +341,37 @@ const clickDialogButton = async (text) => {
   return false;
 };
 
+// No key: Speak Line's voice list asks for one; Escape leaves the list saying so, with Set ElevenLabs API
+// Key… Set there a wrong key (the stand-in refuses bad-key with a 401), then the right one: the voices load.
+const keyBox = () => run(`for (let i = 0; i < 40 && !document.querySelector('#dialog .voices .keyfix') && !document.querySelector('#dialog .voice'); i++) await new Promise((r) => setTimeout(r, 250));
+  return { text: document.querySelector('#dialog .voices')?.textContent ?? '', fix: !!document.querySelector('#dialog .voices .keyfix button.primary'), voices: document.querySelectorAll('#dialog .voice').length }`);
+await run("document.getElementById('speakLine').click()");
+await sleep(1500);
+await key("Escape", "Escape", 27); // the key's input box
+const noKey = await keyBox();
+await run("document.querySelector('#dialog .voices .keyfix button.primary').click()");
+await sleep(1500);
+await cdp("Input.insertText", { text: "bad-key" });
+await key("Enter", "Enter", 13);
+await sleep(1000);
+const badKey = await keyBox();
+await run("document.querySelector('#dialog .voices .keyfix button.primary').click()");
+await sleep(1500);
+await cdp("Input.insertText", { text: "smoke-key" });
+await key("Enter", "Enter", 13);
+await sleep(1000);
+const goodKey = await keyBox();
+log("api key", JSON.stringify({ noKey, badKey, goodKey }));
+await run("document.querySelector('#dialog .x').click()");
+const keyOk = noKey.fix && /No ElevenLabs API key/.test(noKey.text) && badKey.fix && /refused the API key: Invalid API key/.test(badKey.text) && !goodKey.fix && goodKey.voices === 1;
+if (!keyOk) finish(false, "a missing or wrong ElevenLabs key did not offer Set ElevenLabs API Key");
+
 // Generate Sound makes takes in the dialog; only the one added becomes a track.
 const takeCount = (n) => run(`for (let i = 0; i < 40 && document.querySelectorAll('#dialog .takes .voice').length < ${n}; i++) await new Promise((r) => setTimeout(r, 250));
   return document.querySelectorAll('#dialog .takes .voice').length`);
 await run(`document.getElementById('generateSound').click(); await new Promise((r) => setTimeout(r, 300));
   document.querySelector('#dialog textarea').value = 'a metal door slams';
   document.querySelector('#dialog .actions .primary').click();`);
-await sleep(1500);
-await cdp("Input.insertText", { text: "smoke-key" }); // the key's input box
-await key("Enter", "Enter", 13);
 const take1 = await takeCount(1);
 await run(`document.querySelector('#dialog textarea').value = 'a metal door slams, long echo';
   document.querySelector('#dialog .actions .primary').click();`);
@@ -411,7 +435,7 @@ const voiceOk =
   made[2].made?.tool === "speak" && made[2].made.voiceId === "clone_smoke" && made[2].made.from === "t1" &&
   made[3].made?.tool === "revoice" && made[3].made.voiceId === "remix_saved" && made[3].made.description === "female, calm" && made[3].offset === vdoc.tracks[0].offset &&
   vdoc.tracks[0].mute === true &&
-  eleven.every((r) => r.path.startsWith("/preview/") ? !r.key : r.key === "smoke-key") &&
+  eleven.every((r) => r.path.startsWith("/preview/") ? !r.key : r.key === "smoke-key" || (r.key === "bad-key" && ["/v2/voices", "/v1/models"].includes(r.path))) &&
   posts[0].path === "/v1/sound-generation" && posts[0].fmt === "pcm_48000" && posts[1].fmt === "pcm_24000" &&
   eleven.filter((r) => r.path === "/v1/voices/add").length === 1 && eleven.filter((r) => r.fmt === "pcm_48000").length === 1;
 if (!voiceOk) finish(false, "the voice tools did not do what they should");
@@ -769,4 +793,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound" : "render or mix checks failed");

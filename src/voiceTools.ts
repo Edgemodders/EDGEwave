@@ -10,13 +10,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { formatDoc, newTrack, nextTrackId, parseDoc, type Made } from "./doc";
-import { DefaultBaseUrl, ElevenLabs, type ElevenLabsError, formatRefused, pcmToWav, slug, type Voice } from "./elevenlabs";
+import { DefaultBaseUrl, ElevenLabs, ElevenLabsError, formatRefused, keyRefused, pcmToWav, slug, type Voice } from "./elevenlabs";
 
 const KeySecret = "edgewave.elevenlabs.apiKey";
 const ConsentState = "edgewave.elevenlabs.cloneConsent";
 const VoicesState = "edgewave.elevenlabs.voices";
 const RateState = "edgewave.elevenlabs.rate";
 const PolicyUrl = "https://elevenlabs.io/use-policy";
+/** ElevenLabs' help on API keys: where to make one (Developers > API Keys). */
+const KeyHelpUrl = "https://help.elevenlabs.io/hc/en-us/articles/14599447207697-How-do-I-authorize-myself-using-an-API-key";
 /** The rate tried when the plan refuses the one asked for (only 44.1 kHz needs Pro, per the docs). */
 const FallbackRate = 24000;
 
@@ -64,6 +66,8 @@ export class VoiceTools {
   /** Generate Sound's takes, played in the dialog until one is added as a track. */
   private readonly takes = new Map<string, { wav: Uint8Array; made: Made }>();
   private nextTake = 1;
+  /** The key's input box while it is open: requests that come meanwhile wait for the same answer. */
+  private asking?: Promise<string | undefined>;
 
   constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel) {}
 
@@ -81,13 +85,14 @@ export class VoiceTools {
   async key(ask = true): Promise<string | undefined> {
     const k = await this.context.secrets.get(KeySecret);
     if (k || !ask) return k;
-    return this.setKey();
+    this.asking ??= this.setKey().finally(() => (this.asking = undefined));
+    return this.asking;
   }
 
   async setKey(): Promise<string | undefined> {
     const k = await vscode.window.showInputBox({
       title: "EDGEwave: ElevenLabs API key",
-      prompt: "For Generate Sound, Speak Line and Re-Voice. Kept in VS Code's secret storage, never in settings. Make one at elevenlabs.io > Developers > API Keys.",
+      prompt: "For Generate Sound, Speak Line, Re-Voice and Voice Lines. Kept in VS Code's secret storage, never in settings. Make one at elevenlabs.io > Developers > API Keys, with text to speech, voices, sound effects and voice changer turned on.",
       password: true,
       ignoreFocusOut: true,
       placeHolder: "sk_…",
@@ -95,6 +100,19 @@ export class VoiceTools {
     if (!k?.trim()) return undefined;
     await this.context.secrets.store(KeySecret, k.trim());
     return k.trim();
+  }
+
+  /** Opens ElevenLabs' help on where to make a key. */
+  keyHelp(): void {
+    void vscode.env.openExternal(vscode.Uri.parse(KeyHelpUrl));
+  }
+
+  /** What a page shows for an error: its message, and key when a new API key may fix it. */
+  static failure(e: unknown): { error: string; key?: true } {
+    const message = (e as Error).message;
+    if (!keyRefused(e)) return { error: message };
+    const missing = e instanceof ElevenLabsError && e.code === "missing_api_key";
+    return { error: missing ? message : `ElevenLabs refused the API key: ${message}. Set a new one; a key made with restricted features needs text to speech, voices, sound effects and voice changer turned on.`, key: true };
   }
 
   async clearKey(): Promise<void> {
@@ -105,7 +123,7 @@ export class VoiceTools {
   /** The ElevenLabs client with the modder's key; asks for the key when there is none. */
   async client(): Promise<ElevenLabs> {
     const k = await this.key();
-    if (!k) throw new Error("No ElevenLabs API key. EDGEwave: Set ElevenLabs API Key adds one.");
+    if (!k) throw new ElevenLabsError(401, "No ElevenLabs API key is set yet.", "missing_api_key");
     return new ElevenLabs(k, this.config().base);
   }
 

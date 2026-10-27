@@ -11,6 +11,10 @@ How to keep it:
 
 ## Unreleased
 
+**Fixed**
+
+- When the ElevenLabs API key is missing or refused ("Invalid API key"), Generate Sound, Speak Line, Re-Voice and Voice Lines now say so with a **Set ElevenLabs API Key…** button and a link to where to make one; the voices load again once it is set.
+
 **New**
 
 - Other tools' ▶ buttons play a sound at once, without opening EDGEwave's Hear tab: `playEvent` with `show: false` plays one of the event's recordings, and a second ▶ stops the first. **EDGEwave: Stop Sound** stops it. Windows only for now ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), [how](https://edgemodders.github.io/EDGEwave/api.html#playing-with-no-tab)).

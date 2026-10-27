@@ -12,7 +12,7 @@ import { audible, Effects, mixEnd, onMix, Presets, presetEffects, tail, type Par
 import { encodeWav } from "../src/audio/wav";
 import { docLabel, sourceKey, sourceLabel, type Curve, type Edit, type Effect, type EffectType, type SoundDoc, type Track } from "../src/doc";
 import { buildMix } from "./graph";
-import { setupVoiceTools, voiceToolResult } from "./voice";
+import { keySet, setupVoiceTools, voiceToolResult } from "./voice";
 
 declare function acquireVsCodeApi(): { postMessage(m: unknown): void; getState(): ViewState | undefined; setState(s: ViewState): void };
 /** What the page keeps per editor tab (not in the document): the lanes' height, once the splitter is dragged. */
@@ -93,6 +93,8 @@ window.addEventListener("message", async (e) => {
     refresh();
   } else if (m.type === "voiceToolResult") {
     voiceToolResult(m);
+  } else if (m.type === "keySet") {
+    keySet(m.ok);
   } else if (m.type === "renderFor") {
     // Add to Project: the mix at the format its route needs; {track} is the channels of the sound it replaces.
     try {

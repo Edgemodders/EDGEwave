@@ -163,7 +163,7 @@ export interface BatchResult {
   /** The lines voiced now. */
   voiced: string[];
   /** Lines that failed, with ElevenLabs' message. */
-  failed: { id: string; message: string }[];
+  failed: { id: string; message: string; error?: unknown }[];
   /** Characters sent to ElevenLabs (what the plan counts). */
   characters: number;
   rate: number;
@@ -208,7 +208,7 @@ export async function voiceBatch(o: BatchOptions): Promise<BatchResult> {
       voiced.push(line.id);
       o.log?.(`Voiced ${line.speaker}: ${text}`);
     } catch (e) {
-      failed.push({ id: line.id, message: (e as Error).message });
+      failed.push({ id: line.id, message: (e as Error).message, error: e });
       o.log?.(`Could not voice line ${line.id}: ${(e as Error).message}`);
       // A missing key or no credits fails every line the same way: stop at the first.
       if (/401|402|quota|credit|api key|unauthorized/i.test((e as Error).message)) break;

@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import { formatDoc, isSoundFile, looksLikeVoice, newTrack, nextTrackId, parseDoc, SoundExtensions, type SoundDoc, type Source, type Track } from "./doc";
 import { intoGame, type RenderFor } from "./intoGame";
 import { redcode } from "./redcode";
-import type { VoiceRequest, VoiceTools } from "./voiceTools";
+import { VoiceTools, type VoiceRequest } from "./voiceTools";
 
 /** Formats the page decodes itself, read straight from disk. */
 const Direct: Record<string, string> = { ".wav": "audio/wav", ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".flac": "audio/flac" };
@@ -55,6 +55,8 @@ type FromPage =
   | { type: "render"; wav: Uint8Array }
   | { type: "stub"; tool: "translate" }
   | { type: "voiceTool"; id: number; req: VoiceRequest }
+  | { type: "setKey" }
+  | { type: "keyHelp" }
   | { type: "error"; text: string };
 
 type Pick = vscode.QuickPickItem & { pick?: "file" | "path"; event?: { hash: number; name: string | null; tags: string[]; sounds: number[] } };
@@ -217,8 +219,15 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
             post({ type: "voiceToolResult", id: m.id, ok: true, result: await this.voices.handle(document, m.req) });
           } catch (e) {
             this.log.appendLine(`ElevenLabs ${m.req.op}: ${(e as Error).message}`);
-            post({ type: "voiceToolResult", id: m.id, ok: false, error: (e as Error).message });
+            post({ type: "voiceToolResult", id: m.id, ok: false, ...VoiceTools.failure(e) });
           }
+          return;
+        // A missing or refused ElevenLabs key: the page's buttons (webview/keyFix.ts).
+        case "setKey":
+          post({ type: "keySet", ok: !!(await this.voices.setKey()) });
+          return;
+        case "keyHelp":
+          this.voices.keyHelp();
           return;
         case "error":
           this.log.appendLine(`Page: ${m.text}`);

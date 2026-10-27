@@ -3,6 +3,7 @@
 // A recording is decoded here and sent as a 48 kHz mono WAV, as ElevenLabs' takes are.
 
 import { encodeWav } from "../src/audio/wav";
+import { keyFix } from "./keyFix";
 
 declare function acquireVsCodeApi(): { postMessage(m: unknown): void };
 const vscode = acquireVsCodeApi();
@@ -74,8 +75,12 @@ window.addEventListener("message", (e) => {
     play(URL.createObjectURL(new Blob([m.data as Uint8Array<ArrayBuffer>], { type: String(m.mime) })));
   } else if (m.type === "error") {
     const box = $("error");
-    box.textContent = String(m.message);
+    // A missing or refused ElevenLabs key: the buttons to set one (webview/keyFix.ts).
+    box.replaceChildren(String(m.message), ...(m.key ? [keyFix(send)] : []));
     box.hidden = false;
+  } else if (m.type === "keySet" && m.ok) {
+    $("error").hidden = true;
+    if (!voiceList) send({ type: "voices" });
   }
 });
 
