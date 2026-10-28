@@ -345,6 +345,14 @@ export class GameAssets implements vscode.TreeDataProvider<AssetNode> {
     }
   }
 
+  /** Play in the Game: the event in the running game, through REDnode's editor channel, with the game's mix. */
+  async playInGame(n?: AssetNode): Promise<void> {
+    if (n?.kind !== "event" && n?.kind !== "variation") return;
+    const r = await this.events.playInGame(n.event.name);
+    if (r.ok) vscode.window.setStatusBarMessage(`EDGEwave: playing ${n.event.name} in the game; EDGEwave: Stop Sound stops it`, 4000);
+    else void vscode.window.showWarningMessage(`EDGEwave: ${r.reason}`);
+  }
+
   /** The sound a node names, as edgewave.openSound and a track take it. */
   private ref(n?: AssetNode): { ref: SoundRef; source: Source; voice: boolean } | undefined {
     if (n?.kind === "event" || n?.kind === "variation") {

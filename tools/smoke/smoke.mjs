@@ -72,13 +72,29 @@ const elevenServer = http.createServer((req, res) => {
   });
 });
 await new Promise((r) => elevenServer.listen(0, "127.0.0.1", r));
+
+// A stand-in for REDnode's editor channel (REDnode 0.43, a running game): its editor.json, with this process's
+// pid, through EDGEWAVE_REDNODE_EDITOR; every call is recorded. playEvent plays a music cue through it.
+const rednodeCalls = [];
+const rednodeServer = http.createServer((req, res) => {
+  let body = "";
+  req.on("data", (c) => (body += c));
+  req.on("end", () => {
+    rednodeCalls.push({ url: req.url, auth: req.headers.authorization, origin: req.headers.origin, body: body ? JSON.parse(body) : undefined });
+    res.setHeader("content-type", "application/json");
+    if (req.headers.authorization !== "Bearer smoke-run") return res.writeHead(401).end(JSON.stringify({ ok: false, reason: "wrong token" }));
+    res.end(JSON.stringify(req.url === "/editor/sound.play" ? { ok: true, playingId: 31, on: "player" } : { ok: true, stopped: 1 }));
+  });
+});
+await new Promise((r) => rednodeServer.listen(0, "127.0.0.1", r));
+fs.writeFileSync(path.join(T, "rednode-editor.json"), JSON.stringify({ port: rednodeServer.address().port, token: "smoke-run", pid: process.pid, version: "0.43.0" }));
 fs.mkdirSync(path.join(T, "ud", "User"), { recursive: true });
 // Custom dialogs, so the clone consent's modal is in the page and can be clicked.
 fs.writeFileSync(path.join(T, "ud", "User", "settings.json"), JSON.stringify({ "edgewave.elevenlabs.baseUrl": `http://127.0.0.1:${elevenServer.address().port}`, "window.dialogStyle": "custom" }));
 
 const exe = await downloadAndUnzipVSCode({ version: "stable", cachePath: path.join(T, "vsc") });
 // EDGEwave's own folder (the event index, the MCP server) in the smoke folder, never the modder's.
-const env = { ...process.env, EDGEWAVE_HOME: path.join(T, "home") }; delete env.ELECTRON_RUN_AS_NODE;
+const env = { ...process.env, EDGEWAVE_HOME: path.join(T, "home"), EDGEWAVE_REDNODE_EDITOR: path.join(T, "rednode-editor.json") }; delete env.ELECTRON_RUN_AS_NODE;
 const code = spawn(exe, ["--new-window", "--user-data-dir", path.join(T, "ud"), "--extensions-dir", path.join(T, "ex"), "--disable-extensions",
   "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339", "--force-device-scale-factor=1.5",
   "--skip-welcome", "--skip-release-notes", "--disable-workspace-trust", path.join(T, "proj")], { env, stdio: "ignore" });
@@ -597,7 +613,9 @@ const infoNow = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "resou
 const apiOk = apiOut.apiVersion === 1 && !apiOut.error
   && apiOut.events.map((e) => e.name).join() === "smoke_event,smoke_second,mus_smoke_01_START" && apiOut.events[0].project?.replaces === true && apiOut.events[0].quest === true
   && apiOut.music.map((e) => e.name).join() === "mus_smoke_01_START" && apiOut.music[0].loops === true
-  && apiOut.play.ok === true && apiOut.play.where === "project" && apiOut.play.variations === 1 && apiOut.playMusic.ok === false && /music cue/.test(apiOut.playMusic.reason)
+  && apiOut.play.ok === true && apiOut.play.where === "project" && apiOut.play.variations === 1 && apiOut.playMusic.ok === true && apiOut.playMusic.where === "game" && apiOut.playMusic.playingId === 31
+  && rednodeCalls.some((c) => c.url === "/editor/sound.play" && c.auth === "Bearer smoke-run" && !c.origin && c.body?.name === "mus_smoke_01_START" && c.body?.on === "player")
+  && rednodeCalls.some((c) => c.url === "/editor/sound.stop")
   && [apiOut.quiet, apiOut.quietAgain].every((q) => q.ok === true && q.where === "archive" && q.variations === 2 && ["43", "44"].includes(q.played))
   && !apiOut.tabsAfter.includes("Hear: smoke_second")
   && apiOut.custom.event === "edgewave_smoke_knock" && apiOut.custom.type === "mod_sfx_low_occlusion" && fs.existsSync(customWav) && fs.readFileSync(customWav).readUInt32LE(24) === 48000
@@ -814,4 +832,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a music cue in the game through a stand-in REDnode, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");

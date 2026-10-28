@@ -90,6 +90,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     vscode.commands.registerCommand("edgewave.gameAssets.refresh", () => assets.refresh()),
     vscode.commands.registerCommand("edgewave.hearGameSound", (n?: AssetNode) => assets.hear(n)),
     vscode.commands.registerCommand("edgewave.playGameSound", (n?: AssetNode) => assets.play(n)),
+    vscode.commands.registerCommand("edgewave.playInGame", (n?: AssetNode) => assets.playInGame(n)),
     vscode.commands.registerCommand("edgewave.openGameSound", (n?: AssetNode) => assets.open(n)),
     vscode.commands.registerCommand("edgewave.addGameSound", (n?: AssetNode) => assets.addToOpen(n)),
     vscode.commands.registerCommand("edgewave.copyGameName", (n?: AssetNode) => assets.copyName(n)),

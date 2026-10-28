@@ -24,9 +24,11 @@ export interface EDGEwaveApi {
   /**
    * Plays an event's sound effect recordings, or a project sound's WAV, in EDGEwave's Hear tab, or says why it
    * cannot. With show false, one recording plays at once with no tab (Windows), stopping the one playing (#8).
+   * A music cue, or an event with no recordings, plays in the running game through REDnode 0.43's editor
+   * channel (where "game"); with inGame true any event does, the project's own after Pack and Install too.
    */
-  playEvent(o: { name: string; project?: string; show?: boolean }): Promise<PlayResult>;
-  /** Stops the sound playEvent is playing with show false, if one is. */
+  playEvent(o: { name: string; project?: string; show?: boolean; inGame?: boolean }): Promise<PlayResult>;
+  /** Stops the sound playEvent is playing with show false, and the one it started in the game, if any. */
   stopSound(): Promise<void>;
   /** A sound made in EDGEwave as a new event a quest can post: a REDmod custom sound, edgewave_<name>. */
   customSound(o: { project?: string; wav: string | Uint8Array; name: string; kind?: "sfx" | "music" }): Promise<(CustomSoundResult & { note: string }) | { reason: string }>;
@@ -55,7 +57,7 @@ export function makeApi(version: string, voiceLines: VoiceLines, events: SoundEv
       return voiceLines.status(await projectDir(project), quest);
     },
     soundEvents: async (o) => events.search({ ...o, project: o?.project ?? (await projectDir().catch(() => undefined)) }),
-    playEvent: async (o) => events.play(o.name, o.project ?? (await projectDir().catch(() => undefined)), o.show !== false),
+    playEvent: async (o) => events.play(o.name, o.project ?? (await projectDir().catch(() => undefined)), o.show !== false, o.inGame === true),
     stopSound: () => events.stop(),
     customSound: (o) => events.custom(o),
   };

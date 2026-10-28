@@ -29,6 +29,6 @@ As of 2026-10-24. Released: 0.1.0 (2026-10-20), with A1, A2, A3 and V1.
 | V2 Voice a quest | Steps 1 to 4 built 2026-10-24, hand test pending: the Voice Lines panel, the API and the MCP server, and sound events for EDGEquest. Next: step 5, the `.wem` route |
 | A4 Index | Planned: the game's sound banks, the full search |
 | A5 Voices and objects | Planned: subtitles and scenes, TweakDB objects and radios |
-| A6 EDGE | Started: the MCP server (with V2) and the REDnode sound route are built; playing an event in the running game from VS Code waits for [REDnode #17](https://github.com/Edgemodders/REDnode/issues/17) |
+| A6 EDGE | Started: the MCP server (with V2), the REDnode sound route, EDGEwave Voice for REDnode, and playing an event in the running game from VS Code (REDnode 0.43's editor channel, [REDnode #17](https://github.com/Edgemodders/REDnode/issues/17)) are built |
 
 Source code, releases and issues: [github.com/Edgemodders/EDGEwave](https://github.com/Edgemodders/EDGEwave)

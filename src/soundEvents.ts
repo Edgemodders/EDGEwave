@@ -7,6 +7,8 @@
 // preview. Music cues are in Wwise's sound banks, which EDGEwave reads only from A4; they play in the running
 // game once REDnode can be asked (REDnode #17). A new event is a REDmod custom sound (src/customSound.ts).
 // With show false (EDGEwave #8, EDGEquest's picker), one recording plays at once, with no tab (src/player.ts).
+// Music cues and events with no recordings play in the running game through REDnode's editor channel
+// (REDnode 0.43, src/rednodeEditor.ts), and with inGame any event does, with the game's own mix.
 
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -17,11 +19,15 @@ import { customSoundNote, makeCustomSound, projectSounds, wavSeconds, type Custo
 import { eventsFromMetadata, indexFile, MetadataPath, searchEvents, type EventIndex, type EventMatch, type EventQuery, type GameEvent } from "./events";
 import { QuietPlayer } from "./player";
 import { redcode, type REDcodeApi, type SoundRef } from "./redcode";
+import { inGame } from "./rednodeEditor";
 
 type Log = (line: string) => void;
 
-/** What playEvent answers: where the sound came from, its recordings, and the one played when there was no tab. */
-export type PlayResult = { ok: true; where: "archive" | "project"; variations: number; played?: string } | { ok: false; reason: string };
+/**
+ * What playEvent answers: where the sound came from (the archive, the project, or the running game through
+ * REDnode), its recordings, the one played when there was no tab, and the game's id for a sound it plays.
+ */
+export type PlayResult = { ok: true; where: "archive" | "project" | "game"; variations: number; played?: string; playingId?: number } | { ok: false; reason: string };
 
 /** The game's audio archive: when it changes, the event list is built again. */
 function gameStamp(gamePath: string): string {
@@ -52,6 +58,8 @@ export class SoundEvents {
   private readonly player: QuietPlayer;
   /** What plays with no tab now, and until when, so ▶ on it again stops it. */
   private now?: { key: string; until: number };
+  /** The sound EDGEwave last started in the running game, stopped by the next one and by Stop Sound. */
+  private gamePlaying?: number;
 
   constructor(private readonly context: vscode.ExtensionContext, private readonly log: Log) {
     this.player = new QuietPlayer(log);
@@ -129,7 +137,8 @@ export class SoundEvents {
    * none to play here. With show false, one of them (picked as the game does) plays at once, with no tab,
    * stopping the sound playing.
    */
-  async play(name: string, projectDir?: string, show = true): Promise<PlayResult> {
+  async play(name: string, projectDir?: string, show = true, game = false): Promise<PlayResult> {
+    if (game) return this.playInGame(name.trim());
     if (!show) {
       const why = QuietPlayer.unavailable();
       if (why) return { ok: false, reason: why };
@@ -147,13 +156,17 @@ export class SoundEvents {
     const [event] = (await this.events()).filter((e) => e.name.toLowerCase() === name.trim().toLowerCase());
     if (!event) return { ok: false, reason: `The game has no sound event named ${name}, and the project no sound of that name.` };
     const sounds = (await this.variations(api)).get(event.hash) ?? [];
-    if (!sounds.length)
+    if (!sounds.length) {
+      // Music lives in Wwise's sound banks, which EDGEwave does not read: the running game plays it.
+      const r = await this.playInGame(event.name);
+      if (r.ok) return r;
       return {
         ok: false,
         reason: /^mus_/i.test(event.name)
-          ? `${event.name} is a music cue. Music lives in Wwise's sound banks, which EDGEwave cannot play yet; it will play in the running game through REDnode (REDnode #17).`
-          : `${event.name} has no sound effect recordings in the game's index (it may play music, a voice or other events); it can only be heard in the running game, through REDnode (REDnode #17).`,
+          ? `${event.name} is a music cue: music lives in Wwise's sound banks, which only the game plays. ${r.reason}`
+          : `${event.name} has no sound effect recordings in the game's index (it may play music, a voice or other events). ${r.reason}`,
       };
+    }
     if (!show) {
       const pick = sounds[Math.floor(Math.random() * sounds.length)];
       let a;
@@ -190,9 +203,23 @@ export class SoundEvents {
     }
   }
 
-  /** Stops the sound playing with no tab, if one is. */
-  stop(): Promise<void> {
+  /** Posts an event in the running game through REDnode (on V), stopping the one EDGEwave started before. */
+  async playInGame(name: string): Promise<PlayResult> {
+    if (this.gamePlaying !== undefined) await inGame("sound.stop", { playingId: this.gamePlaying }, 1500);
+    const r = await inGame<{ playingId: number }>("sound.play", { name, on: "player" });
+    if (!r.ok) return r;
+    this.gamePlaying = r.playingId;
+    this.log(`Played ${name} in the game (REDnode, playing ${r.playingId})`);
+    return { ok: true, where: "game", variations: 0, playingId: r.playingId };
+  }
+
+  /** Stops the sound playing with no tab, and the one EDGEwave started in the game, if any. */
+  async stop(): Promise<void> {
     this.now = undefined;
+    if (this.gamePlaying !== undefined) {
+      this.gamePlaying = undefined;
+      await inGame("sound.stop", {}, 1500);
+    }
     return this.player.stop();
   }
 

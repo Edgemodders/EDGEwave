@@ -19,8 +19,8 @@ if (api?.apiVersion === 1) { ... }
 | `voiceLines({ quest, lines, voices?, archiveDir?, project? })` | Opens [Voice Lines](voice-lines.html#the-voice-lines-panel) on these lines, adding them to the quest's panel when it is open. One line opens the panel on it. Resolves with `voice.json` when the panel closes. `lines` as in [the contract](voice-lines.html#the-contract). `project`: the project's folder, else REDcode's open project, else the workspace folder with `source/` |
 | `voiceStatus(quest, project?)` | The quest's `voice.json`, with `voices`, or `undefined` when nothing is voiced yet |
 | `soundEvents({ query?, music?, quest?, limit?, project? })` | The project's own named sounds, then the game's sound events, matching a query. See [Sound events](#sound-events) |
-| `playEvent({ name, project?, show? })` | Plays an event's sound effect recordings in EDGEwave's **Hear** panel: `{ ok: true, where: "archive", variations }`; a project sound plays its WAV (`where: "project"`). A music cue, or an event with no recordings, gives `{ ok: false, reason }`. With `show: false` ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), added 2026-10-26), see [Playing with no tab](#playing-with-no-tab) |
-| `stopSound()` | Stops the sound `playEvent` is playing with `show: false`, if one is. Also the command **EDGEwave: Stop Sound** |
+| `playEvent({ name, project?, show?, inGame? })` | Plays an event's sound effect recordings in EDGEwave's **Hear** panel: `{ ok: true, where: "archive", variations }`; a project sound plays its WAV (`where: "project"`). A music cue, or an event with no recordings, plays in the running game through REDnode (`where: "game"`, `playingId`), or gives `{ ok: false, reason }` when the game is not running with REDnode 0.43 or later. `inGame: true` plays any event in the game, a project's own after Pack and Install too; see [In the running game](#in-the-running-game). With `show: false` ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), added 2026-10-26), see [Playing with no tab](#playing-with-no-tab) |
+| `stopSound()` | Stops the sound `playEvent` is playing with `show: false`, and the one it started in the game, if any. Also the command **EDGEwave: Stop Sound** |
 | `customSound({ project?, wav, name, kind? })` | A sound as a new event a quest can post: `{ event, file, type, note }`, or `{ reason }`. See [A new event](#a-new-event) |
 
 ## Playing with no tab
@@ -53,7 +53,21 @@ Each result: `name`, `hash`, `loops`, `min`, `max` (seconds), `tags`, `music`, `
 
 **The project's own sounds come first** (added 2026-10-24): every REDmod custom sound in the project's `source/resources/info.json` (`project`, else REDcode's open project), made with Add to Project's [A new sound for this project](a3-game.html#a-new-sound-for-this-project) or `customSound`. Each has `project: { type, file }`, the tags `project` and its type, and its WAV's length as `min` and `max`. One under a game event's name is marked `replaces: true` and stands in that event's place, with the event's tags, so a picker shows what the game will play. The query matches them as it does the game's.
 
-**Hearing an event:** sound effects play from the archive through REDcode, in the **Hear** panel: the raw recordings, without the game's effects. Music cues live in Wwise's sound banks, which EDGEwave reads only from A4. They will play in the running game, with the game's own mix, once REDnode can be asked from VS Code ([REDnode #17](https://github.com/Edgemodders/REDnode/issues/17), requested 2026-10-24).
+**Hearing an event:** sound effects play from the archive through REDcode, in the **Hear** panel: the raw recordings, without the game's effects. Music cues live in Wwise's sound banks, which EDGEwave reads only from A4: they play in the running game, with the game's own mix (below).
+
+### In the running game
+
+Added 2026-10-27, with REDnode 0.43.0's editor channel ([REDnode #17](https://github.com/Edgemodders/REDnode/issues/17)); `src/rednodeEditor.ts`.
+
+| | |
+|---|---|
+| How | While the game runs with REDnode, REDnode writes `%LOCALAPPDATA%\REDnode\editor.json` with a local port and a token made new each run. EDGEwave reads it and posts `sound.play { name, on: "player" }`: the game plays the event on V, as a quest would, with its mix and effects |
+| When | `playEvent` on a music cue or an event with no recordings; `playEvent({ name, inGame: true })` for any event; Game Assets' right-click **Play in the Game** |
+| Again | The next sound EDGEwave plays in the game stops the one before. `stopSound()` and **EDGEwave: Stop Sound** stop it |
+| No game | `{ ok: false, reason }`: start the game with REDnode 0.43 or later. Also when `editor.json` is left from a game that ended (its process is gone), the connection is refused, or the player turned the channel off. While the game is still loading: wait, then try again |
+| Not checked by the game | REDnode's channel plays nothing for a name the game does not know, and does not say so |
+
+*Unverified until the hand test:* that every music cue starts this way (a `_START` cue may need its `_STOP` to end; Stop Sound stops what EDGEwave started).
 
 ## A new event
 

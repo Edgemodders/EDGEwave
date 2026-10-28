@@ -147,6 +147,12 @@
         "icon": "$(play)"
       },
       {
+        "command": "edgewave.playInGame",
+        "title": "Play in the Game",
+        "category": "EDGEwave",
+        "icon": "$(game)"
+      },
+      {
         "command": "edgewave.gameAssets.filter",
         "title": "Filter the Game's Sounds",
         "category": "EDGEwave",
@@ -271,6 +277,10 @@
         },
         {
           "command": "edgewave.playGameSound",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.playInGame",
           "when": "false"
         },
         {
@@ -405,6 +415,11 @@
           "command": "edgewave.openGameSound",
           "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)/",
           "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.playInGame",
+          "when": "view == edgewave.gameAssets && viewItem == edgewave.gameEvent",
+          "group": "edgewave@0"
         },
         {
           "command": "edgewave.copyGameName",
