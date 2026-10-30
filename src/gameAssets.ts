@@ -307,14 +307,14 @@ export class GameAssets implements vscode.TreeDataProvider<AssetNode> {
       if (n?.kind === "event") {
         const game = (await this.events.events().catch(() => [])).find((e) => e.hash === n.event.hash);
         const notes = game ? eventNotes(game, n.event.sounds.length) : [`${n.event.sounds.length} recordings. Each play picks one, as the game does.`];
-        const ok = await this.events.hear(n.event.name, n.event.sounds.map((s) => ({ ref: { soundHash: s, eventHash: n.event.hash }, label: String(s) })), notes);
-        if (!ok) throw new Error(`REDcode could not read ${n.event.name}'s sounds; see REDcode's output`);
+        const why = await this.events.hear(n.event.name, n.event.sounds.map((s) => ({ ref: { soundHash: s, eventHash: n.event.hash }, label: String(s) })), notes);
+        if (why) throw new Error(`REDcode could not read ${n.event.name}'s sounds: ${why} (each one is in EDGEwave's output)`);
       } else if (n?.kind === "variation") {
-        const ok = await this.events.hear(`${n.event.name} · ${n.soundHash}`, [{ ref: { soundHash: n.soundHash, eventHash: n.event.hash }, label: `Variation ${n.index + 1}` }], [`Sound ${n.soundHash}, variation ${n.index + 1} of ${n.event.sounds.length}: the raw recording, without the game's effects.`]);
-        if (!ok) throw new Error(`REDcode could not read sound ${n.soundHash}; see REDcode's output`);
+        const why = await this.events.hear(`${n.event.name} · ${n.soundHash}`, [{ ref: { soundHash: n.soundHash, eventHash: n.event.hash }, label: `Variation ${n.index + 1}` }], [`Sound ${n.soundHash}, variation ${n.index + 1} of ${n.event.sounds.length}: the raw recording, without the game's effects.`]);
+        if (why) throw new Error(`REDcode could not read sound ${n.soundHash}: ${why}`);
       } else if (n?.kind === "file") {
-        const ok = await this.events.hear(baseName(n.file.name), [{ ref: { path: n.file.name }, label: baseName(n.file.name) }], [n.file.name, `${formatSize(n.file.size)} in ${n.file.archive}.`]);
-        if (!ok) throw new Error(`REDcode could not read ${baseName(n.file.name)}; see REDcode's output`);
+        const why = await this.events.hear(baseName(n.file.name), [{ ref: { path: n.file.name }, label: baseName(n.file.name) }], [n.file.name, `${formatSize(n.file.size)} in ${n.file.archive}.`]);
+        if (why) throw new Error(`REDcode could not read ${baseName(n.file.name)}: ${why}`);
       }
     } catch (e) {
       void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);

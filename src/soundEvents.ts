@@ -174,12 +174,12 @@ export class SoundEvents {
         a = await api.sound({ soundHash: pick, eventHash: event.hash });
       } catch (e) {
         this.log(`Play ${event.name}: ${pick}: ${(e as Error).message}`);
-        return { ok: false, reason: `REDcode could not read ${event.name}'s sound ${pick}; see REDcode's output.` };
+        return { ok: false, reason: `REDcode could not read ${event.name}'s sound ${pick}: ${(e as Error).message}` };
       }
       return this.quiet(a.data, a.mime, "archive", sounds.length, String(pick));
     }
-    const shown = await this.hear(event.name, sounds.map((s) => ({ ref: { soundHash: s, eventHash: event.hash }, label: String(s) })), eventNotes(event, sounds.length));
-    if (!shown) return { ok: false, reason: `REDcode could not read ${event.name}'s sounds; see REDcode's output.` };
+    const why = await this.hear(event.name, sounds.map((s) => ({ ref: { soundHash: s, eventHash: event.hash }, label: String(s) })), eventNotes(event, sounds.length));
+    if (why) return { ok: false, reason: `REDcode could not read ${event.name}'s sounds: ${why} (each one is in EDGEwave's output)` };
     return { ok: true, where: "archive", variations: sounds.length };
   }
 
@@ -248,23 +248,26 @@ export class SoundEvents {
 
   /**
    * Plays sounds from the game (the first 12) in the Hear panel, through REDcode: a sound effect's
-   * variations, a voice line, a streamed .wem. False when REDcode could read none of them.
+   * variations, a voice line, a streamed .wem. Undefined when it showed them; when REDcode could
+   * read none, why (REDcode's first error; every error goes to EDGEwave's output).
    */
-  async hear(title: string, refs: { ref: SoundRef; label: string }[], notes: string[]): Promise<boolean> {
+  async hear(title: string, refs: { ref: SoundRef; label: string }[], notes: string[]): Promise<string | undefined> {
     const api = await redcode();
     const clips: { data: Uint8Array; mime: string; label: string }[] = [];
+    let why: string | undefined;
     for (const r of refs.slice(0, 12)) {
       try {
         const a = await api.sound(r.ref);
         clips.push({ data: a.data, mime: a.mime, label: r.label });
       } catch (e) {
+        why ??= (e as Error).message;
         this.log(`Hear ${title}: ${r.label}: ${(e as Error).message}`);
       }
     }
-    if (!clips.length) return false;
+    if (!clips.length) return why ?? "nothing to play";
     if (refs.length > clips.length) notes = [...notes, `${refs.length} recordings, the first ${clips.length} here.`];
     this.showPreview(title, notes, clips);
-    return true;
+    return undefined;
   }
 
   private showPreview(title: string, notes: string[], clips: { data: Uint8Array; mime: string; label: string }[]): void {

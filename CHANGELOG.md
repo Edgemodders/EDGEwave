@@ -11,6 +11,10 @@ How to keep it:
 
 ## Unreleased
 
+**Fixed**
+
+- When a game sound cannot be heard, the message says why, with REDcode's own error, such as "No sound 746693166 in the game's sound effect index". It used to point to REDcode's output, which had nothing: the errors go to EDGEwave's output, where every one is still written.
+
 ## 0.2.0 (2026-10-27)
 
 **New**
