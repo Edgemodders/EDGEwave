@@ -1,8 +1,10 @@
 // The Sounds view in EDGEwave's activity bar container, in three groups:
-//   Project  the open folder's sound documents (.edgewave), kept current by a file watcher; the REDcode
-//            project's name beside it when one is open
-//   Project sounds  the project's named sounds (REDmod custom sounds in source/resources/info.json, made with
-//            Add to Project's A new sound): what quests, scenes and scripts play by name. A click plays one
+//   Project  the sound documents (.edgewave) in the open folder and in REDcode's open project, which may be
+//            outside it; kept current by file watchers; the REDcode project's name beside it
+//   Project sounds  what EDGEwave put into the project: its named sounds (REDmod custom sounds in
+//            source/resources/info.json: new names, replaced or silenced game events), what quests, scenes
+//            and scripts play by name, a click plays one; and, from each document's last Add to Project
+//            choice, the overrides of a game sound and the REDnode package sounds, a click opens the mix
 //   Recent   the sound documents opened lately, from any folder, so a modder can try sounds without a
 //            project (globalState, newest first, the last 20; files gone from disk are dropped)
 // Each sound opens in the editor. With neither, the view shows its welcome text (package.json).
@@ -12,10 +14,12 @@ import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { projectSounds, type ProjectSound } from "./customSound";
-import { docLabel, Extension, parseDoc } from "./doc";
+import { docLabel, Extension, parseDoc, type IntoGame } from "./doc";
+import { findSoundDocs } from "./findDocs";
 import { ViewType } from "./openSound";
 import { redcode } from "./redcode";
 import { RedmodTypes } from "./redmod";
+import { readIndex } from "./soundEvents";
 
 const RecentState = "edgewave.recentSounds";
 const MaxRecent = 20;
@@ -32,6 +36,8 @@ interface SoundItem {
   edits: number;
   tracks?: number;
   error?: string;
+  /** Its last Add to Project choice. */
+  game?: IntoGame;
 }
 
 /** A named sound in the project, by its event name. */
@@ -39,9 +45,19 @@ export interface NamedItem extends ProjectSound {
   kind: "named";
   /** The project's folder. */
   dir: string;
+  /** How it came: a new name, or a game event replaced or silenced (from the documents, else the game's event list). */
+  how: string;
 }
 
-type Node = { kind: "group"; group: Group } | SoundItem | NamedItem | { kind: "note"; group: Group; text: string };
+/** Something else a document put into the project (an override, a REDnode package sound): opens the document. */
+interface PlacedItem {
+  kind: "placed";
+  label: string;
+  how: string;
+  doc: vscode.Uri;
+}
+
+type Node = { kind: "group"; group: Group } | SoundItem | NamedItem | PlacedItem | { kind: "note"; group: Group; text: string };
 
 const same = (a: string, b: string) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
 
@@ -50,6 +66,8 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
   readonly onDidChangeTreeData = this.changed.event;
   private projectName: string | undefined;
   private projectDir: string | undefined;
+  /** Watches REDcode's project folder when it is outside the open folder. */
+  private projectWatch?: vscode.Disposable;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     const watcher = vscode.workspace.createFileSystemWatcher(`**/*${Extension}`);
@@ -60,19 +78,26 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
     // The REDcode project's name, when one is open. Without REDcode the view still lists the folder.
     redcode().then(
       (api) => {
-        this.projectName = api.project()?.name;
-        this.projectDir = api.project()?.dir;
-        context.subscriptions.push(
-          api.onDidChangeProject((p) => {
-            this.projectName = p?.name;
-            this.projectDir = p?.dir;
-            this.refresh();
-          }),
-        );
-        this.refresh();
+        this.setProject(api.project());
+        context.subscriptions.push(api.onDidChangeProject((p) => this.setProject(p)), { dispose: () => this.projectWatch?.dispose() });
       },
       () => undefined,
     );
+  }
+
+  /** REDcode's open project: its name, and a watcher on its folder when the open folder does not hold it. */
+  private setProject(p: { name: string; dir: string } | undefined): void {
+    this.projectName = p?.name;
+    this.projectDir = p?.dir;
+    this.projectWatch?.dispose();
+    this.projectWatch = undefined;
+    if (p?.dir && !vscode.workspace.getWorkspaceFolder(vscode.Uri.file(p.dir))) {
+      const refresh = () => this.refresh();
+      const docs = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(p.dir), `**/*${Extension}`));
+      const info = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(p.dir), "source/resources/info.json"));
+      this.projectWatch = vscode.Disposable.from(docs, info, docs.onDidCreate(refresh), docs.onDidDelete(refresh), docs.onDidChange(refresh), info.onDidCreate(refresh), info.onDidChange(refresh), info.onDidDelete(refresh));
+    }
+    this.refresh();
   }
 
   refresh(): void {
@@ -106,15 +131,19 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
   private read(group: Group, uri: vscode.Uri): SoundItem {
     try {
       const doc = parseDoc(fs.readFileSync(uri.fsPath, "utf8"));
-      return { kind: "sound", group, uri, label: docLabel(doc), voice: doc.tracks.some((t) => t.voice), edits: doc.tracks.reduce((n, t) => n + t.edits.length, 0), tracks: doc.tracks.length };
+      return { kind: "sound", group, uri, label: docLabel(doc), voice: doc.tracks.some((t) => t.voice), edits: doc.tracks.reduce((n, t) => n + t.edits.length, 0), tracks: doc.tracks.length, game: doc.game };
     } catch (e) {
       return { kind: "sound", group, uri, label: path.basename(uri.fsPath), voice: false, edits: 0, error: (e as Error).message };
     }
   }
 
+  /** The sound documents in the open folder, and in REDcode's project when the open folder does not hold it. */
   private async project(): Promise<SoundItem[]> {
-    if (!vscode.workspace.workspaceFolders?.length) return [];
-    const files = await vscode.workspace.findFiles(`**/*${Extension}`, "**/node_modules/**", 2000);
+    const files = vscode.workspace.workspaceFolders?.length ? await vscode.workspace.findFiles(`**/*${Extension}`, "**/node_modules/**", 2000) : [];
+    const seen = new Set(files.map((u) => path.resolve(u.fsPath).toLowerCase()));
+    if (this.projectDir && !vscode.workspace.getWorkspaceFolder(vscode.Uri.file(this.projectDir))) {
+      for (const f of findSoundDocs(this.projectDir)) if (!seen.has(path.resolve(f).toLowerCase())) files.push(vscode.Uri.file(f));
+    }
     return files.map((uri) => this.read("project", uri)).sort((a, b) => a.uri.fsPath.localeCompare(b.uri.fsPath));
   }
 
@@ -123,14 +152,45 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
     return this.projectDir ?? vscode.workspace.workspaceFolders?.map((f) => f.uri.fsPath).find((d) => fs.existsSync(path.join(d, "source")));
   }
 
-  private named(): NamedItem[] | string {
+  /**
+   * What EDGEwave put into the project: info.json's named sounds, each said how it came (a document's last
+   * choice, else whether a game event has that name), then the documents' overrides and REDnode package sounds.
+   */
+  private async named(): Promise<(NamedItem | PlacedItem)[] | string> {
     const dir = this.namedDir();
     if (!dir) return "No project open";
+    let sounds: ProjectSound[];
     try {
-      return projectSounds(dir).map((s) => ({ ...s, kind: "named", dir }));
+      sounds = projectSounds(dir);
     } catch (e) {
       return (e as Error).message;
     }
+    const inProject = (u: vscode.Uri) => {
+      const rel = path.relative(dir, u.fsPath);
+      return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
+    };
+    const docs = (await this.project()).filter((d) => d.game && inProject(d.uri));
+    const routeOf = (name: string) => docs.find((d) => d.game && "event" in d.game && d.game.event.toLowerCase() === name.toLowerCase())?.game;
+    const gameEvents = new Set((readIndex()?.events ?? []).map((e) => e.name.toLowerCase()));
+    const named: (NamedItem | PlacedItem)[] = sounds.map((s) => {
+      const r = routeOf(s.name);
+      const how =
+        r?.route === "new"
+          ? "a new sound"
+          : r?.route === "skip" || s.type === "mod_skip"
+            ? "silences the game's event"
+            : r?.route === "redmod" || gameEvents.has(s.name.toLowerCase())
+              ? "replaces the game's event"
+              : "a new sound";
+      return { ...s, kind: "named", dir, how };
+    });
+    for (const d of docs) {
+      const g = d.game!;
+      const doc = path.basename(d.uri.fsPath, Extension);
+      if (g.route === "override") named.push({ kind: "placed", label: `${doc}`, how: `overrides game sound ${g.soundHash ?? ""}`.trim(), doc: d.uri });
+      else if (g.route === "rednode") named.push({ kind: "placed", label: g.sound, how: `in REDnode package ${path.basename(g.package)}`, doc: d.uri });
+    }
+    return named;
   }
 
   private async recent(): Promise<SoundItem[]> {
@@ -152,9 +212,9 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
     }
     if (node.kind !== "group") return [];
     if (node.group === "named") {
-      const named = this.named();
+      const named = await this.named();
       if (typeof named !== "string" && named.length) return named;
-      return [{ kind: "note", group: "named", text: typeof named === "string" ? named : "None yet: Add to Project > A new sound for this project names one" }];
+      return [{ kind: "note", group: "named", text: typeof named === "string" ? named : "None yet: Add to Project puts a mix into the project" }];
     }
     const items = node.group === "project" ? await this.project() : await this.recent();
     if (items.length) return items;
@@ -173,7 +233,7 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
       item.id = `group:${n.group}`;
       item.contextValue = n.group === "project" ? "edgewave.projectGroup" : n.group === "named" ? "edgewave.namedGroup" : "edgewave.recentGroup";
       if (n.group === "named") {
-        item.tooltip = "The project's named sounds (REDmod custom sounds in source/resources/info.json): quests, scenes and scripts play each by its name. A click plays one";
+        item.tooltip = "What EDGEwave put into the project: named sounds (REDmod custom sounds in source/resources/info.json), which quests, scenes and scripts play by name, a click plays one; overrides of game sounds and REDnode package sounds, a click opens the mix";
         item.iconPath = new vscode.ThemeIcon("symbol-event");
       } else if (n.group === "project") {
         const folders = vscode.workspace.workspaceFolders ?? [];
@@ -200,11 +260,20 @@ export class SoundsView implements vscode.TreeDataProvider<Node> {
       const item = new vscode.TreeItem(n.name, vscode.TreeItemCollapsibleState.None);
       item.id = `named:${n.name}`;
       const kind = RedmodTypes.find((t) => t.type === n.type)?.label ?? n.type;
-      item.description = n.missing ? "WAV missing" : `${kind}${n.seconds !== undefined ? ` · ${n.seconds.toFixed(2)} s` : ""}`;
-      item.tooltip = `${n.name}: a quest, scene or script plays it by this name\n${n.type}${n.file ? `\n${n.file}` : ""}${n.missing ? " (missing)" : ""}`;
+      item.description = n.missing ? `${n.how} · WAV missing` : `${n.how} · ${kind}${n.seconds !== undefined ? ` · ${n.seconds.toFixed(2)} s` : ""}`;
+      item.tooltip = `${n.name}: ${n.how}; a quest, scene or script plays it by this name\n${n.type}${n.file ? `\n${n.file}` : ""}${n.missing ? " (missing)" : ""}`;
       item.iconPath = new vscode.ThemeIcon(n.missing ? "warning" : n.type === "mod_skip" ? "mute" : "symbol-event");
       item.contextValue = "edgewave.namedSound";
       item.command = { command: "edgewave.hearSound", title: "Hear", arguments: [n] };
+      return item;
+    }
+    if (n.kind === "placed") {
+      const item = new vscode.TreeItem(n.label, vscode.TreeItemCollapsibleState.None);
+      item.id = `placed:${n.doc.fsPath}`;
+      item.description = n.how;
+      item.tooltip = `${n.how}, from ${n.doc.fsPath}. A click opens the mix`;
+      item.iconPath = new vscode.ThemeIcon(n.how.startsWith("in REDnode") ? "package" : "replace");
+      item.command = { command: "vscode.openWith", title: "Open", arguments: [n.doc, ViewType] };
       return item;
     }
     const item = new vscode.TreeItem(path.basename(n.uri.fsPath, Extension), vscode.TreeItemCollapsibleState.None);

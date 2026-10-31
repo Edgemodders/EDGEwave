@@ -756,7 +756,9 @@ log("new sound", JSON.stringify({ newRows, newInfo, newGame, wav: fs.existsSync(
 const at = (g) => namedRows.findIndex((r) => r === g || r.startsWith(g + " ") || r.startsWith(g));
 const newOk = /^A new sound for this project/.test(newRows[0] ?? "") && newInfo?.type === "mod_sfx_low_occlusion" && newInfo.file === "edgewave_smoke_new.wav"
   && wavFormat(newWav).rate === 48000 && newGame?.route === "new" && newGame.event === "edgewave_smoke_new"
-  && at("Project sounds") > 0 && namedRows.some((r) => r.startsWith("edgewave_smoke_new")) && namedRows.some((r) => r.startsWith("edgewave_smoke_knock"));
+  && at("Project sounds") > 0 && namedRows.some((r) => r.startsWith("edgewave_smoke_new") && r.includes("a new sound")) && namedRows.some((r) => r.startsWith("edgewave_smoke_knock"))
+  // Each says how it came: smoke_event's REDmod replacement (A3) replaces the game's event.
+  && namedRows.some((r) => r.startsWith("smoke_event") && r.includes("replaces the game's event"));
 if (!newOk) finish(false, "A new sound for this project did not name the sound in the project");
 
 // Game Assets: the game's sounds only. Sound effects lists the stub's two events; Voice lines shows English

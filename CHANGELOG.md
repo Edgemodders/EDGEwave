@@ -45,6 +45,7 @@ How to keep it:
 
 **Fixed**
 
+- The Sounds view's **Project** listed only the sounds in the folder open in VS Code: it now lists those in REDcode's open project too, when the project is elsewhere. **Project sounds** says how each came (a new sound, or a game event replaced or silenced) and also lists overrides of game sounds and sounds put in a REDnode package; a click opens their mix.
 - Unsaved changes to a sound (such as a track added from Game Assets) were lost when the VS Code window reloaded, though the tab stayed marked unsaved. EDGEwave now puts them back, still unsaved until you save.
 - When the ElevenLabs API key is missing or refused ("Invalid API key"), Generate Sound, Speak Line, Re-Voice and Voice Lines said so with no way to fix it there. They now show **Set ElevenLabs API Key…** and a link to where to make one, on the dialog's message line; the voices load again once it is set.
 - Open Sound in EDGEwave… in REDcode's Project view shows on sound files only (`.wem`, `.wav`, `.ogg`, `.opus`, `.mp3`, `.flac`), not on every file such as an `.mlsetup` ([#6](https://github.com/Edgemodders/EDGEwave/issues/6)).
