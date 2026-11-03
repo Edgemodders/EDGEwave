@@ -6,9 +6,11 @@
 #                                               Open VSX (OVSX_PAT), and makes the GitHub release v<version>
 #                                               (which tags the commit) with the .vsix, the Nexus zip and
 #                                               the CHANGELOG section. Stops first if that tag exists
-#                                               (raise the version in package.json) or CHANGELOG.md has
-#                                               no section for the version (the release notes,
-#                                               tools/release-notes.mjs)
+#                                               (raise the version in package.json), if CHANGELOG.md
+#                                               has no section for the version (the release notes,
+#                                               tools/release-notes.mjs), or if README.md's status line
+#                                               and status badge do not name the version
+#                                               (tools/release/readme-check.mjs)
 #   ... and "Update Nexus Mods" ticked          also, after the GitHub release, updates the Nexus page
 #                                               (35493, tools/nexus/nexus.mjs, the NEXUS_KEY secret):
 #                                               the Nexus zip as the main file's new version (the old one
@@ -78,6 +80,12 @@ jobs:
           fi
           voice=$(node -p "require('./rednode/edgewave-voice/rednode-app.json').version")
           { echo "VERSION=${version}"; echo "VOICE_VERSION=${voice}"; echo "VSIX=${GITHUB_WORKSPACE}/dist/edgewave-${version}.vsix"; } >> "$GITHUB_ENV"
+
+      # Before anything is built or published: a README whose status line or status badge does not
+      # name the version stops a release here.
+      - name: The README says this release
+        if: ${{ inputs.release }}
+        run: node tools/release/readme-check.mjs --version "${VERSION}"
 
       # Before anything is published: Nexus takes this release, and its description has no edit the repo lacks.
       - name: Nexus Mods can take this release
