@@ -59,4 +59,7 @@ h3 { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--a
 .chip { font-family: var(--mono); font-size: 11px; padding: 1px 6px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
 .chip.made { border-color: var(--cyan); color: var(--cyan); }
 .chip.stale { border-color: var(--accent); color: var(--accent); }
+.chip.working { border-color: var(--accent); color: var(--accent); animation: working .7s ease-in-out infinite alternate; }
+@keyframes working { to { opacity: .45; } }
+.words .made-with { font-size: 12px; margin-top: 2px; }
 @media (max-width: 720px) { .line { grid-template-columns: 1fr; } }

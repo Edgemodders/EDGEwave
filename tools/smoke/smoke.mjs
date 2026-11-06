@@ -646,6 +646,7 @@ const picked = await vrun("return [...document.querySelectorAll('#voices select'
 await vrun("document.getElementById('generate').click()");
 let vmeta = "";
 for (let i = 0; i < 40; i++) { vmeta = await vrun("return document.getElementById('meta').textContent"); if (vmeta.includes("2 voiced")) break; await sleep(500); }
+const vmadeWith = await vrun("return [...document.querySelectorAll('.line .made-with')].map((e) => e.textContent)");
 const vshot = await cdp("Page.captureScreenshot", { format: "png" });
 fs.writeFileSync(path.join(T, "voiceLines.png"), Buffer.from(vshot.data, "base64"));
 const record = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "raw", "edgewave", "voice", "smoke_quest", "voice.json"), "utf8"));
@@ -655,7 +656,7 @@ const vLine = record.lines["1234567890123456789"], jLine = record.lines["42"];
 const takeWav = jLine && fs.readFileSync(path.join(T, "proj", jLine.female));
 await command("View: Close Editor");
 const closed = await waitFile(path.join(T, "voiceLines.json"), 20);
-const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 voiced")
+const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 voiced") && vmadeWith.length === 2 && vmadeWith.every((t) => t.startsWith("Made with eleven_v3, "))
   && vLine?.female === "source/raw/edgewave/voice/smoke_quest/v_smoke_quest_f_112210f47de98115.wav" && vLine?.male?.endsWith("v_smoke_quest_m_112210f47de98115.wav")
   && jLine?.female?.endsWith("judy_smoke_quest_f_000000000000002a.wav") && !jLine.male && jLine.say === "[softly] You... came back." && jLine.model === "eleven_v3"
   && record.archiveDir === "mod/smoke/smoke_quest/vo" && record.voices.V?.female === "v_smoke" && record.voices.Judy === "v_smoke"

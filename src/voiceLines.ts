@@ -120,7 +120,7 @@ export class VoiceLines {
   }
 
   /** What the page shows: the lines with their status and takes, the speakers and their voices. */
-  private push(p: Panel, busy?: { done: number; total: number }): void {
+  private push(p: Panel, busy?: { done: number; total: number; id: string }): void {
     const record = loadRecord(p.o.projectDir, p.o.quest);
     const voices = { ...record.voices, ...(p.o.voices ?? {}) };
     const uri = (rel?: string) => {
@@ -147,7 +147,7 @@ export class VoiceLines {
           genders: gendersOf(l),
           status: lineStatus(l, record),
           takes: { female: uri(r?.female), male: uri(r?.male) },
-          madeFrom: r ? { text: r.text, say: r.say, direction: r.direction, model: r.model } : undefined,
+          madeFrom: r ? { text: r.text, say: r.say, direction: r.direction, model: r.model, made: r.made } : undefined,
           previous: !!r?.previous,
         };
       }),
@@ -239,7 +239,7 @@ export class VoiceLines {
         rate: vscode.workspace.getConfiguration("edgewave.elevenlabs").get<number>("sampleRate") ?? 48000,
         api,
         log: (s) => this.log.appendLine(`Voice Lines: ${s}`),
-        progress: (done, total) => this.push(p, done < total ? { done, total } : undefined),
+        progress: (done, total, line) => this.push(p, { done, total, id: line.id }),
         cancelled: () => busy.cancelled,
       });
       this.log.appendLine(`Voice Lines: ${p.o.quest}: ${r.voiced.length} voiced, ${r.failed.length} failed, ${r.characters} characters, ${r.rate} Hz, ${r.model}`);

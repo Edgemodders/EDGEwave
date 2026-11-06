@@ -152,7 +152,7 @@ export interface BatchOptions {
   rate?: number;
   api: ElevenLabs;
   log?: (line: string) => void;
-  /** After each line, with how many are done. */
+  /** Before each line is voiced, with how many are done: a panel shows at once that it is working. */
   progress?: (done: number, total: number, line: VoiceLine) => void;
   /** Stops before the next line. */
   cancelled?: () => boolean;
@@ -196,6 +196,7 @@ export async function voiceBatch(o: BatchOptions): Promise<BatchResult> {
   };
   for (const [i, line] of todo.entries()) {
     if (o.cancelled?.()) break;
+    o.progress?.(i, todo.length, line);
     try {
       const text = spoken(line, model);
       const wavs: Partial<Record<Gender, Uint8Array>> = {};
@@ -213,7 +214,6 @@ export async function voiceBatch(o: BatchOptions): Promise<BatchResult> {
       // A missing key or no credits fails every line the same way: stop at the first.
       if (/401|402|quota|credit|api key|unauthorized/i.test((e as Error).message)) break;
     }
-    o.progress?.(i + 1, todo.length, line);
   }
   return { record, voiced, failed, characters, rate, model };
 }

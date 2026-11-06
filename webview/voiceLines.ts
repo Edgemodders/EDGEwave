@@ -20,14 +20,14 @@ interface Line {
   genders: Gender[];
   status: "none" | "made" | "stale";
   takes: Partial<Record<Gender, string>>;
-  madeFrom?: { text: string; say?: string; direction?: string; model?: string };
+  madeFrom?: { text: string; say?: string; direction?: string; model?: string; made?: string };
   previous: boolean;
 }
 interface State {
   quest: string;
   model: string;
   focus: string[];
-  busy?: { done: number; total: number };
+  busy?: { done: number; total: number; id: string };
   names: Record<string, string>;
   voices: Record<string, string | Partial<Record<Gender, string>>>;
   speakers: { speaker: string; both: boolean; isV: boolean }[];
@@ -175,12 +175,19 @@ function renderLines() {
 
 function lineRow(l: Line, s: State): HTMLElement {
   const busy = !!s.busy;
+  const working = s.busy?.id === l.id;
   const row = el("div", { className: `line ${l.status}${s.focus.includes(l.id) ? " focus" : ""}` });
   row.dataset.id = l.id;
   const words = el("div", { className: "words" }, el("span", { className: "who", textContent: l.speaker }), el("span", { className: "text", textContent: l.text }));
   if (l.say && l.say !== l.text) words.append(el("div", { className: "say mono", textContent: `say: ${l.say}`, title: "As spoken: eleven_v3 reads the [tags]; other models get them removed" }));
   if (l.direction) words.append(el("div", { className: "direction", textContent: l.direction }));
   if (l.status === "stale" && l.madeFrom) words.append(el("div", { className: "dim", textContent: `The take says: ${l.madeFrom.say ?? l.madeFrom.text}` }));
+  // Says what the take is, and shows that a Regenerate has finished when the chip stays "voiced".
+  if (l.madeFrom?.made) {
+    const when = new Date(l.madeFrom.made).toLocaleString([], { dateStyle: "short", timeStyle: "short" });
+    const how = l.madeFrom.model === "recording" ? "Your recording" : l.madeFrom.model ? `Made with ${l.madeFrom.model}` : "Made";
+    words.append(el("div", { className: "dim made-with", textContent: `${how}, ${when}` }));
+  }
   const takes = el("div", { className: "takes" });
   for (const g of l.genders) {
     const src = l.takes[g];
@@ -198,7 +205,7 @@ function lineRow(l: Line, s: State): HTMLElement {
     $("error").hidden = true;
     send({ type: "generate", ids: [l.id], redo: true });
   };
-  const actions = el("div", { className: "actions" }, el("span", { className: `chip ${l.status}`, textContent: StatusText[l.status] }), gen);
+  const actions = el("div", { className: "actions" }, working ? el("span", { className: "chip working", textContent: "voicing…" }) : el("span", { className: `chip ${l.status}`, textContent: StatusText[l.status] }), gen);
   if (l.previous) {
     const back = el("button", { textContent: "Previous", title: "Swap back to the take before this one (and back again)", disabled: busy });
     back.onclick = () => send({ type: "previous", id: l.id });

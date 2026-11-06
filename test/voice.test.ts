@@ -130,3 +130,15 @@ test("voiceBatch: speaks each take in its voice and model, saves voice.json, fal
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("voiceBatch: says which line it starts before asking for it, so one line shows as working too", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ew-"));
+  try {
+    const events: string[] = [];
+    const api = { speak: async () => (events.push("speak"), new Uint8Array(480)) } as unknown as ElevenLabs;
+    await voiceBatch({ projectDir: dir, quest: "q", lines: [judy], voices: { Judy: "jv" }, api, progress: (done, total, line) => events.push(`${done}/${total} ${line.speaker}`) });
+    assert.deepEqual(events, ["0/1 Judy", "speak"]);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
