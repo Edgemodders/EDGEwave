@@ -17,7 +17,7 @@ Last updated 2026-10-24.
 | [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-11-06 | Pass, after six rounds, with steps 14 and 15 |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after four rounds, with steps 9, 12 and step 11's first part; step 10 and step 11 in the game to test |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after five rounds, with steps 9, 11 and 12; step 10 to test |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-11-06 | Pass, after two rounds, with step 11 |
 | [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | 2026-11-06 | Pass, first round |
 | [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | | To run |
@@ -240,6 +240,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 | 2 | 2026-10-19 | Steps 1 to 5 pass. Step 4: the game played a REDmod custom sound for `dev_vending_machine_can_falls` (`mod_sfx_room`); REDmod's deploy found the mod and wrote every entry to `mods.json`, with no complaint about the WAVs. Step 5 first seemed to fail: with `mod_skip`, then two silent WAVs, the can still sounded the same. A short ping as its custom sound showed why: a can dropping plays several events layered together. On `w_melee_katana_equip`, one event on its own, the silent WAV silences it and `mod_skip` (by hand, the audible WAV left in place) does not. Gain 0 in `info.json` left a replacement loud. Three findings, fixed the same day (below). Finding events by ear was hard, so the owner asked REDnode for a Sound Tracer ([REDnode #14](https://github.com/Edgemodders/REDnode/issues/14)) |
 | 3 | 2026-10-20 | Step 6 retest with the checkboxes: the tracks in the mix come first, as expected; the last choice, in a group out of the mix, did not seem marked. It was, as the row's small dim description; now in the row's name and its group's heading (below). Then, on that build, steps 6, 7 and 8 (with the swap) pass. **A3 passes** |
 | 4 | 2026-11-06 | Steps 9 and 12, step 11's first part | Pass. Step 12: a click opens the Hear tab with **Play**, not playing at once; an override's row opens its mix instead, to be made the same after 0.2.0. Step 9 needs a game sound effect on a track for the override and event rows. Step 10 and step 11 in the game to test |
+| 5 | 2026-11-06 | Step 11 in the game | Pass, with `edgewave_cassette`, a `mod_sfx_low_occlusion` sound, posted from a scene (EDGEquest plays a quest's sounds on V). Heard, and it is spatial, not 2D: on a surround system it sat to the left or slightly left and behind, not centred. Why there is not known; the listener and V's sound point may simply differ |
 
 | Finding (round 1) | Fix |
 |---|---|
