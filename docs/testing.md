@@ -346,6 +346,7 @@ Asked for by the owner on 2026-10-19: a document kept outside the open folder (m
 | Round | Date | Result |
 |---|---|---|
 | 1 | 2026-10-19 | **Pass**: the owner reports it all works, with the Open Folder icon |
+| 2 | 2026-11-06 | Step 8's outside mix: **the gap is confirmed**. A mix saved in Downloads, Add to Project > Override sound 814445922: the message names the `.opuspak` and `.opusinfo` written under `source/archive`; the mix is under Recent only, as it should be, and the override is not under Project sounds. To fix after 0.2.0. The rest of step 8 to test |
 
 1. **Project.** Open a folder or a REDcode project with sound documents, and click the EDGEwave icon. Expect: **Project**, with the REDcode project's name beside it (or the folder's), listing the folder's documents by their folder.
 2. **Recent, outside the folder.** With no REDcode project open, Open Sound… on a `.wav` outside the open folder (such as in Documents). Expect: it is first under **Recent**, with its full folder (your home as `~`); it is not under Project.
