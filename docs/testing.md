@@ -8,7 +8,7 @@ Last updated 2026-10-24.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-10-27 | Pass, 61 tests |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-11-06 | Pass, 66 tests |
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-10-27 | Pass |
 | [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-10-27 | Pass |
 | [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
@@ -197,6 +197,7 @@ What is built: [A2 Mix](a2-mix.html). **Passed 2026-10-20**, after four rounds.
 | 2 | 2026-10-18 | 1 to 11, with the five findings | Pass, with one finding, fixed (below) |
 | 3 | 2026-10-20 | 12 (the splitter) and 13 (moving lanes), new at the owner's request; the checkboxes' colours | Pass: "It all works great". Found in the round and fixed: the checkboxes were the browser's white box (now the theme's), and a lane moved by a grip, now by dragging the lane itself |
 | 4 | 2026-10-20 | Retest of step 3 with a holocall line and a voice line's WAV; step 6 with the checkboxes | Pass |
+| 5 | 2026-11-06 | Step 14, found during Sounds view step 8 | **Failed, fixed**: in a project with no `source/raw/edgewave/sounds` yet, the save dialog opened on the last folder used, since Windows ignores a starting folder that does not exist (the owner made the folder and it opened there). The folder is now made for the dialog and removed after it if still empty (`src/dialogFolder.ts`). To retest: step 14 |
 
 | Finding (round 1) | Fix |
 |---|---|

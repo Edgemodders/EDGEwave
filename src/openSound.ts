@@ -9,6 +9,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { withDialogFolder } from "./dialogFolder";
 import { emptyDoc, Extension, formatDoc, isSoundFile, looksLikeVoice, newDoc, SoundExtensions, type SoundDoc, type Source } from "./doc";
 import { redcode, type SoundRef } from "./redcode";
 
@@ -99,12 +100,14 @@ export async function newSound(file?: string): Promise<void> {
       const dir = raw ? path.join(raw, "edgewave", "sounds") : vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       let name = "New sound";
       for (let n = 2; dir && fs.existsSync(path.join(dir, name + Extension)); n++) name = `New sound ${n}`;
-      const pick = await vscode.window.showSaveDialog({
-        defaultUri: dir ? vscode.Uri.file(path.join(dir, name + Extension)) : undefined,
-        filters: { "EDGEwave documents": ["edgewave"] },
-        saveLabel: "Create",
-        title: "Create a sound: its name and where to keep it (the render, a WAV, goes beside it)",
-      });
+      const ask = () =>
+        vscode.window.showSaveDialog({
+          defaultUri: dir ? vscode.Uri.file(path.join(dir, name + Extension)) : undefined,
+          filters: { "EDGEwave documents": ["edgewave"] },
+          saveLabel: "Create",
+          title: "Create a sound: its name and where to keep it (the render, a WAV, goes beside it)",
+        });
+      const pick = await (dir ? withDialogFolder(dir, ask) : ask());
       if (!pick) return;
       file = pick.fsPath;
     }
