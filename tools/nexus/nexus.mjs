@@ -60,6 +60,8 @@ const fromNexus = (s) =>
 const sha = (s) => createHash('sha256').update(s.replace(/\s+/g, '')).digest('hex');
 const readConfig = () => JSON.parse(readFileSync(configFile, 'utf8'));
 const repoDescription = () => lf(readFileSync(descFile, 'utf8'));
+/** A warning: an annotation on the run in CI, a plain line on the dev PC. */
+const warn = (title, msg) => console.log(process.env.GITHUB_ACTIONS ? `::warning title=${title}::${msg}` : msg);
 
 /** A file on the page and its versions: by its id, else by its name among the active files; null when there is none yet. */
 async function findFile(modId, up, id) {
@@ -174,8 +176,15 @@ async function plan(version, zip) {
   for (const t of targets(config, version, zip)) {
     const { file, versions } = await findFile(mod.id, t.up, t.id);
     const already = versions.find((v) => v.version === t.version);
-    const previous = versions.find((v) => v.is_primary) ?? versions.filter((v) => v.category !== 'archived').at(-1) ?? null;
-    const mm = `mod manager download ${t.up.modManager ? 'on' : 'off'}`;
+    // The version this one replaces, and Nexus archives when archivePrevious is set: the newest still
+    // in the file's category. Not simply the Primary one, which can be a version archived since.
+    const shown = versions.filter((v) => v.category === (t.up.category ?? 'main') && v.version !== t.version).sort((a, b) => String(b.uploaded_at).localeCompare(String(a.uploaded_at)));
+    const previous = shown[0] ?? versions.find((v) => v.is_primary && v.category !== 'archived') ?? null;
+    // "primary" is the page's Primary file, its default download: the main file's, also with
+    // "modManager": false. Sent as false, a new version never takes over and Primary stays on an old one.
+    const mm = `mod manager download ${t.up.modManager ? 'on' : 'off'}; ${t.up.primary ? 'the new Primary file' : 'not Primary'}`;
+    if (shown.length > 1) console.log(`Also under ${t.up.name}: ${shown.slice(1).map((v) => v.version).join(', ')}. Nexus's API cannot archive these; archive them on the page's Files tab (Manage files)`);
+    if (t.key === 'main' && !already && !t.up.primary) warn('Nexus Primary file', `nexus.json has "primary": false, so ${t.version} will not become the page's Primary file. Set it to true, also with "modManager": false.`);
     console.log(
       `${t.up.name}: ` +
         (already
@@ -246,6 +255,18 @@ async function release() {
     const after = await modByPage(p.config.page);
     const same = sha(fromNexus(after.description)) === sha(repoDescription());
     console.log(same ? 'Pushed the description' : 'Pushed the description, but Nexus answers with a different text: check the page');
+  }
+
+  // What Nexus made of the upload, read back: update_mod_version is the API's only way to set the
+  // page's version, and whether "primary" takes with Mod Manager Download off is unverified.
+  const main = p.files[0];
+  if (!main.already) {
+    const after = await modByPage(p.config.page);
+    if (after.version === main.version) console.log(`The page's version is ${main.version}`);
+    else warn('Nexus page version', `The page's version is still ${after.version}, not ${main.version}: set it by hand on Nexus (Edit mod page, Version). The API has no other way to set it.`);
+    const { versions } = await findFile(p.mod.id, main.up, main.id);
+    if (versions.find((v) => v.version === main.version)?.is_primary) console.log(`${main.version} is the page's Primary file`);
+    else if (main.up.primary) warn('Nexus Primary file', `${main.version} is not the page's Primary file, though nexus.json asks for it: set it by hand on the page's Files tab (Manage files).`);
   }
 }
 

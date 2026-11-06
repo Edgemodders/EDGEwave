@@ -3,7 +3,7 @@
   "upload": {
     "name": "EDGEwave",
     "category": "main",
-    "primary": false,
+    "primary": true,
     "modManager": false,
     "archivePrevious": true,
     "description": "EDGEwave {version}, the VS Code extension: not a game mod, so no Mod Manager Download. Needs REDcode. Extract, then in VS Code: Extensions view, ..., Install from VSIX. Or install it from the Marketplace or Open VSX, which add REDcode and update themselves."
