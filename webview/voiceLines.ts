@@ -154,6 +154,7 @@ function renderVoices() {
   $("voices").replaceChildren(el("div", { className: "label", textContent: "Voices" }), ...rows);
 }
 
+const seenTakes = new Map<string, string | undefined>();
 const StatusText = { none: "no take", made: "voiced", stale: "changed since" } as const;
 
 function renderLines() {
@@ -176,7 +177,10 @@ function renderLines() {
 function lineRow(l: Line, s: State): HTMLElement {
   const busy = !!s.busy;
   const working = s.busy?.id === l.id;
-  const row = el("div", { className: `line ${l.status}${s.focus.includes(l.id) ? " focus" : ""}` });
+  // A flash when the line's take changes, from here or from outside (an assistant's voice_lines); not on first sight.
+  const changed = seenTakes.has(l.id) && seenTakes.get(l.id) !== l.madeFrom?.made;
+  seenTakes.set(l.id, l.madeFrom?.made);
+  const row = el("div", { className: `line ${l.status}${s.focus.includes(l.id) ? " focus" : ""}${changed ? " flash" : ""}` });
   row.dataset.id = l.id;
   const words = el("div", { className: "words" }, el("span", { className: "who", textContent: l.speaker }), el("span", { className: "text", textContent: l.text }));
   if (l.say && l.say !== l.text) words.append(el("div", { className: "say mono", textContent: `say: ${l.say}`, title: "As spoken: eleven_v3 reads the [tags]; other models get them removed" }));

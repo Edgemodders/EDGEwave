@@ -654,9 +654,13 @@ const tts = eleven.slice(elevenBefore).filter((r) => r.path.startsWith("/v1/text
 log("voice lines", JSON.stringify({ picked, vmeta, tts, record }));
 const vLine = record.lines["1234567890123456789"], jLine = record.lines["42"];
 const takeWav = jLine && fs.readFileSync(path.join(T, "proj", jLine.female));
+// voice.json changed from outside the panel, as an assistant's voice_lines does: the row updates and flashes.
+fs.writeFileSync(path.join(T, "proj", "source", "raw", "edgewave", "voice", "smoke_quest", "voice.json"), JSON.stringify({ ...record, lines: { ...record.lines, 42: { ...jLine, made: "2001-02-03T04:05:06.000Z" } } }, null, 2));
+let vflash = false;
+for (let i = 0; i < 30 && !vflash; i++) { vflash = await vrun(`return !!document.querySelector('.line[data-id="42"].flash')`); if (!vflash) await sleep(300); }
 await command("View: Close Editor");
 const closed = await waitFile(path.join(T, "voiceLines.json"), 20);
-const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 voiced") && vmadeWith.length === 2 && vmadeWith.every((t) => t.startsWith("Made with eleven_v3, "))
+const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 voiced") && vflash && vmadeWith.length === 2 && vmadeWith.every((t) => t.startsWith("Made with eleven_v3, "))
   && vLine?.female === "source/raw/edgewave/voice/smoke_quest/v_smoke_quest_f_112210f47de98115.wav" && vLine?.male?.endsWith("v_smoke_quest_m_112210f47de98115.wav")
   && jLine?.female?.endsWith("judy_smoke_quest_f_000000000000002a.wav") && !jLine.male && jLine.say === "[softly] You... came back." && jLine.model === "eleven_v3"
   && record.archiveDir === "mod/smoke/smoke_quest/vo" && record.voices.V?.female === "v_smoke" && record.voices.Judy === "v_smoke"

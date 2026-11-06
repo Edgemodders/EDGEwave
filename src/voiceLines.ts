@@ -10,7 +10,7 @@ import type { Voice } from "./elevenlabs";
 import { ElevenLabs } from "./elevenlabs";
 import { ViewType } from "./openSound";
 import { gendersOf, isV, lineStatus, needsBoth, type Gender, type VoiceLine, type VoiceRecord, type Voices } from "./voice";
-import { DefaultModel, keepTake, loadRecord, restorePrevious, saveRecord, studioDoc, voiceBatch } from "./voiceBatch";
+import { DefaultModel, keepTake, loadRecord, recordPath, restorePrevious, saveRecord, studioDoc, voiceBatch } from "./voiceBatch";
 import { VoiceTools } from "./voiceTools";
 
 /** An error for the page: its message, and key when a new ElevenLabs key may fix it. */
@@ -37,6 +37,8 @@ interface Panel {
   model: string;
   waiting: ((r: VoiceRecord) => void)[];
   busy?: { cancelled: boolean };
+  /** voice.json's time when the page last heard of it. */
+  seen?: number;
   send(m: unknown): void;
 }
 
@@ -56,6 +58,14 @@ type FromPage =
   | { type: "keyHelp" };
 
 const bytes = (x: unknown): Uint8Array => (x instanceof Uint8Array ? x : Uint8Array.from(Object.values(x as Record<string, number>)));
+
+const recordTime = (p: Panel): number | undefined => {
+  try {
+    return fs.statSync(recordPath(p.o.projectDir, p.o.quest)).mtimeMs;
+  } catch {
+    return undefined;
+  }
+};
 
 export class VoiceLines {
   private readonly panels = new Map<string, Panel>();
@@ -106,7 +116,20 @@ export class VoiceLines {
     this.panels.set(key, p);
     panel.webview.html = this.html(panel.webview, dist, media);
     panel.webview.onDidReceiveMessage((m: FromPage) => this.handle(p, m).catch((e) => p.send({ type: "error", ...failure(e) })));
+    // voice.json also changes from outside the panel: an assistant's voice_lines runs in the MCP server's process.
+    const watcher = vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(o.projectDir), path.relative(o.projectDir, recordPath(o.projectDir, o.quest)).split(path.sep).join("/")));
+    let timer: NodeJS.Timeout | undefined;
+    const changed = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!p.busy && recordTime(p) !== p.seen) this.push(p);
+      }, 200);
+    };
+    watcher.onDidChange(changed);
+    watcher.onDidCreate(changed);
     panel.onDidDispose(() => {
+      clearTimeout(timer);
+      watcher.dispose();
       this.panels.delete(key);
       if (p.busy) p.busy.cancelled = true;
       const r = loadRecord(p.o.projectDir, p.o.quest);
@@ -121,6 +144,7 @@ export class VoiceLines {
 
   /** What the page shows: the lines with their status and takes, the speakers and their voices. */
   private push(p: Panel, busy?: { done: number; total: number; id: string }): void {
+    p.seen = recordTime(p);
     const record = loadRecord(p.o.projectDir, p.o.quest);
     const voices = { ...record.voices, ...(p.o.voices ?? {}) };
     const uri = (rel?: string) => {
