@@ -16,14 +16,14 @@ Last updated 2026-10-24.
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
-| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-10-20 | Pass, after four rounds; steps 14 and 15 (2026-10-24) to test |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-10-20 | Pass, after three rounds; steps 9 and 10 (2026-10-21), 11 and 12 (2026-10-24) to test |
-| [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-10-20 | Pass, first round; step 11 (2026-10-27) to test |
-| [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | | To run (steps 1 to 8) |
+| [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-11-06 | Pass, after six rounds, with steps 14 and 15 |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after four rounds, with steps 9, 12 and step 11's first part; step 10 and step 11 in the game to test |
+| [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-11-06 | Pass, after two rounds, with step 11 |
+| [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | 2026-11-06 | Pass, first round |
 | [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | | To run |
 | [EDGEwave Voice: REDnode's describer and the package's wiring](#edgewave-voice-for-rednode) | By script, no game | Voice for REDnode | 2026-10-27 | Pass |
 | [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | | To run |
-| [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-10-19 | Pass |
+| [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap |
 
 ## Automated
 
@@ -198,6 +198,7 @@ What is built: [A2 Mix](a2-mix.html). **Passed 2026-10-20**, after four rounds.
 | 3 | 2026-10-20 | 12 (the splitter) and 13 (moving lanes), new at the owner's request; the checkboxes' colours | Pass: "It all works great". Found in the round and fixed: the checkboxes were the browser's white box (now the theme's), and a lane moved by a grip, now by dragging the lane itself |
 | 4 | 2026-10-20 | Retest of step 3 with a holocall line and a voice line's WAV; step 6 with the checkboxes | Pass |
 | 5 | 2026-11-06 | Step 14, found during Sounds view step 8 | **Failed, fixed**: in a project with no `source/raw/edgewave/sounds` yet, the save dialog opened on the last folder used, since Windows ignores a starting folder that does not exist (the owner made the folder and it opened there). The folder is now made for the dialog and removed after it if still empty (`src/dialogFolder.ts`). To retest: step 14 |
+| 6 | 2026-11-06 | Retest of step 14 with the fix; step 15 | Pass. Step 15 without Shift: VS Code opens each file in its own tab with its default sound player |
 
 | Finding (round 1) | Fix |
 |---|---|
@@ -238,6 +239,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 | 1 | 2026-10-19 | Before the formal steps, the owner overrode a katana equip sound (track 4 of a mix, soloed), packed, deployed and heard it in the game: **the override works**. Two findings on the way, both fixed the same day (below) |
 | 2 | 2026-10-19 | Steps 1 to 5 pass. Step 4: the game played a REDmod custom sound for `dev_vending_machine_can_falls` (`mod_sfx_room`); REDmod's deploy found the mod and wrote every entry to `mods.json`, with no complaint about the WAVs. Step 5 first seemed to fail: with `mod_skip`, then two silent WAVs, the can still sounded the same. A short ping as its custom sound showed why: a can dropping plays several events layered together. On `w_melee_katana_equip`, one event on its own, the silent WAV silences it and `mod_skip` (by hand, the audible WAV left in place) does not. Gain 0 in `info.json` left a replacement loud. Three findings, fixed the same day (below). Finding events by ear was hard, so the owner asked REDnode for a Sound Tracer ([REDnode #14](https://github.com/Edgemodders/REDnode/issues/14)) |
 | 3 | 2026-10-20 | Step 6 retest with the checkboxes: the tracks in the mix come first, as expected; the last choice, in a group out of the mix, did not seem marked. It was, as the row's small dim description; now in the row's name and its group's heading (below). Then, on that build, steps 6, 7 and 8 (with the swap) pass. **A3 passes** |
+| 4 | 2026-11-06 | Steps 9 and 12, step 11's first part | Pass. Step 12: a click opens the Hear tab with **Play**, not playing at once; an override's row opens its mix instead, to be made the same after 0.2.0. Step 9 needs a game sound effect on a track for the override and event rows. Step 10 and step 11 in the game to test |
 
 | Finding (round 1) | Fix |
 |---|---|
@@ -271,7 +273,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 9. **How to hear it** (EDGEwave #4). Add to Project with an override, then with a REDmod route. Expect: the message ends with how to hear it (Pack and Install, then restart the game; for the override, not to hot-deploy it), with **Pack and Install** and **Pack**. **Pack and Install** runs REDcode's, which says it packed and installed.
 10. **As a REDnode sound** (EDGEwave #2). Needs REDnode in the game. On a document with a voice line in the mix: **Add to Project…** > **In a REDnode package, for its code to play…** (As a REDnode sound… until 2026-10-24) > **New package in the game folder…**, id `edgewave-test`, keep the name, **Dialogue** (offered first). Expect: `red4ext/plugins/REDnode/apps/edgewave-test/` with `rednode-app.json` (the sound under `sounds`, category `dialogue`), `mod.mjs` and `sounds/<name>.wav`. With the game running and a save loaded, the new package starts and plays the line once; the Dialogue slider changes its volume. Change the mix and do the same again: no question, and the package restarts with the new sound. Then **New package in the project…**: the same under `source/resources/red4ext/plugins/REDnode/apps/<id>/`; **Pack and Install** puts it in the game folder and it plays (while the game runs, or after a restart). Delete the test packages from the game folder after.
 11. **A new sound for this project** (the owner's request, 2026-10-24). On a sound made from files or a generated sound: **Add to Project…**. Expect: **A new sound for this project…** first; it offers `edgewave_<document name>`; typing a game event's name (`sa_airdrop_package_land`) is refused; **A sound effect, heard from where it plays** first. Then `source/customSounds/<name>.wav` and its `info.json` entry; the message has **Copy Name**. In the game, with EDGEquest's test quest posting the name from a phase and a scene: heard or not; tell me which.
-12. **Project sounds.** EDGEwave's Sounds view. Expect: **Project sounds** lists the new sound (and any other custom sound of the project) with its type and length; a click plays it; **Copy Name** copies it. In EDGEquest, its sound picker offers it first.
+12. **Project sounds.** EDGEwave's Sounds view. Expect: **Project sounds** lists the new sound (and any other custom sound of the project) with its type and length; a click opens the Hear tab with **Play** (it does not play at once); **Copy Name** copies it. In EDGEquest, its sound picker offers it first.
 
    Before playing, take out an earlier REDmod replacement of the same event (its WAV in `source/customSounds` and its `info.json` entry), or turn `redcode.pack.redmod` off: REDmod's sound would play instead of the override. An override is one variation: an event with several may play another one some of the time.
 
@@ -282,6 +284,7 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 | Round | Date | Result |
 |---|---|---|
 | 1 | 2026-10-20 | Steps 1 to 10 pass, no findings. Settled: a voice's preview (an MP3) plays in VS Code's page (step 4); a remix works on an instant clone (step 6). Step 2: no "refused 48000 Hz" line, so the owner's plan takes 48 kHz |
+| 2 | 2026-11-06 | Step 11 passes, its Voice Lines part moved to V2 step 1 |
 
 1. **The key.** In a sound document, click **Generate Sound…**, describe a sound (such as `a heavy metal door slams in a concrete corridor`), **Generate**. Expect: a password box for the key the first time; then **Take 1** in the dialog with a play button, and no new track yet. Change the description, **Generate again**: Take 2 above Take 1; play both. **Add** on the one you want. Expect: the dialog closes; a new track at the mix cursor, selected, with that take. Its WAV is in the document's `.gen` folder; the other take is not saved anywhere.
 2. **The rate.** Output › EDGEwave. Expect: no "refused 48000 Hz" line on a plan that allows 48 kHz; with one, the next tools use 24 kHz. Tell me which.
@@ -293,7 +296,7 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 8. **Into the game.** Add to Project on a document with a Re-Voiced line (the named REDmod route, as for any voice line). Expect: the render at 48 kHz, as for any mix.
 9. **Clean up.** **EDGEwave: ElevenLabs Voices Made by EDGEwave…**: the clone and the saved remix are listed; delete them. Expect: they are gone from your ElevenLabs account's voices.
 10. **Errors.** **EDGEwave: Set ElevenLabs API Key** with a wrong key, then Generate Sound. Expect: the dialog shows ElevenLabs' message (such as "Invalid API key"), nothing is added. Set the right key again.
-11. **No key, or a wrong one** (the owner's request, 2026-10-27; round 1 the same day: with a voice line selected, the dialog starts on its own voice, which dimmed the voice list and its button; round 2: the message and buttons showed twice. Now once, on the status line; the list says it needs a key). Select a voice line's track first. **EDGEwave: Clear ElevenLabs API Key**, then **Speak Line…**; close the password box with Escape. Expect: the voice list says no key is set, with **Set ElevenLabs API Key…** and **Where to make one**. **Where to make one** opens ElevenLabs' help. **Set ElevenLabs API Key…** with a wrong key: the list says ElevenLabs refused it, with the buttons again. Then the right key: the voices load. The same in **Voice Lines**: with a wrong key, **Generate** shows the message and the button there.
+11. **No key, or a wrong one** (the owner's request, 2026-10-27; round 1 the same day: with a voice line selected, the dialog starts on its own voice, which dimmed the voice list and its button; round 2: the message and buttons showed twice. Now once, on the status line; the list says it needs a key). Select a voice line's track first. **EDGEwave: Clear ElevenLabs API Key**, then **Speak Line…**; close the password box with Escape. Expect: the voice list says no key is set, with **Set ElevenLabs API Key…** and **Where to make one**. **Where to make one** opens ElevenLabs' help. **Set ElevenLabs API Key…** with a wrong key: the list says ElevenLabs refused it, with the buttons again. Then the right key: the voices load. Voice Lines' part is in [V2 step 1](#v2-voice-a-quest), where the panel first opens.
 
 ### EDGEwave Voice for REDnode
 
@@ -311,7 +314,7 @@ Checked by script on 2026-10-27, no game: REDnode's own describer (`node package
 
 ### Game Assets
 
-What is built: [Game Assets](game-assets.html). Not run yet. Needs REDcode with a project open (its REDbridge running) and the game.
+What is built: [Game Assets](game-assets.html). **Passed 2026-11-06**, first round: steps 1 to 8, with the owner's notes: `vo` opens in about a second (step 3). Needs REDcode with a project open (its REDbridge running) and the game.
 
 1. **The groups.** EDGEwave's activity bar: **Game Assets** below Sounds. Expect: Sound effects, Voice lines, Music and streamed sounds.
 2. **Sound effects.** Open it. Expect: groups by the first part of the names (`amb`, `w`), a count beside each (`312 events`); the names are not cut short until the view is narrower than them; inside, events with their variations. Click an event: the Hear panel plays one of its recordings. Events with no name come last, as `event <hash>` with **no name**.
@@ -326,7 +329,7 @@ What is built: [Game Assets](game-assets.html). Not run yet. Needs REDcode with 
 
 What is built: [V2 Voice a quest](voice-lines.html) and [API and MCP](api.html). Not run yet. Needs EDGEquest with its Storyboard's Generate buttons, a quest with a few lines (some by V, one with `say` tags), and an ElevenLabs key; each line spends credits.
 
-1. **From EDGEquest.** In the Storyboard, **Generate** on a scene. Expect: **Voice Lines: <quest>** opens with the scene's lines, V's with F and M takes, all "no take".
+1. **From EDGEquest.** In the Storyboard, **Generate** on a scene. Expect: **Voice Lines: <quest>** opens with the scene's lines, V's with F and M takes, all "no take". Then, with the panel open (moved here from V1 step 11; a refused key spends nothing): **EDGEwave: Set ElevenLabs API Key** with a wrong key, then **Generate All** in the header or **Generate** on a line. Expect: the panel says ElevenLabs refused the key, with **Set ElevenLabs API Key…** and **Where to make one**. Use that button to enter the right key.
 2. **Voices.** Pick V's female and male voices and one for each other speaker; ▶ plays each voice's sample. Expect: the picks stay after closing and reopening (they are in `voice.json`).
 3. **Generate All.** Expect: the header counts up, each line turns "voiced", ▶ plays each take. Output › EDGEwave lists each line. `source/raw/edgewave/voice/<quest>/` has `v_<quest>_f_<hex>.wav`, `..._m_...`, the others' `_f_` takes, and `voice.json`.
 4. **Tags.** On the line with `say` tags: the take follows them on `eleven_v3` (a whisper, a sigh). Change the model to `eleven_multilingual_v2` and **Regenerate** it: spoken without the tags, and no "softly" read out loud.
@@ -348,6 +351,7 @@ Asked for by the owner on 2026-10-19: a document kept outside the open folder (m
 |---|---|---|
 | 1 | 2026-10-19 | **Pass**: the owner reports it all works, with the Open Folder icon |
 | 2 | 2026-11-06 | Step 8's outside mix: **the gap is confirmed**. A mix saved in Downloads, Add to Project > Override sound 814445922: the message names the `.opuspak` and `.opusinfo` written under `source/archive`; the mix is under Recent only, as it should be, and the override is not under Project sounds. To fix after 0.2.0. The rest of step 8 to test |
+| 3 | 2026-11-06 | Step 8's other parts pass: Project, Project sounds saying how each came, a new mix showing without Refresh |
 
 1. **Project.** Open a folder or a REDcode project with sound documents, and click the EDGEwave icon. Expect: **Project**, with the REDcode project's name beside it (or the folder's), listing the folder's documents by their folder.
 2. **Recent, outside the folder.** With no REDcode project open, Open Sound… on a `.wav` outside the open folder (such as in Documents). Expect: it is first under **Recent**, with its full folder (your home as `~`); it is not under Project.
