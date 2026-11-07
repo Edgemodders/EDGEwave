@@ -19,6 +19,7 @@ const errorLine = ui.text('', { tone: 'danger' });
 const keyInput = ui.input({
   label: 'ElevenLabs API key',
   placeholder: 'Paste it here and press Enter',
+  password: true, // shows dots (REDnode 0.44); an older REDnode ignores it
   onSubmit: async (value) => {
     await voice.setKey(value);
     keyInput.set({ value: '' });
