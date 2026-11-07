@@ -17,7 +17,7 @@ Last updated 2026-10-24.
 | [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-11-06 | Pass, after six rounds, with steps 14 and 15 |
-| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after five rounds, with steps 9, 11 and 12; step 10 to test |
+| [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after five rounds, with steps 9 to 12 |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-11-06 | Pass, after two rounds, with step 11 |
 | [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | 2026-11-06 | Pass, first round |
 | [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | | To run |
@@ -241,6 +241,7 @@ What is built, and the research behind the routes: [A3 Into the game](a3-game.ht
 | 3 | 2026-10-20 | Step 6 retest with the checkboxes: the tracks in the mix come first, as expected; the last choice, in a group out of the mix, did not seem marked. It was, as the row's small dim description; now in the row's name and its group's heading (below). Then, on that build, steps 6, 7 and 8 (with the swap) pass. **A3 passes** |
 | 4 | 2026-11-06 | Steps 9 and 12, step 11's first part | Pass. Step 12: a click opens the Hear tab with **Play**, not playing at once; an override's row opens its mix instead, to be made the same after 0.2.0. Step 9 needs a game sound effect on a track for the override and event rows. Step 10 and step 11 in the game to test |
 | 5 | 2026-11-06 | Step 11 in the game | Pass, with `edgewave_cassette`, a `mod_sfx_low_occlusion` sound, posted from a scene (EDGEquest plays a quest's sounds on V). Heard, and it is spatial, not 2D: on a surround system it sat to the right or slightly right and behind, not centred. Not from the file: the WAV is 2 seconds of 48 kHz stereo with identical left and right, and the mix's pan is 0. Why there is not known; the listener and V's sound point may simply differ |
+| 6 | 2026-11-06 | Step 10 | Pass: a new package in the game folder plays the line once, follows the Dialogue slider, and takes a changed mix with no **Replace it?** warning, restarting with the game running. Finding, not fixed: the package rows read the same but for the id, since a package's name defaults to the project's |
 
 | Finding (round 1) | Fix |
 |---|---|
