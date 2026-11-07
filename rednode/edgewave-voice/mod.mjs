@@ -2,7 +2,7 @@
 // core.mjs (built from EDGEwave's src/voicePackage/core.ts); service.mjs offers it to other packages.
 // https://edgemodders.github.io/EDGEwave/rednode-voice.html
 
-import { audio, pkg, secrets, service, ui } from 'rednode';
+import { audio, game, pkg, secrets, service, ui } from 'rednode';
 import { createVoice } from './core.mjs';
 
 export const voice = createVoice({
@@ -65,7 +65,9 @@ const win = ui.window({
 });
 
 voice.onChange(() => void refresh());
-// With a key set, the window waits closed: the launcher shows it again.
+// With a key set, the window waits closed as the game starts, so it does not open on every launch. Switched on
+// in the launcher with V in the world, it opens: a closed window has no other way back. `world` needs REDnode 0.47.
 const first = await refresh();
-if (first.key) win.close();
+const inWorld = await game.state().then((s) => s.world === true, () => false);
+if (first.key && !inWorld) win.close();
 console.log(`EDGEwave Voice ready: ${first.voices} voice${first.voices === 1 ? '' : 's'}, ${first.key ? 'key set' : 'no key yet'}`);

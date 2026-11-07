@@ -18,7 +18,7 @@ Status: **built 2026-10-27** at the owner's request; hand test in the game pendi
 2. In the game, press **F10**, open **EDGEwave Voice** from REDnode's launcher, paste your ElevenLabs key and press **Enter**. REDnode keeps it encrypted with your Windows account; EDGEwave cannot put it there for you, because a package reads only its own secrets. **Copy the Key** in step 1's message puts it on the clipboard.
 3. **Try a line** in the same window: **Speak**.
 
-With a key set, the window starts closed; the launcher shows it again.
+With a key set, the window starts closed when the game starts. With a save loaded, switch EDGEwave Voice off and on in the launcher: it opens.
 
 ## For mod authors
 
