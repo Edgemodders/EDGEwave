@@ -50,3 +50,4 @@ It needs the network (the Marketplace). Found while writing it: a `.edgewave` pa
 | Version | Date | Notes |
 |---|---|---|
 | 0.1.0 | 2026-10-20 | The first release: A1 Edit, A2 Mix, A3 Into the game, V1 Voice tools. Needs REDcode 0.10.0. On the [Marketplace](https://marketplace.visualstudio.com/items?itemName=edgemodders.edgewave), [Open VSX](https://open-vsx.org/extension/edgemodders/edgewave) and [GitHub](https://github.com/Edgemodders/EDGEwave/releases/tag/v0.1.0); Nexus by hand |
+| 0.2.0 | 2026-11-07 | Game Assets, Create a Sound, Add to Project's new sound and REDnode package routes, V2 (Voice Lines, sound events, the API and MCP server for EDGEquest), and EDGEwave Voice for REDnode 0.1.0 as Nexus's optional file. Needs REDcode 0.10.3. Every store by the Publish run ([run 42365914740](https://github.com/Edgemodders/EDGEwave/actions/runs/42365914740)): the Marketplace, Open VSX, [GitHub](https://github.com/Edgemodders/EDGEwave/releases/tag/v0.2.0) and Nexus |

@@ -17,16 +17,16 @@ EDGEwave is the sound studio of the EDGE platform: a VS Code extension where you
 
 ## Roadmap status
 
-As of 2026-10-24. Released: 0.1.0 (2026-10-20), with A1, A2, A3 and V1.
+As of 2026-11-07. Released: 0.2.0 (2026-11-07), with Game Assets, Create a Sound, a new sound for your project, voicing a quest with EDGEquest and EDGEwave Voice for REDnode; 0.1.0 (2026-10-20), with A1, A2, A3 and V1.
 
 | Phase | Status |
 |---|---|
 | A0 Scaffold | Done: the extension skeleton, this site and the design (draft 2) |
 | A1 Edit | Done: Open in EDGEwave from REDcode, the sound editor, render to WAV |
 | A2 Mix | Done 2026-10-20: tracks, effects and presets, Add Sound, a mixed render |
-| A3 Into the game | Done 2026-10-20: override a sound effect, or a REDmod custom sound for an event. Added 2026-10-21, hand test pending: **As a REDnode sound** |
+| A3 Into the game | Done 2026-10-20: override a sound effect, or a REDmod custom sound for an event. Added 2026-10-21, hand test passed 2026-11-06: **As a REDnode sound** |
 | V1 Voice tools | Done 2026-10-20: Generate Sound, Speak Line and Re-Voice through ElevenLabs |
-| V2 Voice a quest | Steps 1 to 4 built 2026-10-24, hand test pending: the Voice Lines panel, the API and the MCP server, and sound events for EDGEquest. Next: step 5, the `.wem` route |
+| V2 Voice a quest | Steps 1 to 4 built 2026-10-24, hand test passed 2026-11-06: the Voice Lines panel, the API and the MCP server, and sound events for EDGEquest. Next: step 5, the `.wem` route |
 | A4 Index | Planned: the game's sound banks, the full search |
 | A5 Voices and objects | Planned: subtitles and scenes, TweakDB objects and radios |
 | A6 EDGE | Started: the MCP server (with V2), the REDnode sound route, EDGEwave Voice for REDnode, and playing an event in the running game from VS Code (REDnode 0.43's editor channel, [REDnode #17](https://github.com/Edgemodders/REDnode/issues/17)) are built |
