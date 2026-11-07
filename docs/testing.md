@@ -8,11 +8,11 @@ Last updated 2026-10-24.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-11-06 | Pass, 66 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-10-27 | Pass |
-| [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-10-27 | Pass |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-11-06 | Pass, 67 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-11-06 | Pass, with the PC left alone (it failed at moving steps while the PC was in use) |
+| [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-11-06 | Pass |
 | [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
-| [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-11-06 | Pass: `edgewave-0.2.0.vsix` with REDcode 0.10.7. On the dev PC the downloaded VS Code 1.145.2's CLI is refused the network (`EACCES`, cause unverified) and installs the vsix without REDcode, so the install ran through the installed VS Code 1.145.0's CLI, which took REDcode with it, and the test through the downloaded copy |
+| [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-11-06 | Pass: `edgewave-0.2.0.vsix` with REDcode 0.10.7, built with every fix of the 2026-11-06 hand tests. The downloaded VS Code's own CLI worked this time; an earlier run the same day needed the machine's (`EACCES`, cause unverified) |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
