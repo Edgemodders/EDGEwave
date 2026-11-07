@@ -20,7 +20,7 @@ Last updated 2026-10-24.
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after five rounds, with steps 9 to 12 |
 | [V1 Voice tools hand test](#v1-voice-tools) | By hand, with an ElevenLabs key (spends credits) | V1 | 2026-11-06 | Pass, after two rounds, with step 11 |
 | [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | 2026-11-06 | Pass, first round |
-| [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | | To run |
+| [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | 2026-11-06 | Pass, steps 1 to 7 |
 | [EDGEwave Voice: REDnode's describer and the package's wiring](#edgewave-voice-for-rednode) | By script, no game | Voice for REDnode | 2026-10-27 | Pass |
 | [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | 2026-11-06 | Pass, steps 1 to 13 |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap |
@@ -305,6 +305,10 @@ What is built: [V1 Voice tools](voice-tools.html). **Passed 2026-10-20**, first 
 What is built: [EDGEwave Voice for REDnode](rednode-voice.html). Needs REDnode in the game (with a REDcode game folder set), an ElevenLabs key, and a voice EDGEwave made (Speak Line in a line's voice) or any voice in your account. Each new line spends credits.
 
 Checked by script on 2026-10-27, no game: REDnode's own describer (`node packages/rednode/bin/rednode.mjs describe service.mjs` in the REDnode repo) reads the five functions and the `ended` event with no warnings; the built package, loaded with a stand-in `rednode` module, opens its window without a key, answers `status` and `voices`, and `speak` with an unknown voice says so.
+
+| Round | Date | What | Result |
+|---|---|---|---|
+| 1 | 2026-11-06 | Steps 1 to 7 | Pass, with game 2.5. A first line takes 1 to 2 seconds. Findings, all fixed: the key field showed the key, now dots (`password: true`); the window could not be reopened once a key was set, now it opens when the package starts with V in the world; a refusal ran below the window's bottom edge, now 500 pixels tall. Step 4 run from REDnode's Console |
 
 1. **Install.** **EDGEwave: Voices for REDnode…**. Expect: your ElevenLabs voices, EDGEwave's own first; pick two. Expect: a message naming them (such as `judy`), and `red4ext/plugins/REDnode/apps/edgewave-voice/` in the game folder with `voices.json`. **Open voices.json**: the two, the first the default.
 2. **The key.** Start the game, **F10**, open **EDGEwave Voice** from the launcher. Expect: "No key yet". Paste the key (**Copy the Key** from step 1's message), **Enter**. Expect: "Key set"; the field empties.

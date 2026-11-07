@@ -63,7 +63,7 @@ Errors say what to do: no key yet, the key refused, no such voice, ElevenLabs un
 | No lip sync | Voice only. Subtitles are the calling mod's job |
 | The cache | In the package's own folder (`.cache`), because REDnode's `audio.play` plays only files inside a package's folder, and hot reload skips dot folders. A supported way is asked of REDnode in #20 |
 
-*Unverified until the hand test:* that a Node mod reaches ElevenLabs from inside the REDnode host; that `audio.play` takes a file written after the package started; that the launcher shows the window again after the package closed it at start.
+*Confirmed by the hand test (2026-11-06):* a Node mod reaches ElevenLabs from inside the REDnode host, a first line taking 1 to 2 seconds; `audio.play` takes a file written after the package started. The launcher does not show a window the package closed at start: its switch restarts the package, so the package now opens its window when started with V in the world.
 
 ## Source
 
