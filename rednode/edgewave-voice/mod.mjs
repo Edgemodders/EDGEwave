@@ -50,7 +50,7 @@ async function refresh() {
 const win = ui.window({
   title: 'EDGEwave Voice',
   width: 420,
-  height: 360,
+  height: 500,
   anchor: 'right',
   x: -40,
   children: [
