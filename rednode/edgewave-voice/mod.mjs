@@ -67,7 +67,12 @@ const win = ui.window({
 voice.onChange(() => void refresh());
 // With a key set, the window waits closed as the game starts, so it does not open on every launch. Switched on
 // in the launcher with V in the world, it opens: a closed window has no other way back. `world` needs REDnode 0.47.
+// onState and not game.state(): this file must not wait for the game, since other mods wait for this service.
 const first = await refresh();
-const inWorld = await game.state().then((s) => s.world === true, () => false);
-if (first.key && !inWorld) win.close();
+let placed = false;
+game.onState((s) => {
+  if (placed) return;
+  placed = true;
+  if (first.key && !s.world) win.close();
+});
 console.log(`EDGEwave Voice ready: ${first.voices} voice${first.voices === 1 ? '' : 's'}, ${first.key ? 'key set' : 'no key yet'}`);

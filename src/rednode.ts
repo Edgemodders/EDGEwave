@@ -50,11 +50,17 @@ export function newManifest(id: string, name: string): Record<string, unknown> {
 /** A new Node mod's code: plays the first sound once, as an example to build on. */
 export function newModScript(sound: string): string {
   return [
-    "import { audio } from 'rednode';",
+    "import { audio, game } from 'rednode';",
     "",
-    `// Plays the sound "${sound}" (rednode-app.json's sounds) once when the mod starts. Call audio.play`,
-    "// where your mod needs it: on an event, a key, a quest step. https://edgemodders.github.io/REDnode/overlay-apps.html#your-own-sounds",
-    `await audio.play(${JSON.stringify(sound)});`,
+    `// Plays the sound "${sound}" (rednode-app.json's sounds) once, when V is first in the world: as the game`,
+    "// starts it cannot answer yet. Call audio.play where your mod needs it: on an event, a key, a quest step.",
+    "// https://edgemodders.github.io/REDnode/overlay-apps.html#your-own-sounds",
+    "let played = false;",
+    "game.onState(async (s) => {",
+    "  if (played || !s.world) return;",
+    "  played = true;",
+    `  await audio.play(${JSON.stringify(sound)});`,
+    "});",
     "",
   ].join("\n");
 }

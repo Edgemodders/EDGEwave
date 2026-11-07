@@ -49,5 +49,7 @@ test("readManifest gives the id, name and sounds, or undefined", () => {
 
 test("the sample code plays the sound by its name", () => {
   assert.match(newModScript("alarm"), /await audio\.play\("alarm"\);/);
+  // Not at the top level: as the game starts it cannot answer, and the mod would crash (the owner's finding, 2026-11-06).
+  assert.match(newModScript("alarm"), /game\.onState\(async \(s\) => \{\n  if \(played \|\| !s\.world\) return;/);
   assert.match(playLine("alarm"), /^import \{ audio \} from 'rednode';\nawait audio\.play\("alarm"\);$/);
 });
