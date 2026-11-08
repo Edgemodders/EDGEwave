@@ -12,7 +12,8 @@
 #                                               and status badge do not name the version
 #                                               (tools/release/readme-check.mjs)
 #   ... and "Update Nexus Mods" ticked          also, after the GitHub release, updates the Nexus page
-#                                               (35493, tools/nexus/nexus.mjs, the NEXUS_KEY secret):
+#                                               (35493, the Nexus tool from EDGErepo at the tag v1,
+#                                               the NEXUS_KEY secret):
 #                                               the Nexus zip as the main file's new version (the old one
 #                                               archived, Mod Manager Download off), EDGEwave Voice's zip
 #                                               as the optional file's new version when its version is
@@ -21,8 +22,9 @@
 #                                               anything is published, and stops if the description
 #                                               changed on Nexus since the last pull (npm run nexus:pull,
 #                                               merge, commit, run again). If the Nexus step fails after
-#                                               the other stores, run tools/nexus/nexus.mjs release on
-#                                               the dev PC with the same arguments
+#                                               the other stores, run
+#                                               node ../EDGErepo/tools/nexus/nexus.mjs release on the
+#                                               dev PC with the same arguments
 #
 # One .vsix for every platform: EDGEwave has no native parts. The tokens are Edgemodders organisation
 # secrets, shared with REDcode's, EDGEdeck's and REDnode's workflows. Release gate: make a release only after every hand test of the phases in it has
@@ -87,12 +89,18 @@ jobs:
         if: ${{ inputs.release }}
         run: node tools/release/readme-check.mjs --version "${VERSION}"
 
+      # The Nexus tool, shared by the Edgemodders repos at this tag (REDnode's docs/edgerepo.md). Outside
+      # the workspace, so nothing packs it.
+      - name: The Nexus tool
+        if: ${{ inputs.release && inputs.nexus }}
+        run: git -c advice.detachedHead=false clone --quiet --depth 1 --branch v1 https://github.com/Edgemodders/EDGErepo "$RUNNER_TEMP/EDGErepo"
+
       # Before anything is published: Nexus takes this release, and its description has no edit the repo lacks.
       - name: Nexus Mods can take this release
         if: ${{ inputs.release && inputs.nexus }}
         env:
           NEXUS_KEY: ${{ secrets.NEXUS_KEY }}
-        run: node tools/nexus/nexus.mjs check --version "${VERSION}" --file "voice=${VOICE_VERSION}"
+        run: node "$RUNNER_TEMP/EDGErepo/tools/nexus/nexus.mjs" check --version "${VERSION}" --file "voice=${VOICE_VERSION}"
 
       - run: npm ci
       - run: npm run typecheck
@@ -149,5 +157,5 @@ jobs:
         env:
           NEXUS_KEY: ${{ secrets.NEXUS_KEY }}
         run: |
-          node tools/nexus/nexus.mjs release --version "${VERSION}" --zip "dist/EDGEwave-${VERSION}-nexus.zip" \
+          node "$RUNNER_TEMP/EDGErepo/tools/nexus/nexus.mjs" release --version "${VERSION}" --zip "dist/EDGEwave-${VERSION}-nexus.zip" \
             --notes "${RUNNER_TEMP}/nexus-notes.txt" --file "voice=dist/edgewave-voice-${VOICE_VERSION}.zip@${VOICE_VERSION}"

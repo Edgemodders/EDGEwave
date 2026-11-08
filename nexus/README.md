@@ -24,7 +24,7 @@ The source of EDGEwave's Nexus Mods page lives here, so updates are edits in the
 
 ## The page and the release
 
-The page is [35493](https://www.nexusmods.com/cyberpunk2077/mods/35493), first uploaded by hand (0.1.0, 2026-10-21). From 0.2.0 the Publish workflow's **Update Nexus Mods** box keeps it current ([Release](https://edgemodders.github.io/EDGEwave/release.html)), through `tools/nexus/nexus.mjs` (copied from REDnode's on 2026-10-27, extended for a second file) and the organisation's `NEXUS_KEY`.
+The page is [35493](https://www.nexusmods.com/cyberpunk2077/mods/35493), first uploaded by hand (0.1.0, 2026-10-21). From 0.2.0 the Publish workflow's **Update Nexus Mods** box keeps it current ([Release](https://edgemodders.github.io/EDGEwave/release.html)), through the Nexus tool and the organisation's `NEXUS_KEY`. The tool is shared, in [EDGErepo](https://github.com/Edgemodders/EDGErepo), which took in this repo's second-file support (2026-11-06). The commands below need it checked out beside this repo (`../EDGErepo`). The workflow clones it at the tag `v1`. Change it there.
 
 | File | What it says |
 |---|---|
@@ -35,7 +35,7 @@ The page is [35493](https://www.nexusmods.com/cyberpunk2077/mods/35493), first u
 |---|---|
 | `npm run nexus:status` | The page's version, both files and their versions, and whether the description matches |
 | `npm run nexus:pull` | The live description into `description.bbcode`, the ids into `nexus.json`. Then `git diff nexus/` and merge. With `-- --ids-only`, the ids and the live description's hash, keeping the repo's description |
-| `node tools/nexus/nexus.mjs check --version <v> --file voice=<v>` | What a release would do, and whether it may |
+| `node ../EDGErepo/tools/nexus/nexus.mjs check --version <v> --file voice=<v>` | What a release would do, and whether it may |
 
 Pulled 2026-10-27: the live page had the owner's six screenshots and the 0.1.0 text; the repo's text was merged with them (the screenshots stay on Nexus's own image host).
 
