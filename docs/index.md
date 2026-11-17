@@ -29,6 +29,7 @@ As of 2026-11-07. Released: 0.2.0 (2026-11-07), with Game Assets, Create a Sound
 | V2 Voice a quest | Steps 1 to 4 built 2026-10-24, hand test passed 2026-11-06: the Voice Lines panel, the API and the MCP server, and sound events for EDGEquest. Next: step 5, the `.wem` route |
 | A4 Index | Planned: the game's sound banks, the full search |
 | A5 Voices and objects | Planned: subtitles and scenes, TweakDB objects and radios |
+| Desk and Library | Built 2026-11-16, hand test to run: the Desk (EDGEwave's scratch space), the Project view, and the EDGE Library's sounds ([Desk, Project and Library](desk-library.html)) |
 | A6 EDGE | Started: the MCP server (with V2), the REDnode sound route, EDGEwave Voice for REDnode, and playing an event in the running game from VS Code (REDnode 0.43's editor channel, [REDnode #17](https://github.com/Edgemodders/REDnode/issues/17)) are built |
 
 Source code, releases and issues: [github.com/Edgemodders/EDGEwave](https://github.com/Edgemodders/EDGEwave)

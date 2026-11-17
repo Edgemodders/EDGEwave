@@ -40,6 +40,8 @@ nav:
     url: /api.html
   - title: Voice for REDnode
     url: /rednode-voice.html
+  - title: Desk and Library
+    url: /desk-library.html
   - title: Tests
     url: /testing.html
   - title: Release

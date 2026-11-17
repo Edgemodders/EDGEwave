@@ -82,7 +82,7 @@ The owner's request, from EDGEquest's tests: EDGEwave makes sounds itself (Gener
 
 | Part | What it does |
 |---|---|
-| **Create a Sound…** (the + in the Sounds view, `edgewave.newSound`) | Asks for a name and a place, by default `source/raw/edgewave/sounds/New sound.edgewave` in the REDcode project (the workspace folder without one), and opens an empty sound: no tracks, rendering `<name>.wav` beside it. A document may now have no tracks |
+| **Create a Sound…** (the + in the Project view, `edgewave.newSound`; the Sounds view's until 2026-11-16) | Asks for a name and a place, by default `source/raw/edgewave/sounds/New sound.edgewave` in the REDcode project (on the Desk with no project, since 2026-11-16: [Desk, Project and Library](desk-library.html)), and opens an empty sound: no tracks, rendering `<name>.wav` beside it. A document may now have no tracks |
 | **Open Sound in EDGEwave…** (the folder button beside it) | A sound file from disk, as before |
 | The empty sound | One empty lane and a note on the clip saying what fills it: dropped files, Add Sound (+), Generate Sound, Speak Line. The track's controls, Render WAV and Add to Project are off until there is a track. Remove now takes the last track too |
 | Drop on the lanes | Each sound file becomes a new track at the start of the mix, the last one selected |

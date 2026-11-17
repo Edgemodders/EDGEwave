@@ -79,7 +79,7 @@ The owner's request, 2026-10-24, from EDGEquest's test: a modder makes sounds ah
 
 | Where | What |
 |---|---|
-| EDGEwave's Sounds view, **Project sounds** | Every entry in `info.json`'s `customSounds`, with its type and length (a missing WAV is marked). Click one to hear it; **Copy Name**; **Show the WAV** |
+| EDGEwave's Project view, **Project sounds** (the Sounds view's until 2026-11-16) | Every entry in `info.json`'s `customSounds`, with its type and length (a missing WAV is marked). Click one to hear it; ▶ plays it; **Copy Name**; **Show the WAV**. Since 2026-11-16 it also lists override WAVs and REDnode package sounds from the project's own files ([Desk, Project and Library](desk-library.html#the-project-view)) |
 | `soundEvents` (the API) and `sound_events` (the MCP server, with `project`) | The project's sounds first, with `project: { type, file }`; one under a game event's name is marked `replaces` and stands in that event's place. So EDGEquest's sound pickers offer them ([API and MCP](api.html#sound-events)) |
 | `playEvent` | A project sound plays its WAV in the Hear panel |
 
