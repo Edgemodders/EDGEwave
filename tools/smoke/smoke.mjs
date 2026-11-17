@@ -92,9 +92,22 @@ fs.mkdirSync(path.join(T, "ud", "User"), { recursive: true });
 // Custom dialogs, so the clone consent's modal is in the page and can be clicked.
 fs.writeFileSync(path.join(T, "ud", "User", "settings.json"), JSON.stringify({ "edgewave.elevenlabs.baseUrl": `http://127.0.0.1:${elevenServer.address().port}`, "window.dialogStyle": "custom" }));
 
+// An EDGE Library of the smoke's own (through EDGE_LIBRARY_CONFIG, never the modder's), holding one sound,
+// Doors/Door.sound.asset, as Add to Library writes it, beside another tool's item EDGEwave does not show.
+const lib = path.join(T, "lib");
+fs.rmSync(lib, { recursive: true, force: true });
+const doorRaw = path.join(lib, "Doors", "Door.sound.asset", "source", "raw");
+fs.mkdirSync(path.join(doorRaw, "Door.sounds"), { recursive: true });
+fs.mkdirSync(path.join(lib, "Doors", "chair.prop.asset"), { recursive: true });
+fs.writeFileSync(path.join(doorRaw, "Door.sounds", "knock.wav"), wavOf(pcmTone(0.3, 24000, 200), 24000));
+fs.writeFileSync(path.join(doorRaw, "Door.wav"), wavOf(pcmTone(0.3, 24000, 200), 24000));
+fs.writeFileSync(path.join(doorRaw, "Door.edgewave"), JSON.stringify({ edgewave: 2, tracks: [{ id: "t1", source: { kind: "file", file: "Door.sounds/knock.wav" }, edits: [], offset: 0, gain: 0, pan: 0, effects: [] }], master: { gain: 0, effects: [] }, render: { file: "Door.wav" } }, null, 2));
+fs.writeFileSync(path.join(lib, "Doors", "Door.sound.asset", "asset.json"), JSON.stringify({ format: 1, id: "5m0ke5m0ke5m0ke0", name: "Door", kind: "sound", main: "source/raw/Door.edgewave", render: "source/raw/Door.wav", version: 3, history: [{ tool: "smoke", did: "Added to the Library", date: "2026-11-16T00:00:00.000Z" }] }, null, 2));
+fs.writeFileSync(path.join(T, "edge-library.json"), JSON.stringify({ root: lib }));
+
 const exe = await downloadAndUnzipVSCode({ version: "stable", cachePath: path.join(T, "vsc") });
-// EDGEwave's own folder (the event index, the MCP server) in the smoke folder, never the modder's.
-const env = { ...process.env, EDGEWAVE_HOME: path.join(T, "home"), EDGEWAVE_REDNODE_EDITOR: path.join(T, "rednode-editor.json") }; delete env.ELECTRON_RUN_AS_NODE;
+// EDGEwave's own folder (the event index, the MCP server, the Desk) in the smoke folder, never the modder's.
+const env = { ...process.env, EDGEWAVE_HOME: path.join(T, "home"), EDGEWAVE_REDNODE_EDITOR: path.join(T, "rednode-editor.json"), EDGE_LIBRARY_CONFIG: path.join(T, "edge-library.json") }; delete env.ELECTRON_RUN_AS_NODE;
 const code = spawn(exe, ["--new-window", "--user-data-dir", path.join(T, "ud"), "--extensions-dir", path.join(T, "ex"), "--disable-extensions",
   "--extensionDevelopmentPath", repo, "--extensionDevelopmentPath", path.join(T, "stub"), "--remote-debugging-port=9339", "--force-device-scale-factor=1.5",
   "--skip-welcome", "--skip-release-notes", "--disable-workspace-trust", path.join(T, "proj")], { env, stdio: "ignore" });
@@ -668,22 +681,64 @@ const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 vo
   && takeWav?.readUInt32LE(24) === 24000 && closed && JSON.parse(fs.readFileSync(path.join(T, "voiceLines.json"), "utf8")).lines["42"];
 if (!vlOk) finish(false, "Voice Lines did not voice the quest's lines as expected");
 
-// The Sounds view: Project (the open folder) and Recent (opened lately), each listing 42.
-await key("F1", "F1", 112);
-await sleep(600);
-await cdp("Input.insertText", { text: "EDGEwave: Focus on Sounds View" });
-await sleep(800);
-await key("Enter", "Enter", 13);
-let soundRows = [];
+// The Project view: Mixes (the open folder) lists 42; the Desk view: Recent (opened lately) lists it too.
+const paneSel = (title) => `[...document.querySelectorAll('.part.sidebar .pane')].find((p) => (p.querySelector('.pane-header .title')?.textContent ?? '').trim().toLowerCase() === ${JSON.stringify(title.toLowerCase())})`;
+const paneRows = (title) => evalIn(bench, `(() => { const p = ${paneSel(title)}; return p ? [...p.querySelectorAll('.monaco-list-row')].map((r) => r.textContent.trim()) : null; })()`);
+const clickRow = (title, text, action) => evalIn(bench, `(() => { const p = ${paneSel(title)}; const rows = p ? [...p.querySelectorAll('.monaco-list-row')] : []; const r = rows.find((r) => r.querySelector('.label-name')?.textContent.trim() === ${JSON.stringify(text)}) ?? rows.find((r) => r.textContent.trim().startsWith(${JSON.stringify(text)})); if (!r) return false; const a = ${JSON.stringify(action ?? "")}; if (!a) { r.click(); return true; } r.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); const b = r.querySelector('.action-label[aria-label^=' + JSON.stringify(a) + ']'); if (!b) return 'no ' + a; b.click(); return true; })()`);
+await command("EDGEwave: Focus on Project View");
+let projectRows = [], deskRows = [];
 for (let i = 0; i < 20; i++) {
-  soundRows = await evalIn(bench, `[...document.querySelectorAll('.part.sidebar .monaco-list-row')].filter((r) => r.offsetParent).map((r) => r.textContent.trim())`);
-  if (soundRows.some((r) => r.startsWith("Recent"))) break;
+  projectRows = (await paneRows("Project")) ?? [];
+  deskRows = (await paneRows("Desk")) ?? [];
+  if (projectRows.some((r) => r.startsWith("42")) && deskRows.some((r) => r.startsWith("42"))) break;
   await sleep(500);
 }
-log("sounds view", JSON.stringify(soundRows));
-const groupAt = (g) => soundRows.findIndex((r) => r.startsWith(g));
-const viewOk = groupAt("Project") === 0 && groupAt("Recent") > 1 && soundRows[1].startsWith("42") && soundRows[groupAt("Recent") + 1]?.startsWith("42");
-if (!viewOk) finish(false, "the Sounds view does not list 42 under Project and Recent");
+log("project and desk views", JSON.stringify({ projectRows, deskRows }));
+const viewOk = projectRows[0]?.startsWith("Mixes") && projectRows[1]?.startsWith("42") && projectRows.some((r) => r.startsWith("Project sounds"))
+  && deskRows[0]?.startsWith("On the Desk") && deskRows.findIndex((r) => r.startsWith("Recent")) > 0 && deskRows[deskRows.findIndex((r) => r.startsWith("Recent")) + 1]?.startsWith("42");
+if (!viewOk) finish(false, "the Project view does not list 42 under Mixes, or the Desk under Recent");
+
+// The Library view: the smoke's Library, its Doors folder with Door (version 3) and not the other tool's item.
+// Door's Add to Project copies it into source/raw/edgewave/sounds/Door/ with the project's came-from note, and
+// the Project view's Mixes says it came from the Library. Then the Desk's +: a new mix on the Desk.
+await command("EDGEwave: Focus on Library View");
+await sleep(1200);
+const libTop = await paneRows("Library");
+await clickRow("Library", "Doors");
+await sleep(1200);
+const libRows = await paneRows("Library");
+const libAdded = await clickRow("Library", "Door", "Add to Project");
+const fromLib = path.join(T, "proj", "source", "raw", "edgewave", "sounds", "Door", "Door.edgewave");
+await waitFile(fromLib, 20);
+await sleep(800);
+await key("Escape", "Escape", 27); // the notification
+const note = fs.existsSync(path.join(T, "proj", "source", "library.json")) ? JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "library.json"), "utf8")) : null;
+let mixRows = [];
+for (let i = 0; i < 10; i++) {
+  mixRows = (await paneRows("Project")) ?? [];
+  if (mixRows.some((r) => r.startsWith("Door") && r.includes("from the Library"))) break;
+  await sleep(500);
+}
+await command("EDGEwave: Create a Sound on the Desk…");
+await pickFirst(""); // the name, as suggested: New sound
+const deskMix = path.join(T, "home", "desk", "New sound.sound.asset", "source", "raw", "New sound.edgewave");
+await waitFile(deskMix, 20);
+await sleep(1000);
+await command("View: Close Editor");
+let deskNow = [];
+for (let i = 0; i < 10; i++) {
+  deskNow = (await paneRows("Desk")) ?? [];
+  if (deskNow.some((r) => r.startsWith("New sound"))) break;
+  await sleep(500);
+}
+const deskAsset = fs.existsSync(path.dirname(path.dirname(path.dirname(deskMix)))) ? JSON.parse(fs.readFileSync(path.join(T, "home", "desk", "New sound.sound.asset", "asset.json"), "utf8")) : null;
+log("library and desk", JSON.stringify({ libTop, libRows, libAdded, note, mixRows, deskNow, deskAsset }));
+const libOk = libTop?.[0]?.startsWith("Doors") && libRows?.some((r) => r.startsWith("Door") && r.includes("v3")) && !libRows.some((r) => r.startsWith("chair")) && libAdded === true
+  && fs.existsSync(path.join(T, "proj", "source", "raw", "edgewave", "sounds", "Door", "Door.sounds", "knock.wav"))
+  && note?.items?.[0]?.by === "edgewave" && note.items[0].id === "5m0ke5m0ke5m0ke0" && note.items[0].version === 3 && note.items[0].path === "Doors/Door.sound.asset"
+  && mixRows.some((r) => r.startsWith("Door") && r.includes("from the Library, v3"))
+  && deskNow.some((r) => r.startsWith("New sound")) && deskAsset?.kind === "sound" && deskAsset.main === "source/raw/New sound.edgewave";
+if (!libOk) finish(false, "the Library view, its Add to Project, or Create a Sound on the Desk did not do what it should");
 
 // Create a Sound: an empty document. Then sound files dragged from the desktop, as the OS would hand them
 // to VS Code (DevTools' dispatchDragEvent with file paths), with Shift held: two on the lanes become
@@ -839,4 +894,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a music cue in the game through a stand-in REDnode, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Sounds view; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a music cue in the game through a stand-in REDnode, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Project and Desk views; the Library view and a Library sound into the project; Create a Sound on the Desk; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");
