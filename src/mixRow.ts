@@ -63,7 +63,7 @@ export function mixItem(n: MixRow): vscode.TreeItem {
   item.id = `${n.group}:${n.uri.fsPath}`;
   const tracks = n.tracks === 0 ? "empty · " : n.tracks > 1 ? `${n.tracks} tracks · ` : "";
   item.description = n.error ? "cannot be read" : `${tracks}${n.edits} edit${n.edits === 1 ? "" : "s"}${n.where ? ` · ${n.where}` : ""}`;
-  item.tooltip = n.error ? `${n.uri.fsPath}\n${n.error}` : [n.label, n.uri.fsPath, n.rendered ? `Rendered: ${path.basename(n.render!)}; ▶ plays it` : "Not rendered yet: Render WAV in the mix", n.note].filter(Boolean).join("\n");
+  item.tooltip = n.error ? `${n.uri.fsPath}\n${n.error}` : [n.label, n.note, n.uri.fsPath, n.rendered ? `Rendered: ${path.basename(n.render!)}; ▶ plays it` : "Not rendered yet: Render WAV in the mix"].filter(Boolean).join("\n");
   item.iconPath = new vscode.ThemeIcon(n.error ? "warning" : n.voice ? "comment" : "pulse");
   item.resourceUri = n.uri;
   item.contextValue = ["edgewave.mix", n.group, n.rendered ? "rendered" : "unrendered", ...(n.tags ?? [])].join(" ");

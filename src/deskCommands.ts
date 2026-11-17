@@ -15,6 +15,8 @@ import {
   gamePathFolders,
   libraryFolders,
   libraryRoot,
+  librarySounds,
+  soundById,
   recordedLibraryRoot,
   refreshList,
   safeFolder,
@@ -165,8 +167,8 @@ function pickLibraryFolder(root: string, item: SoundItem, context: vscode.Extens
   });
 }
 
-export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk: DeskView; project: ProjectView; library: LibraryView; events: SoundEvents; log: (line: string) => void }): void {
-  const { desk, project, library, events, log } = o;
+export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk: DeskView; project: ProjectView; library: LibraryView; libraryTree: vscode.TreeView<LibraryNode>; events: SoundEvents; log: (line: string) => void }): void {
+  const { desk, project, library, libraryTree, events, log } = o;
   const refreshAll = () => {
     desk.refresh();
     project.refresh();
@@ -282,6 +284,19 @@ export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk
     desk.refresh();
     const pick = await vscode.window.showInformationMessage(`${item.title} is on the Desk now, with its files: change it there, or Add to Library from there. The mix where it was stays as it is.`, "Open It");
     if (pick) await openMix(item.doc);
+  });
+
+  // A Desk mix's Library copy, selected in the Library view (its folders opened), to compare their versions.
+  reg("edgewave.desk.revealInLibrary", async (n?: DeskRow) => {
+    const item = deskItemFrom(n);
+    const linked = item?.asset?.library;
+    if (!item || !linked) return void vscode.window.showInformationMessage("EDGEwave: that mix is not in the Library yet; Add to Library puts it there.");
+    const root = libraryRoot();
+    if (!root) return void vscode.window.showInformationMessage("EDGEwave: no EDGE Library is set, or its folder is missing (the Library view's Set the Library Folder).");
+    const found = soundById(root, item.asset!.id) ?? librarySounds(root).find((s) => s.rel === linked.path);
+    if (!found) return void vscode.window.showInformationMessage(`EDGEwave: ${item.title}'s Library copy is gone from ${linked.path}. Add to Library puts it there again.`);
+    await vscode.commands.executeCommand("edgewave.library.focus");
+    await libraryTree.reveal({ kind: "sound", sound: found }, { select: true, focus: true, expand: true });
   });
 
   reg("edgewave.desk.rename", async (n?: DeskRow) => {

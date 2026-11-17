@@ -6,7 +6,7 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { changedSinceLibrary, copyMix, deskItemOf, listDesk, moveToProject, newOnDesk, readItem, renameItem } from "../src/desk";
+import { changedSinceLibrary, copyMix, deskItemOf, deskVersion, listDesk, moveToProject, newOnDesk, readItem, renameItem } from "../src/desk";
 import { emptyDoc, formatDoc, newTrack, parseDoc } from "../src/doc";
 import { addFromLibrary, addToLibrary, editOnDesk, libraryFolder, librarySounds, readNote, refreshList, safeFolder, setLibraryRoot, libraryRoot } from "../src/library";
 
@@ -226,6 +226,26 @@ test("A Desk mix in the Library: the same until its mix or render changes, then 
     addToLibrary({ item: added, root, tool: Tool });
     const again = readItem(item.folder)!;
     assert.equal(again.asset?.library?.version, 2);
+  } finally {
+    s.done();
+  }
+});
+
+test("A Desk mix's own version: 1 before the Library, the Library's when the same, one more once changed", () => {
+  const s = scratch();
+  try {
+    const desk = path.join(s.dir, "desk");
+    const root = path.join(s.dir, "Lib");
+    fs.mkdirSync(root, { recursive: true });
+    const item = newOnDesk({ name: "Door", tool: Tool, dir: desk });
+    put(item.render, "r");
+    assert.equal(deskVersion(readItem(item.folder)!), 1);
+    addToLibrary({ item: readItem(item.folder)!, root, tool: Tool });
+    assert.equal(deskVersion(readItem(item.folder)!), 1);
+    const later = new Date(Date.now() + 60_000);
+    fs.utimesSync(item.doc, later, later);
+    assert.equal(deskVersion(readItem(item.folder)!), 2);
+    assert.equal(addToLibrary({ item: readItem(item.folder)!, root, tool: Tool }).version, 2);
   } finally {
     s.done();
   }

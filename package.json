@@ -247,7 +247,7 @@
         "command": "edgewave.desk.addToLibrary",
         "title": "Add to Library…",
         "category": "EDGEwave",
-        "icon": "$(library)"
+        "icon": "$(repo-push)"
       },
       {
         "command": "edgewave.desk.rename",
@@ -301,6 +301,12 @@
         "title": "Refresh from Library…",
         "category": "EDGEwave",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "edgewave.desk.revealInLibrary",
+        "title": "Reveal in Library",
+        "category": "EDGEwave",
+        "icon": "$(library)"
       }
     ],
     "configuration": {
@@ -588,6 +594,11 @@
           "group": "inline@1"
         },
         {
+          "command": "edgewave.desk.revealInLibrary",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave.mix desk .*\binLibrary\b/",
+          "group": "inline@2"
+        },
+        {
           "command": "edgewave.desk.moveToProject",
           "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
           "group": "edgewave@2"
@@ -595,6 +606,11 @@
         {
           "command": "edgewave.desk.addToLibrary",
           "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
+          "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.desk.revealInLibrary",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave.mix desk .*\binLibrary\b/",
           "group": "edgewave@3"
         },
         {

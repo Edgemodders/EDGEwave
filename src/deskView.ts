@@ -5,7 +5,7 @@
 
 import * as fs from "node:fs";
 import * as vscode from "vscode";
-import { changedSinceLibrary, deskDir, isInside, listDesk, type SoundItem } from "./desk";
+import { deskDir, deskVersion, isInside, listDesk, type SoundItem } from "./desk";
 import { debounced, folderOf, mixItem, readMix, same, type MixRow } from "./mixRow";
 
 const RecentState = "edgewave.recentSounds";
@@ -65,17 +65,16 @@ export class DeskView implements vscode.TreeDataProvider<Node> {
   /** The mixes on the Desk, as rows. */
   deskRows(): DeskRow[] {
     return listDesk().map((item) => {
+      // The Desk's own version; the Library's is on its own row, and in the hover beside Reveal in Library.
       const library = item.asset?.library;
-      const changed = library && changedSinceLibrary(item);
+      const version = deskVersion(item);
       return {
         ...readMix("desk", item.doc, {
           name: item.title,
-          where: library ? `in the Library, v${library.version}${changed ? " · changed since" : ""}` : undefined,
+          where: `v${version}`,
           note: library
-            ? changed
-              ? `In the Library: ${library.path}, version ${library.version}. Changed on the Desk since: Add to Library makes it version ${library.version + 1} there.`
-              : `In the Library: ${library.path}, version ${library.version}, the same as here. Add to Library again updates it there.`
-            : undefined,
+            ? `Version ${version} here. In the Library: version ${library.version}, ${library.path}${version > library.version ? `. Add to Library makes this version ${version} there too` : ", the same"}. Reveal in Library shows it.`
+            : `Version ${version}, not in the Library yet.`,
           tags: library ? ["inLibrary"] : [],
         }),
         item,

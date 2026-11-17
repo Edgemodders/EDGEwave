@@ -65,6 +65,14 @@ export class LibraryView implements vscode.TreeDataProvider<LibraryNode> {
     return out;
   }
 
+  /** Its folder, so Reveal in Library can open the folders down to a sound. */
+  getParent(node: LibraryNode): LibraryNode | undefined {
+    const rel = node.kind === "folder" ? node.rel : node.kind === "sound" ? node.sound.rel : undefined;
+    if (!rel) return undefined;
+    const up = rel.split("/").slice(0, -1);
+    return up.length ? { kind: "folder", rel: up.join("/"), name: up[up.length - 1] } : undefined;
+  }
+
   getTreeItem(node: LibraryNode): vscode.TreeItem {
     if (node.kind === "line") {
       const t = new vscode.TreeItem(node.label, vscode.TreeItemCollapsibleState.None);

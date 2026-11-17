@@ -353,3 +353,14 @@ export function changedSinceLibrary(item: SoundItem): boolean {
     }
   });
 }
+
+/**
+ * A Desk mix's own version: the one it was last added to (or taken from) the Library as, one more once it has
+ * changed since; a mix never in the Library is version 1. Add to Library makes the Library's next version, so the
+ * two match again after it.
+ */
+export function deskVersion(item: SoundItem): number {
+  const linked = item.asset?.library;
+  if (!linked) return item.asset?.version ?? 1;
+  return linked.version + (changedSinceLibrary(item) ? 1 : 0);
+}

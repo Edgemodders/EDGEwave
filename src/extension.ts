@@ -32,6 +32,8 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   // Mixes outside the open folder that may have put a sound in the project: the Desk's and Recent's.
   const project = new ProjectView(context, () => [...listDesk().map((i) => i.doc), ...(context.globalState.get<string[]>("edgewave.recentSounds") ?? [])]);
   const library = new LibraryView(context);
+  // A tree view, not just a provider: Reveal in Library selects a sound in it.
+  const libraryTree = vscode.window.createTreeView("edgewave.library", { treeDataProvider: library });
   const editor = new SoundEditorProvider(context, log, voices, (uri) => void desk.remember(uri));
   const assets = new GameAssets(events, editor);
   context.subscriptions.push(
@@ -69,7 +71,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     // The Desk (the Sounds view until 0.3, its id kept), the Project and the Library.
     vscode.window.registerTreeDataProvider("edgewave.sounds", desk),
     vscode.window.registerTreeDataProvider("edgewave.project", project),
-    vscode.window.registerTreeDataProvider("edgewave.library", library),
+    libraryTree,
     vscode.commands.registerCommand("edgewave.forgetRecent", (node) => desk.forget(node)),
     vscode.commands.registerCommand("edgewave.clearRecent", () => desk.clearRecent()),
     // With no folder, VS Code's own Open Folder dialog.
@@ -106,7 +108,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     vscode.commands.registerCommand("edgewave.copyGameName", (n?: AssetNode) => assets.copyName(n)),
     vscode.commands.registerCommand("edgewave.connectAssistant", () => connectAssistant(context, (l) => log.appendLine(l))),
   );
-  registerDeskCommands(context, { desk, project, library, events, log: (l) => log.appendLine(l) });
+  registerDeskCommands(context, { desk, project, library, libraryTree, events, log: (l) => log.appendLine(l) });
   installServer(context.extensionPath, (l) => log.appendLine(l));
   context.subscriptions.push(...registerWithEditor(context, version, (l) => log.appendLine(l)));
   return makeApi(version, voiceLines, events);
