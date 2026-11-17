@@ -6,7 +6,7 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { copyMix, deskItemOf, listDesk, moveToProject, newOnDesk, readItem, renameItem } from "../src/desk";
+import { changedSinceLibrary, copyMix, deskItemOf, listDesk, moveToProject, newOnDesk, readItem, renameItem } from "../src/desk";
 import { emptyDoc, formatDoc, newTrack, parseDoc } from "../src/doc";
 import { addFromLibrary, addToLibrary, editOnDesk, libraryFolder, librarySounds, readNote, refreshList, safeFolder, setLibraryRoot, libraryRoot } from "../src/library";
 
@@ -202,6 +202,30 @@ test("Add to Library, again (one version up, where it is), Edit on the Desk, int
     assert.equal(again.doc, into.doc);
     assert.equal(fs.readFileSync(path.join(raw, "edgewave", "sounds", "Door", "Door.sounds", "creak.wav"), "utf8"), "creak");
     assert.deepEqual(readNote(projectDir).items.map((i) => [i.by, i.version]), [["edgefab", undefined], ["edgewave", 3]]);
+  } finally {
+    s.done();
+  }
+});
+
+test("A Desk mix in the Library: the same until its mix or render changes, then changed since (the version waits for Add to Library)", () => {
+  const s = scratch();
+  try {
+    const desk = path.join(s.dir, "desk");
+    const root = path.join(s.dir, "Lib");
+    fs.mkdirSync(root, { recursive: true });
+    const item = newOnDesk({ name: "Door", tool: Tool, dir: desk });
+    assert.equal(changedSinceLibrary(item), false);
+    put(item.render, "r");
+    addToLibrary({ item: readItem(item.folder)!, root, tool: Tool });
+    const added = readItem(item.folder)!;
+    assert.equal(changedSinceLibrary(added), false);
+    const later = new Date(Date.now() + 60_000);
+    fs.utimesSync(added.render, later, later);
+    assert.equal(changedSinceLibrary(added), true);
+    assert.equal(added.asset?.library?.version, 1);
+    addToLibrary({ item: added, root, tool: Tool });
+    const again = readItem(item.folder)!;
+    assert.equal(again.asset?.library?.version, 2);
   } finally {
     s.done();
   }

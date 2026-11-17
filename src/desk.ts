@@ -333,3 +333,23 @@ export function copyToDesk(docFile: string, tool: string, dir = deskDir()): Soun
   }
   return readItem(folder)!;
 }
+
+/**
+ * Whether a Desk mix changed since Add to Library (or Edit on the Desk) last matched it with the Library: its mix,
+ * its render or a file in its own folders written after then. The Library's version goes up only with the next
+ * Add to Library, so the Desk says "changed since" in between.
+ */
+export function changedSinceLibrary(item: SoundItem): boolean {
+  const date = item.asset?.library ? Date.parse(item.asset.library.date) : NaN;
+  if (Number.isNaN(date)) return false;
+  const raw = path.dirname(item.doc);
+  const own = [".sounds", ".gen"].flatMap((ext) => filesUnder(path.join(raw, item.name + ext)));
+  // A moment's grace: the copy is written just before the date is.
+  return [item.doc, item.render, ...own].some((f) => {
+    try {
+      return fs.statSync(f).mtimeMs > date + 2000;
+    } catch {
+      return false;
+    }
+  });
+}

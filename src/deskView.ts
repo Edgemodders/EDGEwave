@@ -5,7 +5,7 @@
 
 import * as fs from "node:fs";
 import * as vscode from "vscode";
-import { deskDir, isInside, listDesk, type SoundItem } from "./desk";
+import { changedSinceLibrary, deskDir, isInside, listDesk, type SoundItem } from "./desk";
 import { debounced, folderOf, mixItem, readMix, same, type MixRow } from "./mixRow";
 
 const RecentState = "edgewave.recentSounds";
@@ -66,11 +66,16 @@ export class DeskView implements vscode.TreeDataProvider<Node> {
   deskRows(): DeskRow[] {
     return listDesk().map((item) => {
       const library = item.asset?.library;
+      const changed = library && changedSinceLibrary(item);
       return {
         ...readMix("desk", item.doc, {
           name: item.title,
-          where: library ? `in the Library, v${library.version}` : undefined,
-          note: library ? `In the Library: ${library.path}, version ${library.version}. Add to Library again updates it there.` : undefined,
+          where: library ? `in the Library, v${library.version}${changed ? " · changed since" : ""}` : undefined,
+          note: library
+            ? changed
+              ? `In the Library: ${library.path}, version ${library.version}. Changed on the Desk since: Add to Library makes it version ${library.version + 1} there.`
+              : `In the Library: ${library.path}, version ${library.version}, the same as here. Add to Library again updates it there.`
+            : undefined,
           tags: library ? ["inLibrary"] : [],
         }),
         item,

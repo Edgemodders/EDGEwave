@@ -44,7 +44,7 @@ What a Desk mix offers (right-click; ▶ and Add to Library on the row):
 |---|---|
 | ▶ | Plays its render at once, no tab. With no render yet, ▶ is greyed: **Render it first** |
 | **Move to Project…** | Copies it into the open project's `source/raw/edgewave/sounds/<name>/` and takes it off the Desk. Then its own **Add to Project…** puts it in the game |
-| **Add to Library…** | Asks a Library folder (the last one first, the top folder, or a new one). It needs a render, since a project takes the WAV. For a mix made from a game file, the folder list starts with **Use the game path**, as the rules say (beside the folder picker): select it to turn it on or off, and each folder's line shows where the sound goes, under its game path's folders. The last choice is kept. Again later, it updates the item where it is, one version up |
+| **Add to Library…** | Asks a Library folder (the last one first, the top folder, or a new one). It needs a render, since a project takes the WAV. For a mix made from a game file, the folder list starts with **Use the game path**, as the rules say (beside the folder picker): select it to turn it on or off, and each folder's line shows where the sound goes, under its game path's folders. The last choice is kept. Again later, it updates the item where it is, one version up. The row's **in the Library, v*n*** is the Library's version; after a change on the Desk it adds **· changed since**, until Add to Library makes the next version |
 | **Rename…** | The folder, the mix, its folders and its render follow the name; the id stays |
 | **Take Off the Desk…** | Its folder goes to the Recycle Bin; a Library copy stays |
 
