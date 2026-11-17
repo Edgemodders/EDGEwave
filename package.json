@@ -268,7 +268,7 @@
       },
       {
         "command": "edgewave.library.open",
-        "title": "Open the Library Folder",
+        "title": "Reveal in File Explorer",
         "category": "EDGEwave",
         "icon": "$(folder-opened)"
       },
@@ -746,6 +746,16 @@
         {
           "command": "edgewave.reveal",
           "when": "view == edgewave.library && viewItem =~ /^edgewave\\.lib(Sound|File)/",
+          "group": "edgewave@8"
+        },
+        {
+          "command": "edgewave.reveal",
+          "when": "view == edgewave.library && viewItem == edgewave.libFolder",
+          "group": "inline@0"
+        },
+        {
+          "command": "edgewave.reveal",
+          "when": "view == edgewave.library && viewItem == edgewave.libFolder",
           "group": "edgewave@8"
         }
       ]

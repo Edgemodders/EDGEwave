@@ -204,7 +204,8 @@ export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk
   });
   reg("edgewave.openMadeMix", (n: NamedItem | PlacedItem) => n?.mix && openMix(n.mix.fsPath));
   reg("edgewave.reveal", (n: Row) => {
-    const file = n?.kind === "mix" ? n.uri.fsPath : n?.kind === "sound" ? n.sound.folder : fileOf(n);
+    const root = libraryRoot();
+    const file = n?.kind === "mix" ? n.uri.fsPath : n?.kind === "sound" ? n.sound.folder : n?.kind === "folder" && root ? path.join(root, ...n.rel.split("/")) : fileOf(n);
     if (file) return vscode.commands.executeCommand("revealFileInOS", vscode.Uri.file(file));
   });
   reg("edgewave.refreshSounds", refreshAll);

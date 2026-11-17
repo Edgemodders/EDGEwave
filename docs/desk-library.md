@@ -4,7 +4,7 @@ title: Desk, Project and Library
 
 # Desk, Project and Library
 
-Status: **built 2026-11-16, hand test to run** ([steps](testing.html#desk-project-and-library)). Agreed with the owner on 2026-10-31 and 2026-11-04 (build the Desk and the Library together after 0.2.0, one test round), and on 2026-11-16 (the Project view split; the go to build). EDGEwave's side of the [EDGE Library's shared rules](https://edgemodders.github.io/EDGEbuilder/library.html#shared-rules), which every EDGE tool follows. For modders, the platform's wiki explains the Library: [The EDGE Library](https://edgemodders.ai/wiki/library.html).
+Status: **built 2026-11-16, hand test passed the same day, first round** ([steps](testing.html#desk-project-and-library)). Agreed with the owner on 2026-10-31 and 2026-11-04 (build the Desk and the Library together after 0.2.0, one test round), and on 2026-11-16 (the Project view split; the go to build). EDGEwave's side of the [EDGE Library's shared rules](https://edgemodders.github.io/EDGEbuilder/library.html#shared-rules), which every EDGE tool follows. For modders, the platform's wiki explains the Library: [The EDGE Library](https://edgemodders.ai/wiki/library.html).
 
 EDGEwave's activity bar now has four views:
 
@@ -80,6 +80,8 @@ One root for every EDGE tool, recorded in `%APPDATA%\EDGE\library.json`. The fir
 | ▶ | Plays its render at once |
 | **Add to Project** | Copies it into the open project's `source/raw/edgewave/sounds/<name>/` and notes it in the project's came-from note. Again later, it replaces that copy in its folder |
 | **Edit on the Desk** | A copy on the Desk with the same id. If it is on the Desk already: open that copy, or replace it |
+
+The title bar has **Reveal in File Explorer** (the Library's folder), Refresh, and **Set the Library Folder…**. Each folder has **Reveal in File Explorer** on hover too, and every sound on right-click. The EDGE tools share that wording and the `$(folder-opened)` icon for opening something in Windows' File Explorer (the owner, 2026-11-16; VS Code's own name for it).
 
 **The came-from note**, `source/library.json`, is the one every tool writes the same way. EDGEwave writes only its own entries (`by: "edgewave"`) and keeps the rest:
 
