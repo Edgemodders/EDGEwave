@@ -247,6 +247,38 @@ export class SoundEvents {
   }
 
   /**
+   * Plays a sound file with no tab (the ▶ on a mix's render, a project sound, a Library sound): WAV, or Ogg
+   * decoded first; other formats open the Hear tab. ▶ again on the same file while it plays stops it.
+   */
+  async playFile(file: string): Promise<PlayResult | { ok: true; stopped: true }> {
+    const key = `file:${path.resolve(file).toLowerCase()}`;
+    if (this.now?.key === key && Date.now() < this.now.until) {
+      await this.stop();
+      return { ok: true, stopped: true };
+    }
+    if (!fs.existsSync(file)) return { ok: false, reason: `${path.basename(file)} is not there: render the mix first.` };
+    const mime = Mime[path.extname(file).toLowerCase()];
+    if (QuietPlayer.unavailable() || (mime !== "audio/wav" && mime !== "audio/ogg")) {
+      this.hearFile(path.basename(file), file);
+      return { ok: true, where: "project", variations: 1 };
+    }
+    return this.quiet(fs.readFileSync(file), mime, "project", 1, path.basename(file), key);
+  }
+
+  /** A sound file in the Hear tab, with its notes. */
+  hearFile(title: string, file: string, notes: string[] = []): void {
+    const mime = Mime[path.extname(file).toLowerCase()] ?? "audio/wav";
+    let seconds: number | undefined;
+    const data = fs.readFileSync(file);
+    try {
+      if (mime === "audio/wav") seconds = wavSeconds(data);
+    } catch {
+      // not a PCM WAV: no length
+    }
+    this.showPreview(title, [...notes, `${file}${seconds !== undefined ? `, ${seconds} s` : ""}`], [{ data, mime, label: path.basename(file) }]);
+  }
+
+  /**
    * Plays sounds from the game (the first 12) in the Hear panel, through REDcode: a sound effect's
    * variations, a voice line, a streamed .wem. Undefined when it showed them; when REDcode could
    * read none, why (REDcode's first error; every error goes to EDGEwave's output).
@@ -320,5 +352,7 @@ export function eventNotes(event: GameEvent, total: number): string[] {
     ...(event.tags.length ? [event.tags.join(", ")] : []),
   ];
 }
+
+const Mime: Record<string, string> = { ".wav": "audio/wav", ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".flac": "audio/flac" };
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);

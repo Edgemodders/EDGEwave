@@ -8,10 +8,14 @@ import { makeApi, type EDGEwaveApi } from "./api";
 import { SoundEditorProvider } from "./editor";
 import { GameAssets, type AssetNode } from "./gameAssets";
 import { connectAssistant, installServer, registerWithEditor } from "./mcp";
-import { newSound, openFile, openSound, ViewType } from "./openSound";
+import { newDeskSound, newSound, openFile, openSound, ViewType } from "./openSound";
 import type { SoundRef } from "./redcode";
 import { SoundEvents } from "./soundEvents";
-import { SoundsView, type NamedItem } from "./soundsView";
+import { listDesk } from "./desk";
+import { registerDeskCommands } from "./deskCommands";
+import { DeskView } from "./deskView";
+import { LibraryView } from "./libraryView";
+import { ProjectView, type NamedItem } from "./projectView";
 import { isV, type VoiceLine } from "./voice";
 import { loadRecord } from "./voiceBatch";
 import { VoiceLines } from "./voiceLines";
@@ -24,8 +28,11 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   const voiceLines = new VoiceLines(context, log, voices);
   const events = new SoundEvents(context, (l) => log.appendLine(l));
   const version = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
-  const sounds = new SoundsView(context);
-  const editor = new SoundEditorProvider(context, log, voices, (uri) => void sounds.remember(uri));
+  const desk = new DeskView(context);
+  // Mixes outside the open folder that may have put a sound in the project: the Desk's and Recent's.
+  const project = new ProjectView(context, () => [...listDesk().map((i) => i.doc), ...(context.globalState.get<string[]>("edgewave.recentSounds") ?? [])]);
+  const library = new LibraryView(context);
+  const editor = new SoundEditorProvider(context, log, voices, (uri) => void desk.remember(uri));
   const assets = new GameAssets(events, editor);
   context.subscriptions.push(
     log,
@@ -39,6 +46,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     }),
     vscode.commands.registerCommand("edgewave.open", (uri?: vscode.Uri) => openFile(uri)),
     vscode.commands.registerCommand("edgewave.newSound", (file?: string) => newSound(file)),
+    vscode.commands.registerCommand("edgewave.newDeskSound", () => newDeskSound()),
     vscode.commands.registerCommand("edgewave.elevenlabs.setKey", () => voices.setKey()),
     vscode.commands.registerCommand("edgewave.elevenlabs.clearKey", () => voices.clearKey()),
     // EDGEwave Voice, the REDnode package: install it in the game and name its voices.
@@ -58,13 +66,15 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     }),
   );
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("edgewave.sounds", sounds),
-    vscode.commands.registerCommand("edgewave.refreshSounds", () => sounds.refresh()),
-    vscode.commands.registerCommand("edgewave.forgetRecent", (node) => sounds.forget(node)),
-    vscode.commands.registerCommand("edgewave.clearRecent", () => sounds.clearRecent()),
+    // The Desk (the Sounds view until 0.3, its id kept), the Project and the Library.
+    vscode.window.registerTreeDataProvider("edgewave.sounds", desk),
+    vscode.window.registerTreeDataProvider("edgewave.project", project),
+    vscode.window.registerTreeDataProvider("edgewave.library", library),
+    vscode.commands.registerCommand("edgewave.forgetRecent", (node) => desk.forget(node)),
+    vscode.commands.registerCommand("edgewave.clearRecent", () => desk.clearRecent()),
     // With no folder, VS Code's own Open Folder dialog.
     vscode.commands.registerCommand("edgewave.openFolder", () => vscode.commands.executeCommand("vscode.openFolder")),
-    // The Sounds view's Project sounds: hear one, copy its name for a quest or script, show its WAV.
+    // The Project view's Project sounds: hear one, copy its name for a quest or script, show its WAV.
     vscode.commands.registerCommand("edgewave.hearSound", async (n?: NamedItem) => {
       if (!n) return;
       try {
@@ -96,6 +106,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
     vscode.commands.registerCommand("edgewave.copyGameName", (n?: AssetNode) => assets.copyName(n)),
     vscode.commands.registerCommand("edgewave.connectAssistant", () => connectAssistant(context, (l) => log.appendLine(l))),
   );
+  registerDeskCommands(context, { desk, project, library, events, log: (l) => log.appendLine(l) });
   installServer(context.extensionPath, (l) => log.appendLine(l));
   context.subscriptions.push(...registerWithEditor(context, version, (l) => log.appendLine(l)));
   return makeApi(version, voiceLines, events);

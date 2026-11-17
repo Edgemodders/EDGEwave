@@ -53,7 +53,7 @@
       },
       {
         "command": "edgewave.newSound",
-        "title": "Create a Sound…",
+        "title": "Create a Sound in the Project…",
         "category": "EDGEwave",
         "icon": "$(add)"
       },
@@ -193,6 +193,114 @@
         "title": "Copy Name",
         "category": "EDGEwave",
         "icon": "$(copy)"
+      },
+      {
+        "command": "edgewave.newDeskSound",
+        "title": "Create a Sound on the Desk…",
+        "category": "EDGEwave",
+        "icon": "$(add)"
+      },
+      {
+        "command": "edgewave.playRender",
+        "title": "Play",
+        "category": "EDGEwave",
+        "icon": "$(play)"
+      },
+      {
+        "command": "edgewave.renderFirst",
+        "title": "Render it first",
+        "category": "EDGEwave",
+        "icon": "$(play)",
+        "enablement": "false"
+      },
+      {
+        "command": "edgewave.hearFile",
+        "title": "Hear",
+        "category": "EDGEwave",
+        "icon": "$(unmute)"
+      },
+      {
+        "command": "edgewave.openMadeMix",
+        "title": "Open the Mix That Made It",
+        "category": "EDGEwave",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "edgewave.reveal",
+        "title": "Reveal in File Explorer",
+        "category": "EDGEwave",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "edgewave.copyToDesk",
+        "title": "Copy to the Desk",
+        "category": "EDGEwave",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "edgewave.desk.moveToProject",
+        "title": "Move to Project…",
+        "category": "EDGEwave",
+        "icon": "$(project)"
+      },
+      {
+        "command": "edgewave.desk.addToLibrary",
+        "title": "Add to Library…",
+        "category": "EDGEwave",
+        "icon": "$(library)"
+      },
+      {
+        "command": "edgewave.desk.rename",
+        "title": "Rename…",
+        "category": "EDGEwave"
+      },
+      {
+        "command": "edgewave.desk.remove",
+        "title": "Take Off the Desk…",
+        "category": "EDGEwave",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "edgewave.library.setRoot",
+        "title": "Set the Library Folder…",
+        "category": "EDGEwave",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "edgewave.library.open",
+        "title": "Open the Library Folder",
+        "category": "EDGEwave",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "edgewave.library.refresh",
+        "title": "Refresh the Library",
+        "category": "EDGEwave",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "edgewave.library.addToProject",
+        "title": "Add to Project",
+        "category": "EDGEwave",
+        "icon": "$(project)"
+      },
+      {
+        "command": "edgewave.library.editOnDesk",
+        "title": "Edit on the Desk",
+        "category": "EDGEwave",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "edgewave.library.openOnDesk",
+        "title": "Open on the Desk",
+        "category": "EDGEwave",
+        "icon": "$(inbox)"
+      },
+      {
+        "command": "edgewave.refreshFromLibrary",
+        "title": "Refresh from Library…",
+        "category": "EDGEwave",
+        "icon": "$(cloud-download)"
       }
     ],
     "configuration": {
@@ -294,6 +402,54 @@
         {
           "command": "edgewave.copyGameName",
           "when": "false"
+        },
+        {
+          "command": "edgewave.playRender",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.renderFirst",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.hearFile",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.openMadeMix",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.reveal",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.copyToDesk",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.desk.rename",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.desk.remove",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.library.refresh",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.library.addToProject",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.library.editOnDesk",
+          "when": "false"
+        },
+        {
+          "command": "edgewave.library.openOnDesk",
+          "when": "false"
         }
       ],
       "explorer/context": [
@@ -304,21 +460,6 @@
         }
       ],
       "view/title": [
-        {
-          "command": "edgewave.newSound",
-          "when": "view == edgewave.sounds",
-          "group": "navigation@1"
-        },
-        {
-          "command": "edgewave.open",
-          "when": "view == edgewave.sounds",
-          "group": "navigation@2"
-        },
-        {
-          "command": "edgewave.refreshSounds",
-          "when": "view == edgewave.sounds",
-          "group": "navigation@3"
-        },
         {
           "command": "edgewave.gameAssets.filter",
           "when": "view == edgewave.gameAssets",
@@ -333,6 +474,51 @@
           "command": "edgewave.gameAssets.refresh",
           "when": "view == edgewave.gameAssets",
           "group": "navigation@3"
+        },
+        {
+          "command": "edgewave.newDeskSound",
+          "when": "view == edgewave.sounds",
+          "group": "navigation@1"
+        },
+        {
+          "command": "edgewave.open",
+          "when": "view == edgewave.sounds",
+          "group": "navigation@2"
+        },
+        {
+          "command": "edgewave.refreshSounds",
+          "when": "view == edgewave.sounds",
+          "group": "navigation@3"
+        },
+        {
+          "command": "edgewave.newSound",
+          "when": "view == edgewave.project",
+          "group": "navigation@1"
+        },
+        {
+          "command": "edgewave.refreshFromLibrary",
+          "when": "view == edgewave.project",
+          "group": "navigation@2"
+        },
+        {
+          "command": "edgewave.refreshSounds",
+          "when": "view == edgewave.project",
+          "group": "navigation@3"
+        },
+        {
+          "command": "edgewave.library.open",
+          "when": "view == edgewave.library && edgewave.hasLibrary",
+          "group": "navigation@1"
+        },
+        {
+          "command": "edgewave.library.refresh",
+          "when": "view == edgewave.library",
+          "group": "navigation@2"
+        },
+        {
+          "command": "edgewave.library.setRoot",
+          "when": "view == edgewave.library",
+          "group": "navigation@3"
         }
       ],
       "view/item/context": [
@@ -340,51 +526,6 @@
           "command": "edgewave.open",
           "when": "view == redcode.project && viewItem =~ /^projectFile\\.sound/",
           "group": "edgewave@1"
-        },
-        {
-          "command": "edgewave.forgetRecent",
-          "when": "view == edgewave.sounds && viewItem == edgewave.recentSound",
-          "group": "inline"
-        },
-        {
-          "command": "edgewave.forgetRecent",
-          "when": "view == edgewave.sounds && viewItem == edgewave.recentSound",
-          "group": "edgewave@1"
-        },
-        {
-          "command": "edgewave.clearRecent",
-          "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
-          "group": "inline"
-        },
-        {
-          "command": "edgewave.openFolder",
-          "when": "view == edgewave.sounds && viewItem == edgewave.noFolder",
-          "group": "inline"
-        },
-        {
-          "command": "edgewave.clearRecent",
-          "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
-          "group": "edgewave@1"
-        },
-        {
-          "command": "edgewave.copySoundName",
-          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
-          "group": "inline"
-        },
-        {
-          "command": "edgewave.hearSound",
-          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
-          "group": "edgewave@1"
-        },
-        {
-          "command": "edgewave.copySoundName",
-          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
-          "group": "edgewave@2"
-        },
-        {
-          "command": "edgewave.revealSound",
-          "when": "view == edgewave.sounds && viewItem == edgewave.namedSound",
-          "group": "edgewave@3"
         },
         {
           "command": "edgewave.playGameSound",
@@ -425,6 +566,171 @@
           "command": "edgewave.copyGameName",
           "when": "view == edgewave.gameAssets && viewItem =~ /^edgewave\\.game(Sound|Event)$/",
           "group": "edgewave@4"
+        },
+        {
+          "command": "edgewave.playRender",
+          "when": "view =~ /^edgewave\\.(sounds|project)$/ && viewItem =~ /^edgewave\\.mix .*\\brendered\\b/",
+          "group": "inline@0"
+        },
+        {
+          "command": "edgewave.renderFirst",
+          "when": "view =~ /^edgewave\\.(sounds|project)$/ && viewItem =~ /^edgewave\\.mix .*\\bunrendered\\b/",
+          "group": "inline@0"
+        },
+        {
+          "command": "edgewave.playRender",
+          "when": "view =~ /^edgewave\\.(sounds|project)$/ && viewItem =~ /^edgewave\\.mix .*\\brendered\\b/",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.desk.addToLibrary",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
+          "group": "inline@1"
+        },
+        {
+          "command": "edgewave.desk.moveToProject",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
+          "group": "edgewave@2"
+        },
+        {
+          "command": "edgewave.desk.addToLibrary",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
+          "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.desk.rename",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
+          "group": "edgewave@4"
+        },
+        {
+          "command": "edgewave.reveal",
+          "when": "view =~ /^edgewave\\.(sounds|project)$/ && viewItem =~ /^edgewave\\.mix /",
+          "group": "edgewave@8"
+        },
+        {
+          "command": "edgewave.desk.remove",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix desk /",
+          "group": "edgewave@9"
+        },
+        {
+          "command": "edgewave.copyToDesk",
+          "when": "view =~ /^edgewave\\.(sounds|project)$/ && viewItem =~ /^edgewave\\.mix (project|recent) /",
+          "group": "edgewave@2"
+        },
+        {
+          "command": "edgewave.forgetRecent",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix recent /",
+          "group": "inline@2"
+        },
+        {
+          "command": "edgewave.forgetRecent",
+          "when": "view == edgewave.sounds && viewItem =~ /^edgewave\\.mix recent /",
+          "group": "edgewave@7"
+        },
+        {
+          "command": "edgewave.clearRecent",
+          "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
+          "group": "inline"
+        },
+        {
+          "command": "edgewave.clearRecent",
+          "when": "view == edgewave.sounds && viewItem == edgewave.recentGroup",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.playRender",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.(named|placed)Sound .*\\bplayable\\b/",
+          "group": "inline@0"
+        },
+        {
+          "command": "edgewave.openMadeMix",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.(named|placed)Sound .*\\bmix\\b/",
+          "group": "inline@1"
+        },
+        {
+          "command": "edgewave.copySoundName",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.namedSound/",
+          "group": "inline@2"
+        },
+        {
+          "command": "edgewave.hearSound",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.namedSound/",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.hearFile",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.placedSound/",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.playRender",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.(named|placed)Sound .*\\bplayable\\b/",
+          "group": "edgewave@2"
+        },
+        {
+          "command": "edgewave.openMadeMix",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.(named|placed)Sound .*\\bmix\\b/",
+          "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.copySoundName",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.namedSound/",
+          "group": "edgewave@4"
+        },
+        {
+          "command": "edgewave.revealSound",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.namedSound/",
+          "group": "edgewave@5"
+        },
+        {
+          "command": "edgewave.reveal",
+          "when": "view == edgewave.project && viewItem =~ /^edgewave\\.placedSound/",
+          "group": "edgewave@5"
+        },
+        {
+          "command": "edgewave.playRender",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.lib(Sound|File) playable/",
+          "group": "inline@0"
+        },
+        {
+          "command": "edgewave.library.addToProject",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.libSound/",
+          "group": "inline@1"
+        },
+        {
+          "command": "edgewave.library.editOnDesk",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.libSound/",
+          "group": "inline@2"
+        },
+        {
+          "command": "edgewave.library.openOnDesk",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.libFile/",
+          "group": "inline@2"
+        },
+        {
+          "command": "edgewave.hearFile",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.lib(Sound|File) playable/",
+          "group": "edgewave@1"
+        },
+        {
+          "command": "edgewave.library.addToProject",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.libSound/",
+          "group": "edgewave@2"
+        },
+        {
+          "command": "edgewave.library.editOnDesk",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.libSound/",
+          "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.library.openOnDesk",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.libFile/",
+          "group": "edgewave@3"
+        },
+        {
+          "command": "edgewave.reveal",
+          "when": "view == edgewave.library && viewItem =~ /^edgewave\\.lib(Sound|File)/",
+          "group": "edgewave@8"
         }
       ]
     },
@@ -467,7 +773,15 @@
       "edgewave": [
         {
           "id": "edgewave.sounds",
-          "name": "Sounds"
+          "name": "Desk"
+        },
+        {
+          "id": "edgewave.project",
+          "name": "Project"
+        },
+        {
+          "id": "edgewave.library",
+          "name": "Library"
         },
         {
           "id": "edgewave.gameAssets",
@@ -478,7 +792,16 @@
     "viewsWelcome": [
       {
         "view": "edgewave.sounds",
-        "contents": "No sound documents yet, in this folder or opened lately.\nCreate a sound, open a sound file, or find a game sound in Game Assets below and open it in EDGEwave.\n[Create a Sound…](command:edgewave.newSound)\n[Open Sound…](command:edgewave.open)"
+        "contents": "The Desk keeps the sounds you are working on, across restarts, until you move them to a project or add them to the Library.\nCreate a sound here, open a sound file, or find a game sound in Game Assets below and open it in EDGEwave: with no project open, it lands here.\n[Create a Sound on the Desk…](command:edgewave.newDeskSound)\n[Open Sound…](command:edgewave.open)"
+      },
+      {
+        "view": "edgewave.project",
+        "contents": "No folder is open. Open a REDcode project to see its mixes and the sounds it puts in the game.\n[Open Folder…](command:edgewave.openFolder)"
+      },
+      {
+        "view": "edgewave.library",
+        "when": "!edgewave.hasLibrary",
+        "contents": "The EDGE Library is your long-term store of sounds, meshes, materials and scenes, in your own folders, shared by every EDGE tool. Projects take from it what one mod needs.\n[Set the Library Folder…](command:edgewave.library.setRoot)\n[What is the Library?](https://edgemodders.ai/wiki/library.html)"
       }
     ]
   },

@@ -11,6 +11,19 @@ How to keep it:
 
 ## Unreleased
 
+**New**
+
+- The **Desk**: EDGEwave's own scratch space for the sounds you are working on, kept across restarts until you move them to a project or add them to the Library. Its **+** makes a sound there; with no project open, Create a Sound and Open in EDGEwave on a game sound land there too, with no question about a folder. Each mix's right-click has **Move to Project…**, **Add to Library…**, **Rename…** and **Take Off the Desk…** ([how](https://edgemodders.github.io/EDGEwave/desk-library.html#the-desk)).
+- The **Library** view: the EDGE Library's folders, shared by every EDGE tool, with the sounds in them. Add a Desk sound to it, then **Add to Project** copies it into any project, noted in the project's `source/library.json`; **Refresh from Library…** in the Project view brings in newer versions; **Edit on the Desk** takes a copy to change ([how](https://edgemodders.github.io/EDGEwave/desk-library.html#the-library), [the Library](https://edgemodders.ai/wiki/library.html)).
+- A **▶** on every mix in the Desk and Project views plays its render at once, with no tab; a mix not rendered yet shows it greyed, **Render it first**. Project sounds and Library sounds have one too.
+- **Copy to the Desk** on a project's mix, or a Recent one: a copy with its files, to change or add to the Library.
+
+**Changed**
+
+- The Sounds view is now the **Desk**, with Recent below the Desk's mixes. The project's mixes and **Project sounds** moved to a new **Project** view, whose **+** is Create a Sound in the Project.
+- **Project sounds** reads the project's own files, so it lists an override of a game sound and a REDnode package's sounds wherever the mix that made them is kept. A click on any of them opens the Hear tab; the hover has ▶ and a button that opens the mix that made it.
+- A copied mix stands alone: moving, adding to the Library or copying a mix takes in the sound files it used from other folders.
+
 ## 0.2.0 (2026-11-07)
 
 **New**

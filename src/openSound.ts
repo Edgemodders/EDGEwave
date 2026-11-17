@@ -3,40 +3,29 @@
 // picks when no project is open):
 //   a game file    base\...\name.wem   ->  base\...\name.edgewave, rendering name.wav beside it
 //   a sound effect                     ->  sfx\<event name or hash>\<sound hash>.edgewave, rendering <sound hash>.wav
+// With no project open, a game sound becomes a mix on the Desk (src/desk.ts), found again the next time.
 // A file on disk gets its document beside it, rendering <name>.wav (<name>.edit.wav for a .wav).
-// Create a Sound (newSound) makes an empty document, by default under source/raw/edgewave/sounds.
+// Create a Sound (newSound) makes an empty document, by default under source/raw/edgewave/sounds; with no
+// project, and from the Desk's +, on the Desk.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { withDialogFolder } from "./dialogFolder";
-import { emptyDoc, Extension, formatDoc, isSoundFile, looksLikeVoice, newDoc, SoundExtensions, type SoundDoc, type Source } from "./doc";
+import { deskMixFor, newOnDesk } from "./desk";
+import { emptyDoc, Extension, formatDoc, isSoundFile, looksLikeVoice, newDoc, sourceKey, SoundExtensions, type SoundDoc, type Source } from "./doc";
 import { redcode, type SoundRef } from "./redcode";
+
+/** Says who made an item, in its history: "EDGEwave <version>". */
+export const toolName = () => `EDGEwave ${String((vscode.extensions.getExtension("edgemodders.edgewave")?.packageJSON as { version?: string } | undefined)?.version ?? "")}`.trim();
 
 export const ViewType = "edgewave.sound";
 
 /** Characters Windows does not allow in a file name. */
 const safe = (s: string) => s.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_");
 
-/** The folder that game sounds' documents go under: the project's source/raw, or one the modder picks. */
-async function soundsRoot(): Promise<string | undefined> {
-  const api = await redcode();
-  const raw = api.project()?.raw;
-  if (raw) return raw;
-  const pick = await vscode.window.showOpenDialog({
-    canSelectFolders: true,
-    canSelectFiles: false,
-    defaultUri: vscode.workspace.workspaceFolders?.[0]?.uri,
-    openLabel: "Keep sound documents here",
-    title: "No REDcode project is open. Where should EDGEwave keep this sound's document?",
-  });
-  return pick?.[0]?.fsPath;
-}
-
-interface Planned {
-  file: string;
-  doc: SoundDoc;
-}
+/** A mix in the project's folders, or, with no project open, one on the Desk under a name. */
+type Planned = { file: string; doc: SoundDoc } | { desk: string; doc: SoundDoc; gamePath?: string };
 
 async function plan(ref: SoundRef): Promise<Planned | undefined> {
   if (ref.soundHash !== undefined) {
@@ -45,18 +34,19 @@ async function plan(ref: SoundRef): Promise<Planned | undefined> {
     const { events } = await api.soundIndex();
     const event = (ref.eventHash !== undefined && events.find((e) => e.hash === ref.eventHash)) || events.find((e) => e.sounds.includes(soundHash));
     const source: Source = { kind: "sfx", soundHash, eventHash: event?.hash ?? ref.eventHash, eventName: event?.name ?? undefined };
-    const root = await soundsRoot();
-    if (!root) return undefined;
+    const root = api.project()?.raw;
+    if (!root) return { desk: `${event?.name ?? "sound"} ${soundHash}`, doc: newDoc(source, `${soundHash}.wav`) };
     const folder = path.join(root, "sfx", safe(event?.name ?? String(event?.hash ?? ref.eventHash ?? "unknown event")));
     return { file: path.join(folder, `${soundHash}${Extension}`), doc: newDoc(source, `${soundHash}.wav`) };
   }
   if (ref.path) {
     const gamePath = ref.path.replace(/\//g, "\\");
-    const root = await soundsRoot();
-    if (!root) return undefined;
+    const root = (await redcode()).project()?.raw;
+    const voice = looksLikeVoice(gamePath);
+    if (!root) return { desk: path.win32.basename(gamePath).replace(/\.[^.]+$/, ""), doc: newDoc({ kind: "game", path: gamePath }, "sound.wav", voice), gamePath };
     const base = path.join(root, ...gamePath.split("\\").filter(Boolean)).replace(/\.[^.\\/]+$/, "");
     const name = path.basename(base);
-    return { file: base + Extension, doc: newDoc({ kind: "game", path: gamePath }, `${name}.wav`, looksLikeVoice(gamePath)) };
+    return { file: base + Extension, doc: newDoc({ kind: "game", path: gamePath }, `${name}.wav`, voice) };
   }
   if (ref.uri) {
     const uri = vscode.Uri.parse(ref.uri);
@@ -78,6 +68,13 @@ export async function openSound(ref: SoundRef): Promise<void> {
   try {
     const p = await plan(ref);
     if (!p) return;
+    if ("desk" in p) {
+      const key = sourceKey(p.doc.tracks[0].source);
+      const item = deskMixFor(key) ?? newOnDesk({ name: p.desk, tool: toolName(), doc: p.doc, from: key, gamePath: p.gamePath, did: "Opened from the game with no project open" });
+      await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(item.doc), ViewType);
+      void vscode.commands.executeCommand("edgewave.refreshSounds");
+      return;
+    }
     if (!fs.existsSync(p.file)) {
       fs.mkdirSync(path.dirname(p.file), { recursive: true });
       fs.writeFileSync(p.file, formatDoc(p.doc));
@@ -96,7 +93,8 @@ export async function openSound(ref: SoundRef): Promise<void> {
 export async function newSound(file?: string): Promise<void> {
   try {
     if (typeof file !== "string") {
-      const raw = (await redcode()).project()?.raw;
+      const raw = (await redcode().catch(() => undefined))?.project()?.raw;
+      if (!raw) return newDeskSound();
       const dir = raw ? path.join(raw, "edgewave", "sounds") : vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       let name = "New sound";
       for (let n = 2; dir && fs.existsSync(path.join(dir, name + Extension)); n++) name = `New sound ${n}`;
@@ -116,6 +114,26 @@ export async function newSound(file?: string): Promise<void> {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, formatDoc(emptyDoc(`${name}.wav`)));
     await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(file), ViewType);
+  } catch (e) {
+    void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+  }
+}
+
+/** edgewave.newDeskSound (the Desk's +): an empty mix on the Desk, under a name the modder gives. */
+export async function newDeskSound(): Promise<void> {
+  try {
+    const name = (
+      await vscode.window.showInputBox({
+        title: "Create a sound on the Desk: its name",
+        prompt: "The Desk keeps it until you move it to a project or add it to the Library",
+        value: "New sound",
+        validateInput: (v) => (v.trim() ? undefined : "A name, please"),
+      })
+    )?.trim();
+    if (!name) return;
+    const item = newOnDesk({ name, tool: toolName() });
+    await vscode.commands.executeCommand("vscode.openWith", vscode.Uri.file(item.doc), ViewType);
+    void vscode.commands.executeCommand("edgewave.refreshSounds");
   } catch (e) {
     void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
   }
