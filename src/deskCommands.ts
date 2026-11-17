@@ -104,6 +104,67 @@ export async function ensureLibraryRoot(ask = true): Promise<string | undefined>
   return setLibraryRoot(folder, { gameDir });
 }
 
+/**
+ * Add to Library's folder picker: the last folder, a new one, the top folder, the modder's folders. For a mix
+ * made from a game file, the shared rules' Use the game path sits in the same list, beside the folders: a row
+ * at the top that turns it on and off (the last choice kept), each folder's line showing where the sound goes.
+ */
+function pickLibraryFolder(root: string, item: SoundItem, context: vscode.ExtensionContext): Promise<{ rel: string; make: boolean; useGamePath: boolean } | undefined> {
+  type It = vscode.QuickPickItem & { rel?: string; make?: boolean; toggle?: boolean };
+  const last = context.globalState.get<string>(FolderState);
+  const folders = libraryFolders(root);
+  const gameFolders = item.asset?.gamePath ? gamePathFolders(item.asset.gamePath).join("/") : undefined;
+  let useGamePath = !!gameFolders && context.globalState.get<boolean>(GamePathState, false);
+  const end = (rel: string) => [rel, useGamePath ? gameFolders : "", `${item.name}.sound.asset`].filter(Boolean).join("/");
+  const build = (): It[] => {
+    const at = (rel: string) => ({ detail: useGamePath ? end(rel) : undefined });
+    return [
+      ...(gameFolders
+        ? [
+            {
+              label: `${useGamePath ? "$(pass-filled)" : "$(circle-large-outline)"} Use the game path`,
+              description: useGamePath ? "on: pick a folder below" : "off",
+              detail: `Under its game path's folders, ${gameFolders}/, so the Library reads like the game's folders. Select to turn it ${useGamePath ? "off" : "on"}`,
+              toggle: true,
+              alwaysShow: true,
+            } as It,
+            { label: "", kind: vscode.QuickPickItemKind.Separator } as It,
+          ]
+        : []),
+      ...(last !== undefined && (last === "" || folders.includes(last)) ? [{ label: `$(history) ${last || "The Library's top folder"}`, description: "last time", rel: last, ...at(last) }] : []),
+      { label: "$(new-folder) A new folder…", make: true, detail: useGamePath ? `<new folder>/${gameFolders}/…` : undefined },
+      { label: "$(root-folder) The Library's top folder", rel: "", ...at("") },
+      ...folders.map((f) => ({ label: `$(folder) ${f}`, rel: f, ...at(f) })),
+    ];
+  };
+  return new Promise((resolve) => {
+    const qp = vscode.window.createQuickPick<It>();
+    qp.title = `Add ${item.title} to the Library: in which folder?`;
+    qp.placeholder = "The folders are yours: pick one, or make one";
+    qp.matchOnDetail = false;
+    qp.items = build();
+    let done = false;
+    qp.onDidAccept(() => {
+      const pick = qp.selectedItems[0];
+      if (!pick) return;
+      if (pick.toggle) {
+        useGamePath = !useGamePath;
+        qp.items = build();
+        qp.activeItems = qp.items.filter((i) => i.toggle);
+        return;
+      }
+      done = true;
+      resolve({ rel: pick.rel ?? "", make: !!pick.make, useGamePath });
+      qp.hide();
+    });
+    qp.onDidHide(() => {
+      if (!done) resolve(undefined);
+      qp.dispose();
+    });
+    qp.show();
+  });
+}
+
 export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk: DeskView; project: ProjectView; library: LibraryView; events: SoundEvents; log: (line: string) => void }): void {
   const { desk, project, library, events, log } = o;
   const refreshAll = () => {
@@ -180,18 +241,10 @@ export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk
     let useGamePath = false;
     const update = linked && fs.existsSync(path.join(root, ...linked.path.split("/")));
     if (!update) {
-      const last = context.globalState.get<string>(FolderState);
-      type It = vscode.QuickPickItem & { rel?: string; make?: boolean };
-      const folders = libraryFolders(root);
-      const items: It[] = [
-        ...(last !== undefined && (last === "" || folders.includes(last)) ? [{ label: `$(history) ${last || "The Library's top folder"}`, description: "last time", rel: last }] : []),
-        { label: "$(new-folder) A new folder…", make: true },
-        { label: "$(root-folder) The Library's top folder", rel: "" },
-        ...folders.map((f) => ({ label: `$(folder) ${f}`, rel: f })),
-      ];
-      const pick = await vscode.window.showQuickPick(items, { title: `Add ${item.title} to the Library: in which folder?`, placeHolder: "The folders are yours: pick one, or make one" });
+      const pick = await pickLibraryFolder(root, item, context);
       if (!pick) return;
       folder = pick.rel;
+      useGamePath = pick.useGamePath;
       if (pick.make) {
         folder = (
           await vscode.window.showInputBox({
@@ -210,18 +263,7 @@ export function registerDeskCommands(context: vscode.ExtensionContext, o: { desk
         folder = safeFolder(folder);
       }
       await context.globalState.update(FolderState, folder);
-      if (item.asset?.gamePath) {
-        const lastGame = context.globalState.get<boolean>(GamePathState, false);
-        const where = gamePathFolders(item.asset.gamePath).join("/");
-        const choices = [
-          { label: `In ${folder || "the top folder"}`, detail: `${folder ? `${folder}/` : ""}${item.name}.sound.asset`, game: false },
-          { label: "Under its game path", detail: `${folder ? `${folder}/` : ""}${where}/${item.name}.sound.asset: the Library reads like the game's folders`, game: true },
-        ].sort((a, b) => Number(b.game === lastGame) - Number(a.game === lastGame));
-        const g = await vscode.window.showQuickPick(choices, { title: `${item.title} comes from ${item.asset.gamePath}: use its game path?` });
-        if (!g) return;
-        useGamePath = g.game;
-        await context.globalState.update(GamePathState, useGamePath);
-      }
+      if (item.asset?.gamePath) await context.globalState.update(GamePathState, useGamePath);
     }
     const gameDir = (await redcode().catch(() => undefined))?.gamePath();
     const r = addToLibrary({ item, root, folder, useGamePath, tool: tool(), gameDir });
