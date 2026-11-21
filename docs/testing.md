@@ -411,7 +411,7 @@ Built 2026-11-20 for EDGEfab's Lip Sync tab ([#13](https://github.com/Edgemodder
 
 | Round | Date | Result |
 |---|---|---|
-| 1 | | To run |
+| 1 | 2026-11-21 | **Partly run**: the owner's first line through EDGEfab's Lip Sync tab, for Panam (step 3, then 2). speakLine spoke it and the audio and timings played on the head, but the voice "very clearly did not sound like Panam". It was the clone the picker made (**Clone panam's voice from their game lines**), from the first minute of English lines the archive search returned: mostly q307 and one Sobchak scene, with the same line twice where the game has a female-V and a male-V copy, picked by search order, not by quality; spoken with `eleven_v3`. Open: better samples, or another way to the voice (with the owner) |
 
 1. **A character's voice.** **EDGEwave: Character Voices…** > **A voice for another character…** > `judy` > **Clone judy's voice from their game lines**, with a REDcode project open (it reads the archives). Expect: the clone consent, if never given; a notification while it clones; then "judy speaks as EDGEwave judy". Character Voices lists `judy`, cloned. Open it again: **Change the voice** and **Forget it**.
 2. **A line from another tool.** In EDGEfab's Lip Sync tab, type a line for Judy. Expect: the first time, EDGEwave asks once whether EDGEfab may spend your credits, with the line's cost; **Allow EDGEfab**; the line plays on the head. The same line again: at once, no question, no cost. Another take: a new one.
