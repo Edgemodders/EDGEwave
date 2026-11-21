@@ -27,7 +27,7 @@ Last updated 2026-10-24.
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap, fixed in the Project view (2026-11-16) |
 | [Speaking a line with timings hand test](#speaking-a-line-with-timings) | By hand, F5, with an ElevenLabs key (spends credits) | #13 | 2026-11-21 | Partly run: steps 2 and 3 pass after a better clone; 1, 4, 5 and 6 to run. The real check of ElevenLabs' timings passed 2026-11-20 by script ([API](api.html#speaking-a-line-with-timings)) |
 | [Desk, Project and Library hand test](#desk-project-and-library) | By hand, F5 | Desk and Library | 2026-11-16 | Pass, first round, steps 1 to 15, with four findings fixed during it |
-| [Shared keys hand test](#shared-keys) | By hand, F5 with REDcode main and REDbridge 0.18.0, an ElevenLabs key | #12 | | Not run |
+| [Shared keys hand test](#shared-keys) | By hand, F5 with REDcode main and REDbridge 0.18.0, an ElevenLabs key | #12 | 2026-11-21 | Pass, first round, steps 1 to 5 |
 
 ## Automated
 
@@ -431,6 +431,7 @@ Your everyday VS Code, with the released EDGEwave 0.2.0 and a REDcode without Ke
 
 | Round | Date | Result |
 |---|---|---|
+| 1 | 2026-11-21 | **Pass**, steps 1 to 5 (the owner): moved, asked, read by the MCP server, changed and cleared, no findings |
 
 1. **Moved.** With the key EDGEwave saved before, and no ElevenLabs key in REDcode's Keys view: start the F5 window. Expect: once, "your ElevenLabs key is now in REDcode's Keys…", with "Claude Code's entry for EDGEwave still holds the key" and **Connect an Assistant…** when it does; the Keys view shows ElevenLabs set. Reload the window: no message.
 2. **Asked.** Open a sound and **Speak Line…**. Expect: REDcode asks "EDGEwave wants your ElevenLabs key." **Allow**: the voices load. Close and open the dialog: no question. The Keys view lists EDGEwave as a reader.
