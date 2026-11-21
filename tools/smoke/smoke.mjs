@@ -65,6 +65,11 @@ const elevenServer = http.createServer((req, res) => {
     if (p === "/v1/voices/add") return json({ voice_id: "clone_smoke", requires_verification: false });
     if (p === "/v1/text-to-voice") return json({ voice_id: "remix_saved" });
     if (p.endsWith("/remix")) return json({ previews: [1, 2].map((i) => ({ generated_voice_id: `gen_${i}`, audio_base_64: pcmTone(0.4, rate, 300 + 100 * i).toString("base64"), media_type: "audio/pcm", duration_secs: 0.4 })), text: "…" });
+    // With timings (Voice Lines and speakLine, #13): the audio as base64 and an even 20 ms per character.
+    if (p.startsWith("/v1/text-to-speech/") && p.endsWith("/with-timestamps")) {
+      const chars = [...JSON.parse(body).text];
+      return json({ audio_base64: pcmTone(0.8, rate, 330).toString("base64"), alignment: { characters: chars, character_start_times_seconds: chars.map((_, i) => i * 0.02), character_end_times_seconds: chars.map((_, i) => i * 0.02 + 0.02) } });
+    }
     const pcm = p === "/v1/sound-generation" ? pcmTone(0.5, rate, 220) : p.startsWith("/v1/text-to-speech/") ? pcmTone(0.8, rate, 330) : p.startsWith("/v1/speech-to-speech/") ? pcmTone(1.0, rate, 440) : null;
     if (!pcm) return json({ detail: "not found" }, 404);
     res.writeHead(200, { "content-type": "application/octet-stream" });
@@ -680,6 +685,29 @@ const vlOk = picked.join() === "v_smoke,v_smoke,v_smoke" && vmeta.includes("2 vo
   && tts.length === 3 && tts.every((b) => b.model_id === "eleven_v3") && tts.some((b) => b.text === "[softly] You... came back.")
   && takeWav?.readUInt32LE(24) === 24000 && closed && JSON.parse(fs.readFileSync(path.join(T, "voiceLines.json"), "utf8")).lines["42"];
 if (!vlOk) finish(false, "Voice Lines did not voice the quest's lines as expected");
+// Each take's timings beside it (#13).
+const takeTimings = jLine && path.join(T, "proj", jLine.female.replace(/\.wav$/, ".timings.json"));
+const tt = takeTimings && fs.existsSync(takeTimings) ? JSON.parse(fs.readFileSync(takeTimings, "utf8")).timings : null;
+log("take timings", JSON.stringify(tt && { chars: tt.characters.join(""), spoken: tt.spoken.indexOf(true) }));
+if (tt?.characters.join("") !== "[softly] You... came back." || tt.spoken.indexOf(true) !== 8) finish(false, "a Voice Lines take has no timings beside it, or they do not mark the tag as not spoken");
+
+// speakLine (#13), from the stub: the one-time question for the calling tool (clicked: Allow Smoke), the line in a
+// voice by id with its delivery as a v3 tag, the same line again from the kept take (free), another take, and a
+// call with no speaker (a reason).
+await command("Smoke: Speak Line");
+let allowed = false;
+for (let i = 0; i < 30 && !allowed; i++) {
+  allowed = await evalIn(bench, `(() => { const b = [...document.querySelectorAll('.monaco-dialog-box .monaco-button')].find((b) => b.textContent.trim() === 'Allow Smoke'); if (!b) return false; b.click(); return true; })()`);
+  if (!allowed) await sleep(300);
+}
+await waitFile(path.join(T, "speakLine.json"), 30);
+const sl = fs.existsSync(path.join(T, "speakLine.json")) ? JSON.parse(fs.readFileSync(path.join(T, "speakLine.json"), "utf8")) : {};
+log("speakLine", JSON.stringify({ allowed, first: sl.first && { ...sl.first, timings: undefined }, again: sl.again?.cached, next: sl.next?.take, none: sl.none, error: sl.error }));
+const slOk = allowed && sl.first?.sent === "[softly] You came back." && sl.first.cached === false && sl.first.take === 1 && sl.first.characters === sl.first.sent.length
+  && sl.first.timings.spoken.indexOf(true) === "[softly]".length && sl.first.wav.startsWith(path.join(T, "home", "lines")) && fs.existsSync(sl.first.timingsFile)
+  && sl.again?.cached === true && sl.again.characters === 0 && sl.again.wav === sl.first.wav && sl.next?.take === 2 && sl.next.cached === false
+  && /Say who speaks/.test(sl.none?.reason ?? "");
+if (!slOk) finish(false, "speakLine did not speak, keep or answer as it should");
 
 // The Project view: Mixes (the open folder) lists 42; the Desk view: Recent (opened lately) lists it too.
 const paneSel = (title) => `[...document.querySelectorAll('.part.sidebar .pane')].find((p) => (p.querySelector('.pane-header .title')?.textContent ?? '').trim().toLowerCase() === ${JSON.stringify(title.toLowerCase())})`;
@@ -894,4 +922,4 @@ const early = peakAt(0.1), late = peakAt(1.5);
 log("render", JSON.stringify({ rate, ch, seconds: n / rate, peakAt0_1: early, peakAt1_5: late }));
 // The mix ends with track 2: 0.25 s + 1.5 s. At 1.5 s only track 2 (through the radio chain) plays.
 const ok = rate === 44100 && ch === 2 && Math.abs(n / rate - 1.75) < 0.001 && early > 5000 && late > 1000 && voiceHidden && voiceShown && fx === 5;
-finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a music cue in the game through a stand-in REDnode, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; the Project and Desk views; the Library view and a Library sound into the project; Create a Sound on the Desk; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");
+finish(ok, ok ? "A1 edits; A2 Add Sound, preset, start, a two-track render; A3 Add to Project, override of track 2, REDmod and silence, a REDnode sound; voice tools against a stand-in ElevenLabs, with Set ElevenLabs API Key offered for a missing and a wrong key; the API: sound events, hearing one, playing one with no tab, a music cue in the game through a stand-in REDnode, a custom sound; Voice Lines for a quest; the lanes' checkboxes and Only This Track; the splitter; moving lanes; timings beside Voice Lines takes and speakLine (#13); the Project and Desk views; the Library view and a Library sound into the project; Create a Sound on the Desk; Create a Sound and sound files dropped on it; a new sound for the project, in Project sounds; Game Assets: listing, hearing, filtering, adding to the open sound, playing a .wem (Ogg) with no tab" : "render or mix checks failed");

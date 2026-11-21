@@ -66,6 +66,19 @@ exports.activate = (context) => {
       const r = await api.voiceLines({ quest: "smoke_quest", lines, archiveDir: "mod/smoke/smoke_quest/vo" });
       fs.writeFileSync(path.join(T, "voiceLines.json"), JSON.stringify(r, null, 2));
     }),
+    // speakLine (#13): a line in a voice by id, then the same again (the kept take, free), then another take.
+    vscode.commands.registerCommand("smoke.speakLine", async () => {
+      const api = await edgewave();
+      const out = {};
+      try {
+        const o = { text: "You came back.", voice: "v_smoke", delivery: "softly", by: "Smoke" };
+        out.first = await api.speakLine(o);
+        out.again = await api.speakLine(o);
+        out.next = await api.speakLine({ ...o, take: "new" });
+        out.none = await api.speakLine({ text: "Hi." });
+      } catch (e) { out.error = e.message; }
+      fs.writeFileSync(path.join(T, "speakLine.json"), JSON.stringify(out, null, 2));
+    }),
     // Create a Sound at a known path (the real command asks with a save dialog).
     vscode.commands.registerCommand("smoke.newSound", () => vscode.commands.executeCommand("edgewave.newSound", path.join(p, "source", "raw", "edgewave", "sounds", "Smoke New.edgewave"))),
   );
