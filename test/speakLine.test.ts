@@ -6,7 +6,9 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ElevenLabsError, type ElevenLabs } from "../src/elevenlabs";
+import * as http from "node:http";
+import type { AddressInfo } from "node:net";
+import { ElevenLabs, ElevenLabsError } from "../src/elevenlabs";
 import { characterKey, characterVoice, readCharacters, setCharacter, speakLine, spokenMask, textToSend, timingsOf } from "../src/speakLine";
 
 test("textToSend: a delivery is a tag in front on v3; other models drop tags and the delivery, and say so", () => {
@@ -90,7 +92,6 @@ test("Character voices: one list by game voice tag; V's two by gender, the femal
 });
 
 test("ElevenLabs.design: a description and a sample text in, previews as WAVs out; no recording is sent", async () => {
-  const http = await import("node:http");
   const seen: { path: string; format: string | null; body: Record<string, unknown>; type?: string }[] = [];
   const s = http.createServer((req, res) => {
     const chunks: Buffer[] = [];
@@ -104,8 +105,7 @@ test("ElevenLabs.design: a description and a sample text in, previews as WAVs ou
   });
   await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
   try {
-    const { ElevenLabs } = await import("../src/elevenlabs");
-    const api = new ElevenLabs("k", `http://127.0.0.1:${(s.address() as import("node:net").AddressInfo).port}`);
+    const api = new ElevenLabs("k", `http://127.0.0.1:${(s.address() as AddressInfo).port}`);
     const previews = await api.design("A woman in her thirties, low and dry.", "Listen, I don't have all night.", 24000);
     assert.deepEqual(previews.map((p) => p.generatedVoiceId), ["g1", "g2", "g3"]);
     assert.equal(Buffer.from(previews[0].wav).toString("ascii", 0, 4), "RIFF");
