@@ -84,6 +84,25 @@ export function keyRefused(e: unknown): boolean {
   return !/quota|credit/i.test(`${e.code ?? ""} ${e.message}`);
 }
 
+/** When each character is spoken, in seconds from the audio's start. */
+export interface Alignment {
+  characters: string[];
+  starts: number[];
+  ends: number[];
+}
+
+/** As ElevenLabs sends it. */
+interface RawAlignment {
+  characters?: string[];
+  character_start_times_seconds?: number[];
+  character_end_times_seconds?: number[];
+}
+
+function alignmentOf(a: RawAlignment | null | undefined): Alignment | undefined {
+  if (!a?.characters?.length) return undefined;
+  return { characters: a.characters, starts: a.character_start_times_seconds ?? [], ends: a.character_end_times_seconds ?? [] };
+}
+
 export class ElevenLabs {
   constructor(private readonly key: string, private readonly base = DefaultBaseUrl) {}
 
@@ -142,6 +161,21 @@ export class ElevenLabs {
     if (o.model) json.model_id = o.model;
     if (o.seed !== undefined) json.seed = o.seed;
     return this.audio(await this.call("POST", `v1/text-to-speech/${encodeURIComponent(voiceId)}`, { json, query: { output_format: pcmFormat(rate) } }));
+  }
+
+  /**
+   * Text spoken in a voice, as raw PCM, with when each character is spoken: ElevenLabs' with-timestamps
+   * endpoint (the same price as speak). alignment is for the text as sent; normalized, when ElevenLabs gives it,
+   * for the text as it read it (numbers spelled out). Times are seconds from the audio's start.
+   */
+  async speakWithTimings(voiceId: string, o: { text: string; model?: string; seed?: number }, rate: number): Promise<{ pcm: Uint8Array; alignment?: Alignment; normalized?: Alignment }> {
+    const json: Record<string, unknown> = { text: o.text };
+    if (o.model) json.model_id = o.model;
+    if (o.seed !== undefined) json.seed = o.seed;
+    const r = await this.call("POST", `v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps`, { json, query: { output_format: pcmFormat(rate) } });
+    const j = (await r.json()) as { audio_base64?: string; alignment?: RawAlignment | null; normalized_alignment?: RawAlignment | null };
+    if (!j.audio_base64) throw new ElevenLabsError(502, "ElevenLabs sent no audio with the timings.");
+    return { pcm: new Uint8Array(Buffer.from(j.audio_base64, "base64")), alignment: alignmentOf(j.alignment), normalized: alignmentOf(j.normalized_alignment) };
   }
 
   /** A recording spoken again in another voice, keeping its words, timing and delivery, as raw PCM. */

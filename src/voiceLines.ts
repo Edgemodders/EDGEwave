@@ -69,6 +69,8 @@ const recordTime = (p: Panel): number | undefined => {
 
 export class VoiceLines {
   private readonly panels = new Map<string, Panel>();
+  /** A speaker's voice was picked: offered to the other tools' character voices (src/speakLineHost.ts). */
+  offer?: (speaker: string, gender: Gender | undefined, id: string, name: string | undefined) => Promise<void>;
 
   constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly tools: VoiceTools) {}
 
@@ -211,6 +213,7 @@ export class VoiceLines {
         if (p.o.voices) delete p.o.voices[m.speaker];
         saveRecord(p.o.projectDir, record);
         if (m.name) await this.context.globalState.update(NamesState, { ...this.names(), [m.id]: m.name });
+        void this.offer?.(m.speaker, m.gender, m.id, m.name);
         return this.push(p);
       }
       case "model":

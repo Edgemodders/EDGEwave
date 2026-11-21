@@ -21,11 +21,15 @@ import { loadRecord } from "./voiceBatch";
 import { VoiceLines } from "./voiceLines";
 import { voicesForRednode } from "./voicePackage/install";
 import { VoiceTools } from "./voiceTools";
+import { LineSpeaker } from "./speakLineHost";
 
 export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   const log = vscode.window.createOutputChannel("EDGEwave");
   const voices = new VoiceTools(context, log);
   const voiceLines = new VoiceLines(context, log, voices);
+  // speakLine for other tools (#13), and the character voices it shares with Voice Lines.
+  const speaker = new LineSpeaker(context, log, voices);
+  voiceLines.offer = (who, gender, id, name) => speaker.offerFromVoiceLines(who, gender, id, name);
   const events = new SoundEvents(context, (l) => log.appendLine(l));
   const version = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
   const desk = new DeskView(context);
@@ -111,7 +115,16 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   registerDeskCommands(context, { desk, project, library, libraryTree, events, log: (l) => log.appendLine(l) });
   installServer(context.extensionPath, (l) => log.appendLine(l));
   context.subscriptions.push(...registerWithEditor(context, version, (l) => log.appendLine(l)));
-  return makeApi(version, voiceLines, events);
+  context.subscriptions.push(
+    vscode.commands.registerCommand("edgewave.characterVoices", async () => {
+      try {
+        await speaker.manage();
+      } catch (e) {
+        void vscode.window.showErrorMessage(`EDGEwave: ${(e as Error).message}`);
+      }
+    }),
+  );
+  return makeApi(version, voiceLines, events, speaker);
 }
 
 /** Voice Lines on a quest voiced before: its lines as voice.json has them (EDGEquest opens it with the story's). */

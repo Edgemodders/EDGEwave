@@ -7,6 +7,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { Extension, formatDoc, newDoc, parseDoc } from "./doc";
 import { ElevenLabs, formatRefused, pcmToWav } from "./elevenlabs";
+import { timingsFileOf, timingsOf, writeTimings, type Timings } from "./speakLine";
 import {
   formatRecord,
   gendersOf,
@@ -76,6 +77,8 @@ export function keepTake(projectDir: string, record: VoiceRecord, line: VoiceLin
     if (fs.existsSync(abs)) {
       const prev = abs.replace(/\.wav$/i, ".previous.wav");
       fs.renameSync(abs, prev);
+      // The take's timings go with it (EDGEwave #13); a stale one is never left beside the new take.
+      moveTimings(abs, prev);
       moved[g] = rel(projectDir, prev);
       keepStudioDoc(dir, name);
     }
@@ -86,6 +89,13 @@ export function keepTake(projectDir: string, record: VoiceRecord, line: VoiceLin
   const p = next.lines[line.id].previous;
   if (p) for (const g of Object.keys(moved) as Gender[]) p[g] = moved[g];
   return next;
+}
+
+/** Moves a take's timings file from beside one WAV to beside another, or removes a stale one at the target. */
+function moveTimings(fromWav: string, toWav: string): void {
+  const from = timingsFileOf(fromWav), to = timingsFileOf(toWav);
+  if (fs.existsSync(from)) fs.renameSync(from, to);
+  else fs.rmSync(to, { force: true });
 }
 
 /**
@@ -133,6 +143,9 @@ export function restorePrevious(projectDir: string, record: VoiceRecord, line: V
     fs.renameSync(a, t);
     fs.renameSync(b, a);
     fs.renameSync(t, b);
+    moveTimings(a, t);
+    moveTimings(b, a);
+    moveTimings(t, b);
     back[g] = now[g];
     now[g] = prev[g];
   }
@@ -184,14 +197,19 @@ export async function voiceBatch(o: BatchOptions): Promise<BatchResult> {
   let characters = 0;
   const voiced: string[] = [];
   const failed: BatchResult["failed"] = [];
-  const say = async (voiceId: string, text: string): Promise<Uint8Array> => {
+  // With ElevenLabs' timings, at the same price, kept beside each take for lip sync (EDGEwave #13).
+  const say = async (voiceId: string, text: string): Promise<{ wav: Uint8Array; timings: Timings }> => {
+    const once = async () => {
+      const r = await o.api.speakWithTimings(voiceId, { text, model }, rate);
+      return { wav: pcmToWav(r.pcm, rate), timings: timingsOf(r.alignment, r.normalized) };
+    };
     try {
-      return pcmToWav(await o.api.speak(voiceId, { text, model }, rate), rate);
+      return await once();
     } catch (e) {
       if (rate <= FallbackRate || !formatRefused(e)) throw e;
       o.log?.(`ElevenLabs refused ${rate} Hz (${(e as Error).message}); using ${FallbackRate} Hz`);
       rate = FallbackRate;
-      return pcmToWav(await o.api.speak(voiceId, { text, model }, rate), rate);
+      return once();
     }
   };
   for (const [i, line] of todo.entries()) {
@@ -200,11 +218,18 @@ export async function voiceBatch(o: BatchOptions): Promise<BatchResult> {
     try {
       const text = spoken(line, model);
       const wavs: Partial<Record<Gender, Uint8Array>> = {};
+      const timings: Partial<Record<Gender, Timings>> = {};
       for (const g of gendersOf(line)) {
-        wavs[g] = await say(voiceFor(voices, line.speaker, g)!, text);
+        const r = await say(voiceFor(voices, line.speaker, g)!, text);
+        wavs[g] = r.wav;
+        timings[g] = r.timings;
         characters += text.length;
       }
       record = keepTake(o.projectDir, record, line, wavs, { model });
+      for (const g of Object.keys(timings) as Gender[]) {
+        const take = record.lines[line.id][g];
+        if (take) writeTimings(path.join(o.projectDir, take), { text: line.text, sent: text, voice: voiceFor(voices, line.speaker, g)!, model, rate, timings: timings[g]! });
+      }
       saveRecord(o.projectDir, record);
       voiced.push(line.id);
       o.log?.(`Voiced ${line.speaker}: ${text}`);

@@ -307,6 +307,11 @@
         "title": "Reveal in Library",
         "category": "EDGEwave",
         "icon": "$(target)"
+      },
+      {
+        "command": "edgewave.characterVoices",
+        "title": "Character Voices…",
+        "category": "EDGEwave"
       }
     ],
     "configuration": {

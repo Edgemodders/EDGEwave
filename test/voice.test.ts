@@ -86,13 +86,18 @@ test("voiceBatch: speaks each take in its voice and model, saves voice.json, fal
     req.on("end", () => {
       const url = new URL(req.url!, "http://x");
       const format = url.searchParams.get("output_format");
-      seen.push({ voice: url.pathname.split("/").pop()!, body: JSON.parse(Buffer.concat(chunks).toString()), format });
+      // /v1/text-to-speech/<voice>/with-timestamps: the audio as base64, with when each character is spoken.
+      const parts = url.pathname.split("/");
+      const body = JSON.parse(Buffer.concat(chunks).toString());
+      seen.push({ voice: parts[parts.indexOf("text-to-speech") + 1], body, format });
       if (format === "pcm_48000") {
         res.statusCode = 403;
         res.setHeader("content-type", "application/json");
         return res.end(JSON.stringify({ detail: { status: "output_format_not_allowed", message: "Your subscription does not allow this output format" } }));
       }
-      res.end(Buffer.alloc(480));
+      const chars = [...body.text];
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ audio_base64: Buffer.alloc(480).toString("base64"), alignment: { characters: chars, character_start_times_seconds: chars.map((_, i) => i * 0.01), character_end_times_seconds: chars.map((_, i) => i * 0.01 + 0.01) } }));
     });
   });
   await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
@@ -118,6 +123,10 @@ test("voiceBatch: speaks each take in its voice and model, saves voice.json, fal
     const wav = fs.readFileSync(path.join(dir, saved.lines[judy.id].female!));
     assert.equal(wav.toString("ascii", 0, 4), "RIFF");
     assert.equal(wav.readUInt32LE(24), 24000);
+    // Each take's timings beside it (EDGEwave #13): the tag is read, not spoken.
+    const t = JSON.parse(fs.readFileSync(path.join(dir, saved.lines[judy.id].female!.replace(/\.wav$/, ".timings.json")), "utf8"));
+    assert.equal(t.timings.characters.join(""), "[softly] You... came back.");
+    assert.deepEqual(t.timings.spoken.slice(0, 10), [false, false, false, false, false, false, false, false, true, true]);
     // Voiced lines are skipped; voices come from voice.json; one line with redo is redone.
     const again = await voiceBatch({ projectDir: dir, quest: "q", lines: [v, judy], api, rate: 24000 });
     assert.deepEqual(again.voiced, []);
@@ -135,7 +144,7 @@ test("voiceBatch: says which line it starts before asking for it, so one line sh
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ew-"));
   try {
     const events: string[] = [];
-    const api = { speak: async () => (events.push("speak"), new Uint8Array(480)) } as unknown as ElevenLabs;
+    const api = { speakWithTimings: async () => (events.push("speak"), { pcm: new Uint8Array(480) }) } as unknown as ElevenLabs;
     await voiceBatch({ projectDir: dir, quest: "q", lines: [judy], voices: { Judy: "jv" }, api, progress: (done, total, line) => events.push(`${done}/${total} ${line.speaker}`) });
     assert.deepEqual(events, ["0/1 Judy", "speak"]);
   } finally {

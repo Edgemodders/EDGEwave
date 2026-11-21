@@ -17,6 +17,9 @@ How to keep it:
 - The **Library** view: the EDGE Library's folders, shared by every EDGE tool, with the sounds in them. Add a Desk sound to it, then **Add to Project** copies it into any project, noted in the project's `source/library.json`; **Refresh from Library…** in the Project view brings in newer versions; **Edit on the Desk** takes a copy to change ([how](https://edgemodders.github.io/EDGEwave/desk-library.html#the-library), [the Library](https://edgemodders.ai/wiki/library.html)).
 - A **▶** on every mix in the Desk and Project views plays its render at once, with no tab; a mix not rendered yet shows it greyed, **Render it first**. Project sounds and Library sounds have one too.
 - **Copy to the Desk** on a project's mix, or a Recent one: a copy with its files, to change or add to the Library.
+- Other tools can have EDGEwave speak one line with ElevenLabs' timings, when each letter is spoken, for lip sync (EDGEfab's Lip Sync tab): `speakLine` in the API and `voice_speak_line` for assistants. It needs no project, keeps each take with its timings, and plays a line spoken before again for free. EDGEwave asks you once before a tool first spends your credits ([#13](https://github.com/Edgemodders/EDGEwave/issues/13), [how](https://edgemodders.github.io/EDGEwave/api.html#speaking-a-line-with-timings)).
+- **EDGEwave: Character Voices…**: one voice per game character (by its voice tag, such as `judy`) for every tool that speaks their lines. Pick one of your ElevenLabs voices, or clone the character's voice from their game lines. Voice Lines offers each speaker's voice to it.
+- Voice Lines keeps each take's timings beside its WAV (`<take>.timings.json`), at no extra cost, so a line voiced now can get lip sync later.
 
 **Changed**
 

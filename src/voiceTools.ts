@@ -188,6 +188,24 @@ export class VoiceTools {
     return id;
   }
 
+  /**
+   * A voice cloned from a WAV (speakLine: a character's game lines), behind the same one-time consent; the clone
+   * made before from the same key is reused.
+   */
+  async cloneWav(o: { key: string; name: string; wav: Uint8Array }): Promise<string> {
+    return this.cloneOf(await this.client(), { track: "", key: o.key, name: o.name, wav: o.wav, offset: 0 });
+  }
+
+  /** The sample rate asked of ElevenLabs: 24 kHz once the plan refused the one set. */
+  rate(): number {
+    return this.context.globalState.get<number>(RateState) ?? this.config().rate;
+  }
+
+  /** The base URL, for clients made elsewhere. */
+  baseUrl(): string {
+    return this.config().base;
+  }
+
   /** Runs f with the line's clone; a clone deleted on the website since is made again, once. */
   private async withClone<T>(api: ElevenLabs, line: Line, f: (voiceId: string) => Promise<T>): Promise<T> {
     const id = await this.cloneOf(api, line);

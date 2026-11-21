@@ -23,6 +23,7 @@ import { DefaultBaseUrl, ElevenLabs } from "../elevenlabs";
 import { indexFile, searchEvents, type EventIndex } from "../events";
 import { checkLines, lineStatus, type Voices } from "../voice";
 import { DefaultModel, loadRecord, saveRecord, voiceBatch } from "../voiceBatch";
+import { characterVoice, speakLine } from "../speakLine";
 
 declare const __VERSION__: string;
 
@@ -210,6 +211,38 @@ server.registerTool(
     try {
       const r = makeCustomSound({ projectDir: project, wav, name, kind });
       return text({ ...r, note: customSoundNote(kind, vscodeSetting("redcode.pack.redmod") === true) });
+    } catch (e) {
+      return failure(e);
+    }
+  },
+);
+
+server.registerTool(
+  "voice_speak_line",
+  {
+    description:
+      "Speaks one line through ElevenLabs, with the modder's key, and gives back the WAV and when each character is spoken (ElevenLabs' alignment, seconds from the WAV's first sample; spoken is false inside an audio tag such as [tired]), for lip sync (EDGEfab). " +
+      "No project needed: the take is kept in EDGEwave's folder (or outDir), its .timings.json beside it, and the same line, voice and model again returns that take, free (cached true), until take is \"new\". " +
+      "Who speaks: character, a game voice tag whose voice EDGEwave's character voices list has (set in VS Code: EDGEwave: Character Voices…), or voice, an ElevenLabs voice id. Spends ElevenLabs credits for a new take: characters says how many.",
+    inputSchema: {
+      text: z.string().min(1).describe("The line's words"),
+      character: z.string().optional().describe("The game's voice tag, such as judy or angelica_whelan; v for V"),
+      gender: z.enum(["female", "male"]).optional().describe("V's female or male voice"),
+      voice: z.string().optional().describe("An ElevenLabs voice id, in place of character"),
+      delivery: z.string().optional().describe('How it is spoken, such as "tired, quiet": an audio tag on eleven_v3, left out on other models'),
+      model: z.string().optional().describe("An ElevenLabs text-to-speech model id; default eleven_v3"),
+      take: z.union([z.number().int().min(1), z.literal("new")]).optional().describe('A take kept before by its number, or "new" for another; absent, the last one kept'),
+      outDir: z.string().optional().describe("Keep the take here, not in EDGEwave's folder"),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+  },
+  async (o) => {
+    try {
+      if (!o.character && !o.voice) throw new Error("Say who speaks: character (a game voice tag) or voice (an ElevenLabs voice id).");
+      const v = o.voice ? { id: o.voice, name: undefined } : characterVoice(o.character!, o.gender);
+      if (!v) throw new Error(`EDGEwave has no voice for ${o.character} yet. In VS Code: EDGEwave: Character Voices… sets one (or the first speakLine for ${o.character} from EDGEfab asks).`);
+      const r = await speakLine({ ...o, speaker: o.character ?? v.name ?? "voice", voiceId: v.id, voiceName: v.name, api: elevenLabs(), rate: Number(vscodeSetting("edgewave.elevenlabs.sampleRate") ?? 48000), log });
+      return text(r);
     } catch (e) {
       return failure(e);
     }

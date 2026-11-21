@@ -11,6 +11,8 @@ import type { CustomSoundResult } from "./customSound";
 import type { PlayResult, SoundEvents } from "./soundEvents";
 import { checkLines, type VoiceLine, type VoiceRecord, type Voices } from "./voice";
 import type { VoiceLines } from "./voiceLines";
+import type { LineSpeaker, SpeakLineRequest } from "./speakLineHost";
+import type { SpokenLine } from "./speakLine";
 
 export interface EDGEwaveApi {
   readonly apiVersion: 1;
@@ -32,6 +34,13 @@ export interface EDGEwaveApi {
   stopSound(): Promise<void>;
   /** A sound made in EDGEwave as a new event a quest can post: a REDmod custom sound, edgewave_<name>. */
   customSound(o: { project?: string; wav: string | Uint8Array; name: string; kind?: "sfx" | "music" }): Promise<(CustomSoundResult & { note: string }) | { reason: string }>;
+  /**
+   * Speaks one line through ElevenLabs with when each character is spoken (EDGEwave #13, EDGEfab's Lip Sync).
+   * No project needed: the take is kept in EDGEwave's folder (or outDir), its timings beside it, and the same
+   * line again is that take, free, until take is "new". The modder's key, a one-time allow per tool (by), and the
+   * character's voice (picked or cloned once) are EDGEwave's; any failure is a reason in plain words.
+   */
+  speakLine(o: SpeakLineRequest): Promise<SpokenLine | { reason: string }>;
 }
 
 /** The project's folder: given, REDcode's open project, or the workspace folder that has source/. */
@@ -44,7 +53,7 @@ async function projectDir(given?: string): Promise<string> {
   throw new Error("EDGEwave: no project. Open the WolvenKit project in REDcode, or pass its folder as project.");
 }
 
-export function makeApi(version: string, voiceLines: VoiceLines, events: SoundEvents): EDGEwaveApi {
+export function makeApi(version: string, voiceLines: VoiceLines, events: SoundEvents, speaker: LineSpeaker): EDGEwaveApi {
   return {
     apiVersion: 1,
     version,
@@ -60,5 +69,6 @@ export function makeApi(version: string, voiceLines: VoiceLines, events: SoundEv
     playEvent: async (o) => events.play(o.name, o.project ?? (await projectDir().catch(() => undefined)), o.show !== false, o.inGame === true),
     stopSound: () => events.stop(),
     customSound: (o) => events.custom(o),
+    speakLine: (o) => speaker.speak(o),
   };
 }
