@@ -23,6 +23,7 @@ How to keep it:
 
 **Changed**
 
+- Your ElevenLabs key is now kept in **REDcode's Keys**, shared by every EDGE tool: set it once there or in EDGEwave, and EDGEwave asks you once whether it may read it. A key EDGEwave kept before moves there by itself, once. Assistants connected with **Connect an Assistant** read it from there too, so their settings no longer hold it: connect again to take it out of an older entry. Needs a REDcode with Keys and REDbridge 0.18.0; with an older REDcode, EDGEwave keeps its own key as before ([#12](https://github.com/Edgemodders/EDGEwave/issues/12)).
 - EDGEwave no longer sends the game's audio to ElevenLabs: Speak Line in a line's voice, Re-Voice and its remix refuse a track that plays a game voice line or sound effect, and say why. Your own recordings and files work as before.
 - The Sounds view is now the **Desk**, with Recent below the Desk's mixes. The project's mixes and **Project sounds** moved to a new **Project** view, whose **+** is Create a Sound in the Project.
 - **Project sounds** reads the project's own files, so it lists an override of a game sound and a REDnode package's sounds wherever the mix that made them is kept. A click on any of them opens the Hear tab; the hover has ▶ and a button that opens the mix that made it.

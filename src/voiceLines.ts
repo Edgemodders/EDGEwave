@@ -129,9 +129,12 @@ export class VoiceLines {
     };
     watcher.onDidChange(changed);
     watcher.onDidCreate(changed);
+    // The ElevenLabs key changed (in REDcode's Keys, by any tool): the page loads the voices again.
+    const keyChanged = this.tools.onDidChangeKey(() => p.send({ type: "keyChanged" }));
     panel.onDidDispose(() => {
       clearTimeout(timer);
       watcher.dispose();
+      keyChanged.dispose();
       this.panels.delete(key);
       if (p.busy) p.busy.cancelled = true;
       const r = loadRecord(p.o.projectDir, p.o.quest);

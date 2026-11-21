@@ -67,6 +67,18 @@ export function voiceToolResult(m: { id: number; ok: boolean; result?: unknown; 
   else p.reject(m.key ? keyError(m.error ?? "No ElevenLabs API key") : new Error(m.error ?? "The request failed"));
 }
 
+/**
+ * The ElevenLabs key was set, replaced or removed elsewhere (REDcode's Keys): the voices and models load again,
+ * and what failed for want of a key tries again (and shows the key buttons again if there is still none).
+ */
+export function keyChanged() {
+  voices = null;
+  models = null;
+  const again = afterKey;
+  afterKey = [];
+  for (const f of again) f();
+}
+
 /** The host's answer to Set ElevenLabs API Key: with a key, the voices and models load again. */
 export function keySet(ok: boolean) {
   if (!ok) return;

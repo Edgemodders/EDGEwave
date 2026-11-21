@@ -1,7 +1,7 @@
 // The voice tools: Generate Sound, Speak Line and Re-Voice, through ElevenLabs (src/elevenlabs.ts).
-// The page holds the forms and sends requests here; the API key stays on this side, in VS Code's
-// secret storage. Each result is a WAV in the document's `<name>.gen` folder and a new track that says
-// how it was made (`made`); Generate Sound's results are takes first, played in the dialog, and become a
+// The page holds the forms and sends requests here; the API key stays on this side: in REDcode's shared key
+// store (REDcode's Keys, EDGEwave #12), or with an older REDcode in VS Code's secret storage. Each result is
+// a WAV in the document's `<name>.gen` folder and a new track that says how it was made (`made`); Generate Sound's results are takes first, played in the dialog, and become a
 // track when the modder adds one. Voices EDGEwave creates (clones of a line, saved remixes) are remembered,
 // reused and can be deleted (EDGEwave: ElevenLabs Voices Made by EDGEwave).
 
@@ -11,6 +11,8 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { formatDoc, newTrack, nextTrackId, parseDoc, type Made } from "./doc";
 import { DefaultBaseUrl, ElevenLabs, ElevenLabsError, formatRefused, keyRefused, pcmToWav, slug, type Voice } from "./elevenlabs";
+import { bridgeExe, keyStore } from "./keysHost";
+import { Caller, claudeHoldsKey, KeysBridge, Service } from "./keyStore";
 
 const KeySecret = "edgewave.elevenlabs.apiKey";
 const ConsentState = "edgewave.elevenlabs.cloneConsent";
@@ -92,15 +94,116 @@ export class VoiceTools {
     };
   }
 
-  /** The API key: from secret storage, or asked for (and kept) when there is none. */
+  /**
+   * Fires when the ElevenLabs key may have changed: set, replaced or removed in REDcode's Keys (by any tool, or
+   * the game), or in EDGEwave's own secret storage with an older REDcode. Pages that showed a key error try again.
+   */
+  private readonly keyChanged = new vscode.EventEmitter<void>();
+  readonly onDidChangeKey = this.keyChanged.event;
+
+  /** Listens for key changes, and moves a key EDGEwave kept itself into REDcode's store. Called once at activation. */
+  async watch(): Promise<vscode.Disposable[]> {
+    const out: vscode.Disposable[] = [
+      this.keyChanged,
+      this.context.secrets.onDidChange((e) => {
+        if (e.key === KeySecret) this.keyChanged.fire();
+      }),
+    ];
+    const keys = await keyStore();
+    if (keys) {
+      out.push(
+        keys.onDidChange((service) => {
+          if (service !== Service) return;
+          this.log.appendLine("ElevenLabs: the key changed in REDcode's Keys");
+          this.keyChanged.fire();
+        }),
+      );
+      void this.moveToStore();
+    }
+    return out;
+  }
+
+  /**
+   * The API key. With REDcode's key store (EDGEwave #12): from the store, which asks the modder once whether
+   * EDGEwave may read it, after moving a key EDGEwave kept itself into the store; with none set, REDcode's
+   * password box, which saves it for every tool. With an older REDcode: from VS Code's secret storage, as before.
+   */
   async key(ask = true): Promise<string | undefined> {
-    const k = await this.context.secrets.get(KeySecret);
-    if (k || !ask) return k;
-    this.asking ??= this.setKey().finally(() => (this.asking = undefined));
+    const keys = await keyStore();
+    if (!keys) {
+      const k = await this.context.secrets.get(KeySecret);
+      if (k || !ask) return k;
+      this.asking ??= this.setKey().finally(() => (this.asking = undefined));
+      return this.asking;
+    }
+    await this.moveToStore();
+    try {
+      const k = await keys.get(Service, Caller);
+      if (k || !ask) return k;
+    } catch (e) {
+      // REDbridge not running (yet) or too old: a key EDGEwave still keeps itself, else the reason.
+      const own = await this.context.secrets.get(KeySecret);
+      if (own) return own;
+      throw new Error(`EDGEwave reads the ElevenLabs key from REDcode's Keys, which cannot be reached: ${(e as Error).message}`);
+    }
+    this.asking ??= keys.ask(Service, Caller).finally(() => (this.asking = undefined));
     return this.asking;
   }
 
+  /** The move, tried once a session; a key read waits for it, so it never finds the store empty mid-move. */
+  private moving?: Promise<void>;
+
+  private moveToStore(): Promise<void> {
+    this.moving ??= this.move();
+    return this.moving;
+  }
+
+  /**
+   * Moves a key EDGEwave kept in VS Code's secret storage (EDGEwave 0.2.0 and before) into REDcode's shared
+   * store, through REDbridge (REDcode's API saves only a key typed in its box), then removes EDGEwave's copy.
+   * When the store already has a key, that one is kept and EDGEwave's copy removed. Says so once. On a failure
+   * EDGEwave's copy stays, is used while the store cannot be reached, and the move is tried again next session.
+   */
+  private async move(): Promise<void> {
+    const own = await this.context.secrets.get(KeySecret);
+    if (!own) return;
+    const exe = bridgeExe();
+    if (!exe) return this.log.appendLine("ElevenLabs: the key in EDGEwave's secret storage stays there: REDbridge.exe was not found");
+    const bridge = new KeysBridge({ exe, dotnetRoot: vscode.workspace.getConfiguration("redcode").get<string>("dotnetRoot") || undefined });
+    try {
+      const info = await bridge.info(Service);
+      const had = info.source === "file" && !info.unreadable;
+      if (!had) await bridge.set(Service, own);
+      await this.context.secrets.delete(KeySecret);
+      this.log.appendLine(had ? "ElevenLabs: REDcode's Keys had a key already; EDGEwave's own copy removed" : "ElevenLabs: the key moved from EDGEwave's secret storage to REDcode's Keys");
+      const claude = claudeHoldsKey();
+      const text = had
+        ? `EDGEwave: REDcode's Keys already has an ElevenLabs key${info.last4 ? ` (ending ${info.last4})` : ""}, shared by every EDGE tool, so EDGEwave uses it and has removed the copy it kept itself.`
+        : "EDGEwave: your ElevenLabs key is now in REDcode's Keys, shared by every EDGE tool, and EDGEwave no longer keeps a copy of its own.";
+      // Not awaited: a key read waiting for the move must not wait for the modder to close this.
+      void vscode.window
+        .showInformationMessage(claude ? `${text} Claude Code's entry for EDGEwave still holds the key; connect again to take it out.` : text, ...(claude ? ["Connect an Assistant…"] : []), "Open REDcode's Keys")
+        .then((pick) => {
+          if (pick === "Connect an Assistant…") void vscode.commands.executeCommand("edgewave.connectAssistant");
+          else if (pick === "Open REDcode's Keys") void vscode.commands.executeCommand("redcode.keys.focus");
+        });
+    } catch (e) {
+      this.log.appendLine(`ElevenLabs: could not move the key to REDcode's Keys, so EDGEwave keeps its own copy for now: ${(e as Error).message}`);
+    } finally {
+      bridge.close();
+    }
+  }
+
   async setKey(): Promise<string | undefined> {
+    const keys = await keyStore();
+    if (keys) {
+      try {
+        return await keys.ask(Service, Caller);
+      } catch (e) {
+        void vscode.window.showErrorMessage(`EDGEwave: REDcode's Keys cannot be reached, so the key cannot be saved: ${(e as Error).message}`);
+        return undefined;
+      }
+    }
     const k = await vscode.window.showInputBox({
       title: "EDGEwave: ElevenLabs API key",
       prompt: "For Generate Sound, Speak Line, Re-Voice and Voice Lines. Kept in VS Code's secret storage, never in settings. Make one at elevenlabs.io > Developers > API Keys, with text to speech, voices, sound effects and voice changer turned on.",
@@ -128,7 +231,16 @@ export class VoiceTools {
 
   async clearKey(): Promise<void> {
     await this.context.secrets.delete(KeySecret);
-    void vscode.window.showInformationMessage("EDGEwave: the ElevenLabs API key is cleared.");
+    if (!(await keyStore())) {
+      void vscode.window.showInformationMessage("EDGEwave: the ElevenLabs API key is cleared.");
+      return;
+    }
+    // The key is every EDGE tool's now: REDcode, its keeper, removes it (Remove Key in its Keys view).
+    const pick = await vscode.window.showInformationMessage(
+      "EDGEwave: your ElevenLabs key is shared by every EDGE tool, in REDcode's Keys. Remove it there: Remove Key on ElevenLabs.",
+      "Open REDcode's Keys",
+    );
+    if (pick) void vscode.commands.executeCommand("redcode.keys.focus");
   }
 
   /** The ElevenLabs client with the modder's key; asks for the key when there is none. */

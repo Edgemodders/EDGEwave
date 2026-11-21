@@ -3,7 +3,8 @@
 // events; make a new event from a sound. Every tool is the twin of a part of the extension: the same code
 // (src/voice*.ts, src/events.ts, src/customSound.ts) and the same files, so the extension and EDGEquest see
 // what the server made. It runs without VS Code: the event list is the one the extension built in EDGEwave's
-// folder; settings come from VS Code's settings file; the ElevenLabs key from ELEVENLABS_API_KEY.
+// folder; settings come from VS Code's settings file; the ElevenLabs key from ELEVENLABS_API_KEY, else from the
+// shared key store (REDcode's Keys) through REDbridge (src/keyStore.ts, EDGEwave #12).
 //
 // voice_lines has no ask-first flag: the owner decided (2026-10-23) that an assistant may voice lines, since
 // the person who asked for the quest is the one in the loop. Each call spends ElevenLabs credits; the result
@@ -24,6 +25,7 @@ import { indexFile, searchEvents, type EventIndex } from "../events";
 import { checkLines, lineStatus, type Voices } from "../voice";
 import { DefaultModel, loadRecord, saveRecord, voiceBatch } from "../voiceBatch";
 import { characterVoice, speakLine } from "../speakLine";
+import { findBridge, installedRedcodeDirs, KeysBridge, McpCaller, Service } from "../keyStore";
 
 declare const __VERSION__: string;
 
@@ -45,10 +47,32 @@ function vscodeSetting(key: string): string | number | boolean | undefined {
   return typeof v === "string" ? set(v) : v;
 }
 
-function elevenLabs(): ElevenLabs {
-  const key = set(process.env.ELEVENLABS_API_KEY);
-  if (!key) throw new Error("No ElevenLabs API key. In VS Code: EDGEwave: Connect an Assistant (MCP) and include the key, or set ELEVENLABS_API_KEY for this server.");
-  return new ElevenLabs(key, set(process.env.ELEVENLABS_BASE_URL) ?? String(vscodeSetting("edgewave.elevenlabs.baseUrl") ?? DefaultBaseUrl));
+/** REDbridge for the key store, started on the first call that needs the key and kept while the server runs. */
+let keysBridge: KeysBridge | undefined;
+
+/**
+ * The ElevenLabs key: ELEVENLABS_API_KEY when it is set, else the shared key store (REDcode's Keys) through
+ * REDbridge, read at each call so a key changed or removed in REDcode's Keys view counts at once (EDGEwave #12).
+ */
+async function apiKey(): Promise<string> {
+  const env = set(process.env.ELEVENLABS_API_KEY);
+  if (env) return env;
+  if (!keysBridge) {
+    const exe = set(process.env.EDGEWAVE_REDBRIDGE) ?? findBridge({ configured: set(String(vscodeSetting("redcode.bridgePath") ?? "")), redcodeDirs: installedRedcodeDirs(), pathEnv: process.env.PATH });
+    if (!exe) throw new Error("No ElevenLabs API key: EDGEwave reads it from REDcode's Keys, through REDbridge, and REDbridge.exe is not installed (in VS Code: REDcode: Install REDbridge). Or set ELEVENLABS_API_KEY for this server.");
+    keysBridge = new KeysBridge({ exe, dotnetRoot: set(String(vscodeSetting("redcode.dotnetRoot") ?? "")) });
+  }
+  const r = await keysBridge.get(Service, McpCaller);
+  if (r.key) return r.key;
+  throw new Error(
+    r.unreadable
+      ? "The ElevenLabs key in REDcode's Keys was saved by another Windows user, so it cannot be read here. Set it again in VS Code: REDcode's Keys view, Set Key."
+      : "No ElevenLabs API key is set. In VS Code: REDcode's Keys view, Set Key on ElevenLabs (every EDGE tool shares it), or EDGEwave: Set ElevenLabs API Key.",
+  );
+}
+
+async function elevenLabs(): Promise<ElevenLabs> {
+  return new ElevenLabs(await apiKey(), set(process.env.ELEVENLABS_BASE_URL) ?? String(vscodeSetting("edgewave.elevenlabs.baseUrl") ?? DefaultBaseUrl));
 }
 
 function events(): EventIndex {
@@ -107,7 +131,7 @@ server.registerTool(
         redo,
         model: model ?? set(String(vscodeSetting("edgewave.voiceLines.model") ?? "")) ?? DefaultModel,
         rate: Number(vscodeSetting("edgewave.elevenlabs.sampleRate") ?? 48000),
-        api: elevenLabs(),
+        api: await elevenLabs(),
         log,
       });
       if (archiveDir && r.record.archiveDir !== archiveDir) saveRecord(project, { ...loadRecord(project, quest), archiveDir });
@@ -157,7 +181,7 @@ server.registerTool(
   },
   async ({ search, limit }) => {
     try {
-      const list = await elevenLabs().voices(search);
+      const list = await (await elevenLabs()).voices(search);
       return text({ total: list.length, voices: list.slice(0, limit) });
     } catch (e) {
       return failure(e);
@@ -241,13 +265,20 @@ server.registerTool(
       if (!o.character && !o.voice) throw new Error("Say who speaks: character (a game voice tag) or voice (an ElevenLabs voice id).");
       const v = o.voice ? { id: o.voice, name: undefined } : characterVoice(o.character!, o.gender);
       if (!v) throw new Error(`EDGEwave has no voice for ${o.character} yet. In VS Code: EDGEwave: Character Voices… sets one (or the first speakLine for ${o.character} from EDGEfab asks).`);
-      const r = await speakLine({ ...o, speaker: o.character ?? v.name ?? "voice", voiceId: v.id, voiceName: v.name, api: elevenLabs(), rate: Number(vscodeSetting("edgewave.elevenlabs.sampleRate") ?? 48000), log });
+      const r = await speakLine({ ...o, speaker: o.character ?? v.name ?? "voice", voiceId: v.id, voiceName: v.name, api: await elevenLabs(), rate: Number(vscodeSetting("edgewave.elevenlabs.sampleRate") ?? 48000), log });
       return text(r);
     } catch (e) {
       return failure(e);
     }
   },
 );
+
+// When the client goes, REDbridge goes too: its pipes would keep this process alive.
+process.stdin.on("close", () => {
+  keysBridge?.close();
+  process.exit(0);
+});
+process.on("exit", () => keysBridge?.close());
 
 server.connect(new StdioServerTransport()).then(
   () => log(`EDGEwave MCP ${__VERSION__} ready`),

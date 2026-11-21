@@ -1,14 +1,20 @@
 // EDGEwave's MCP server for assistants ships inside the extension (dist/mcp/edgewave-mcp.cjs, from
 // src/mcp/server.ts), as EDGEmat's does. On start the extension copies it to a fixed path in EDGEwave's own
 // folder, so a Claude Code registration survives updates. It registers the server with VS Code's own MCP
-// support where the editor has it (1.101 and later), with the ElevenLabs key from secret storage. "Connect an
-// Assistant (MCP)..." registers it with Claude Code, or copies the command or a JSON entry for other clients.
+// support where the editor has it (1.101 and later). "Connect an Assistant (MCP)..." registers it with Claude
+// Code, or copies the command or a JSON entry for other clients.
+//
+// The ElevenLabs key (EDGEwave #12): with REDcode's shared key store, the server reads it there itself, through
+// REDbridge (src/keyStore.ts), so no client holds it; VS Code's own registration passes only where REDbridge is.
+// With an older REDcode, the key from EDGEwave's secret storage goes in the server's environment, as before.
 
 import { exec, execFile } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { edgewaveHome } from "./events";
+import { bridgeExe, keyStore } from "./keysHost";
+import { claudeHoldsKey } from "./keyStore";
 
 type Log = (line: string) => void;
 
@@ -33,9 +39,17 @@ export function installServer(extensionPath: string, log: Log): void {
   }
 }
 
+/** The key for the server's environment: none with REDcode's key store (the server reads it there), else EDGEwave's own. */
 async function keyEnv(context: vscode.ExtensionContext): Promise<Record<string, string>> {
+  if (await keyStore()) return {};
   const k = await context.secrets.get(KeySecret);
   return k ? { ELEVENLABS_API_KEY: k } : {};
+}
+
+/** For VS Code's own registration: where REDbridge is, so the server finds it even with redcode.bridgePath unset. */
+function bridgeEnv(): Record<string, string> {
+  const exe = bridgeExe();
+  return exe ? { EDGEWAVE_REDBRIDGE: exe } : {};
 }
 
 interface McpApi {
@@ -59,7 +73,7 @@ export function registerWithEditor(context: vscode.ExtensionContext, version: st
       changed,
       api.lm.registerMcpServerDefinitionProvider!("edgewave.mcp", {
         onDidChangeMcpServerDefinitions: changed.event,
-        provideMcpServerDefinitions: async () => [new api.Def("EDGEwave", process.execPath, [serverFile()], { ELECTRON_RUN_AS_NODE: "1", ...(await keyEnv(context)) }, version)],
+        provideMcpServerDefinitions: async () => [new api.Def("EDGEwave", process.execPath, [serverFile()], { ELECTRON_RUN_AS_NODE: "1", ...bridgeEnv(), ...(await keyEnv(context)) }, version)],
       }),
       context.secrets.onDidChange((e) => {
         if (e.key === KeySecret) changed.fire();
@@ -93,10 +107,15 @@ export async function connectAssistant(context: vscode.ExtensionContext, log: Lo
     return;
   }
   const run = await runner();
+  const store = !!(await keyStore());
+  // An entry EDGEwave 0.2.0 made may hold the key; connecting again replaces it with one that does not.
+  const holds = store && claudeHoldsKey();
   const inEditor = editorMcp() ? "Agents inside this editor already see EDGEwave's tools." : "This editor has no MCP support of its own (VS Code 1.101 or later has), so connect an assistant here.";
   const picked = await vscode.window.showQuickPick(
     [
-      { label: "$(plug) Connect Claude Code", description: "claude mcp add edgewave ...", detail: "Registers EDGEwave for every Claude Code session, replacing an older registration. Then start a new Claude Code session.", action: "claude" as const },
+      { label: "$(plug) Connect Claude Code", description: "claude mcp add edgewave ...", detail: holds
+          ? "Replaces Claude Code's entry for EDGEwave, which holds your ElevenLabs key, with one that reads it from REDcode's Keys. Then start a new Claude Code session."
+          : "Registers EDGEwave for every Claude Code session, replacing an older registration. Then start a new Claude Code session.", action: "claude" as const },
       { label: "$(terminal) Copy the Claude Code command", description: "to run it yourself", detail: "The same registration, as one line to paste in a terminal.", action: "copy" as const },
       { label: "$(json) Copy a JSON entry", description: "for other MCP clients", detail: "The server entry for a client's MCP settings file.", action: "json" as const },
       { label: "$(file) Reveal the server file", description: file, detail: "Any MCP client can run it with Node 20 or later.", action: "reveal" as const },
@@ -109,10 +128,11 @@ export async function connectAssistant(context: vscode.ExtensionContext, log: Lo
     return;
   }
 
-  // The ElevenLabs key, only when asked: the client keeps it in its own settings file, in plain text.
+  // With REDcode's key store the server reads the key there, so no client holds it. With an older REDcode, the
+  // key only when asked: the client keeps it in its own settings file, in plain text.
   let env = { ...run.env };
   const keys = await keyEnv(context);
-  if (keys.ELEVENLABS_API_KEY && picked.action !== "copy") {
+  if (!store && keys.ELEVENLABS_API_KEY && picked.action !== "copy") {
     const give = await vscode.window.showQuickPick(
       [
         { label: "Yes, include my ElevenLabs key", detail: "So the assistant can voice lines (voice_lines) and list voices. The client stores the key in its own settings file, in plain text. Voicing spends your credits.", give: true },
@@ -128,13 +148,13 @@ export async function connectAssistant(context: vscode.ExtensionContext, log: Lo
 
   if (picked.action === "copy") {
     await vscode.env.clipboard.writeText(masked);
-    void vscode.window.showInformationMessage(keys.ELEVENLABS_API_KEY ? "Copied. Put your ElevenLabs key in place of <key>, or leave out that -e, then paste it in a terminal." : "Copied. Paste it in a terminal, then start a new Claude Code session.");
+    void vscode.window.showInformationMessage(!store && keys.ELEVENLABS_API_KEY ? "Copied. Put your ElevenLabs key in place of <key>, or leave out that -e, then paste it in a terminal." : "Copied. Paste it in a terminal, then start a new Claude Code session.");
     log(`MCP: ${masked}`);
     return;
   }
   if (picked.action === "json") {
     await vscode.env.clipboard.writeText(JSON.stringify({ edgewave: { command: run.command, args: [file], ...(Object.keys(env).length ? { env } : {}) } }, null, 2));
-    void vscode.window.showInformationMessage("Copied the JSON entry for EDGEwave's server.");
+    void vscode.window.showInformationMessage(store ? "Copied the JSON entry for EDGEwave's server. It reads your ElevenLabs key from REDcode's Keys, through REDbridge." : "Copied the JSON entry for EDGEwave's server.");
     return;
   }
 
@@ -144,7 +164,7 @@ export async function connectAssistant(context: vscode.ExtensionContext, log: Lo
   const added = await shell(command(Object.entries(env).map(([k, v]) => `-e ${k}=${v}`)));
   if (added.ok) {
     log(`MCP: ${added.out}`);
-    void vscode.window.showInformationMessage("EDGEwave is connected to Claude Code. Start a new Claude Code session and ask it to find a sound event, or to voice a quest's lines.");
+    void vscode.window.showInformationMessage(`EDGEwave is connected to Claude Code${store ? ", reading your ElevenLabs key from REDcode's Keys" : ""}. Start a new Claude Code session and ask it to find a sound event, or to voice a quest's lines.`);
     return;
   }
   log(`MCP: claude mcp add failed: ${added.out}`);

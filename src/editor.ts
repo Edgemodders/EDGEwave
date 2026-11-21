@@ -189,9 +189,12 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
     const saved = vscode.workspace.onDidSaveTextDocument((d) => {
       if (d.uri.toString() === document.uri.toString()) void sendDoc();
     });
+    // The ElevenLabs key changed (in REDcode's Keys, by any tool): a voice tool that failed for want of it tries again.
+    const keyChanged = this.voices.onDidChangeKey(() => post({ type: "keyChanged" }));
     panel.onDidDispose(() => {
       changed.dispose();
       saved.dispose();
+      keyChanged.dispose();
     });
 
     webview.onDidReceiveMessage(async (m: FromPage) => {

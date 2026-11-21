@@ -78,7 +78,8 @@ window.addEventListener("message", (e) => {
     // A missing or refused ElevenLabs key: the buttons to set one (webview/keyFix.ts).
     box.replaceChildren(String(m.message), ...(m.key ? [keyFix(send)] : []));
     box.hidden = false;
-  } else if (m.type === "keySet" && m.ok) {
+  } else if ((m.type === "keySet" && m.ok) || m.type === "keyChanged") {
+    // Set here, or changed in REDcode's Keys: the voices load again (and show the key buttons if there is none).
     $("error").hidden = true;
     if (!voiceList) send({ type: "voices" });
   }

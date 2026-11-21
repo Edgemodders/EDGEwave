@@ -55,6 +55,19 @@ export interface GameFileInfo {
   archive: string;
 }
 
+/**
+ * The AI service keys every EDGE tool shares (REDcode issue #33, its `docs/api.md`, Keys). Since REDcode 0.10.16
+ * (on its main until EDGEwave's pilot, EDGEwave #12, has run); an older REDcode has no keys. Needs REDbridge 0.18.0.
+ */
+export interface KeysApi {
+  /** The key, or undefined when none is set, it cannot be read, or the modder said no; asks the modder the first time a caller reads a service. Throws when REDbridge is not running or is too old. */
+  get(service: string, caller: string): Promise<string | undefined>;
+  /** Asks for the key in a password box and saves it for every tool; undefined when the modder cancels. */
+  ask(service: string, caller: string): Promise<string | undefined>;
+  /** A service's key was set, replaced or removed, here or by another tool. */
+  readonly onDidChange: vscode.Event<string>;
+}
+
 /** The part of REDcode's REDbridge client EDGEwave uses: its methods mirror REDbridge's JSON-RPC methods. */
 export interface BridgeClient {
   /** cr2w.toJson: a game file as WolvenKit JSON, written to outFile. */
@@ -77,6 +90,8 @@ export interface REDcodeApi {
   sound(ref: SoundRef): Promise<SoundAudio>;
   importFile(file: string): Promise<{ ok: boolean; written: string[] }>;
   pack(): Promise<{ packedDir: string; archive?: string; archiveFiles: number }>;
+  /** The shared key store; absent before REDcode 0.10.16. */
+  readonly keys?: KeysApi;
 }
 
 /** REDcode's API, activating REDcode if needed. Throws with a message for the user when it is missing or too old. */
