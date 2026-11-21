@@ -18,11 +18,12 @@ How to keep it:
 - A **▶** on every mix in the Desk and Project views plays its render at once, with no tab; a mix not rendered yet shows it greyed, **Render it first**. Project sounds and Library sounds have one too.
 - **Copy to the Desk** on a project's mix, or a Recent one: a copy with its files, to change or add to the Library.
 - Other tools can have EDGEwave speak one line with ElevenLabs' timings, when each letter is spoken, for lip sync (EDGEfab's Lip Sync tab): `speakLine` in the API and `voice_speak_line` for assistants. It needs no project, keeps each take with its timings, and plays a line spoken before again for free. EDGEwave asks you once before a tool first spends your credits ([#13](https://github.com/Edgemodders/EDGEwave/issues/13), [how](https://edgemodders.github.io/EDGEwave/api.html#speaking-a-line-with-timings)).
-- **EDGEwave: Character Voices…**: one voice per game character (by its voice tag, such as `judy`) for every tool that speaks their lines. Pick one of your ElevenLabs voices, or clone the character's voice from their game lines. Voice Lines offers each speaker's voice to it.
+- **EDGEwave: Character Voices…**: one voice per game character (by its voice tag, such as `judy`) for every tool that speaks their lines. Pick one of your ElevenLabs voices, or **design a voice from a description** of the character: ElevenLabs makes a few voices to hear, and you keep one. Voice Lines offers each speaker's voice to it.
 - Voice Lines keeps each take's timings beside its WAV (`<take>.timings.json`), at no extra cost, so a line voiced now can get lip sync later.
 
 **Changed**
 
+- EDGEwave no longer sends the game's audio to ElevenLabs: Speak Line in a line's voice, Re-Voice and its remix refuse a track that plays a game voice line or sound effect, and say why. Your own recordings and files work as before.
 - The Sounds view is now the **Desk**, with Recent below the Desk's mixes. The project's mixes and **Project sounds** moved to a new **Project** view, whose **+** is Create a Sound in the Project.
 - **Project sounds** reads the project's own files, so it lists an override of a game sound and a REDnode package's sounds wherever the mix that made them is kept. A click on any of them opens the Hear tab; the hover has ▶ and a button that opens the mix that made it.
 - A copied mix stands alone: moving, adding to the Library or copying a mix takes in the sound files it used from other folders.

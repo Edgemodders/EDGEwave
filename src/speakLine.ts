@@ -84,8 +84,13 @@ interface TakeFile {
 export interface CharacterVoice {
   id: string;
   name?: string;
-  /** How it was chosen: picked from the account's voices, or cloned from the character's game lines. */
-  how?: "picked" | "cloned" | "voiceLines";
+  /**
+   * How it was chosen: picked from the account's voices, designed from a description, or taken from Voice Lines.
+   * "cloned" (from the character's game lines) was offered on 2026-11-20 and 21 only.
+   */
+  how?: "picked" | "designed" | "cloned" | "voiceLines";
+  /** For a designed voice: the description it was made from. */
+  description?: string;
   set?: string;
 }
 
@@ -227,51 +232,4 @@ export const timingsFileOf = (wav: string) => wav.replace(/\.wav$/i, "") + ".tim
 /** Writes timings beside a WAV (Voice Lines' takes). */
 export function writeTimings(wav: string, o: { text: string; sent: string; voice: string; model: string; rate: number; timings: Timings }): void {
   fs.writeFileSync(timingsFileOf(wav), JSON.stringify({ edgewave: "line", version: 1, text: o.text, sent: o.sent, voice: { id: o.voice }, model: o.model, made: new Date().toISOString(), rate: o.rate, timings: o.timings }, null, 1) + "\n");
-}
-
-// ---- a character's clone samples ----------------------------------------------------------------------------
-
-/** The sample a clone is made from: what ElevenLabs asks of an instant clone (clean, varied, one to two minutes). */
-export const CloneSample = { minSeconds: 3, maxSeconds: 9, totalSeconds: 120, maxLines: 18 };
-
-/**
- * A character's voice lines in the order to try them for a clone: one language (English when there is any),
- * no combat or vehicle barks (vs_, vset), one copy of a line the game has for both female and male V, files of a
- * line's size (3 to 9 seconds, from the size; the decoded length is checked after), and taken in turn from each
- * quest or scene so the voice is heard in many moods. Pure: names and sizes in, names out.
- */
-export function cloneCandidates(files: { name: string; size: number }[], tag: string, o: { minBytes?: number; maxBytes?: number } = {}): string[] {
-  const t = tagOf(tag);
-  const sep = String.fromCharCode(92);
-  const base = (n: string) => n.split(sep).pop()!.toLowerCase();
-  const lang = (n: string) => n.toLowerCase().split(sep + "localization" + sep)[1]?.split(sep)[0] ?? "";
-  const mine = files.filter((f) => base(f.name).startsWith(`${t}_`) && base(f.name).endsWith(".wem") && inVoFolder(f.name));
-  const langs = new Set(mine.map((f) => lang(f.name)));
-  const pick = langs.has("en-us") ? "en-us" : [...langs].sort()[0];
-  const minBytes = o.minBytes ?? 28_000, maxBytes = o.maxBytes ?? 110_000;
-  const seen = new Set<string>();
-  const groups = new Map<string, { name: string; size: number }[]>();
-  for (const f of mine) {
-    const b = base(f.name);
-    if (lang(f.name) !== pick || /_vs_|vset/.test(b) || f.size < minBytes || f.size > maxBytes) continue;
-    const id = /_[fm]_([0-9a-f]{16})/.exec(b)?.[1] ?? b;
-    if (seen.has(id)) continue;
-    seen.add(id);
-    const group = b.slice(t.length + 1).replace(/_[fm]_[0-9a-f]{16}.*$/, "");
-    groups.set(group, [...(groups.get(group) ?? []), f]);
-  }
-  // Within a group the middle sizes first (whole sentences, not the longest speeches); then one from each in turn.
-  const lists = [...groups.values()].map((g) => {
-    const mid = (minBytes + maxBytes) / 2;
-    return [...g].sort((a, b) => Math.abs(a.size - mid) - Math.abs(b.size - mid));
-  });
-  const out: string[] = [];
-  for (let i = 0; lists.some((l) => l.length > i); i++) for (const l of lists) if (l[i]) out.push(l[i].name);
-  return out;
-}
-
-/** In a vo folder (vo, not vo_holocall or vo_helmet: those carry a phone's or a helmet's sound). */
-function inVoFolder(name: string): boolean {
-  const parts = name.toLowerCase().split(String.fromCharCode(92));
-  return parts.at(-2) === "vo";
 }

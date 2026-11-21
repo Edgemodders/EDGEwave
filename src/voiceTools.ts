@@ -59,6 +59,17 @@ function bytes(x: unknown): Uint8Array {
   throw new Error("The page sent no audio");
 }
 
+/**
+ * The game's audio never goes to ElevenLabs (the owner, 2026-11-21): a line whose track plays a game file or a
+ * sound effect cannot be cloned, remixed or re-voiced. A sound file of the modder's own (a recording, a take
+ * ElevenLabs made) can. A file exported from the game is not told apart: its name is the only sign.
+ */
+function noGameAudio(line: Line): void {
+  if (/^(game|sfx):/.test(line.key)) {
+    throw new Error(`${line.name} is the game's own audio, and EDGEwave does not send the game's audio to ElevenLabs. Use your own recording or a sound file, or speak the words in one of your voices (Speak Line with a voice from the list).`);
+  }
+}
+
 /** How many of Generate Sound's takes are kept for Add; older ones are dropped. */
 const MaxTakes = 20;
 
@@ -188,12 +199,9 @@ export class VoiceTools {
     return id;
   }
 
-  /**
-   * A voice cloned from a WAV (speakLine: a character's game lines), behind the same one-time consent; the clone
-   * made before from the same key is reused.
-   */
-  async cloneWav(o: { key: string; name: string; wav: Uint8Array }): Promise<string> {
-    return this.cloneOf(await this.client(), { track: "", key: o.key, name: o.name, wav: o.wav, offset: 0 });
+  /** A voice designed from a description (speakLine's picker), remembered with the voices EDGEwave made. */
+  async rememberDesigned(id: string, name: string): Promise<void> {
+    await this.remember({ id, name, kind: "remix", made: new Date().toISOString() });
   }
 
   /** The sample rate asked of ElevenLabs: 24 kHz once the plan refused the one set. */
@@ -260,6 +268,7 @@ export class VoiceTools {
           let spoken: { result: Uint8Array; rate: number };
           if (r.line) {
             const line = r.line;
+            noGameAudio(line);
             spoken = await this.withClone(api, line, (id) => {
               voice = { id, name: `the voice of ${line.name}` };
               return say(id);
@@ -277,12 +286,14 @@ export class VoiceTools {
         });
       case "remix":
         return this.progress("Remixing the voice", async () => {
+          noGameAudio(r.line);
           const api = await this.client();
           const { result } = await this.withClone(api, r.line, (id) => this.atRate((rate) => api.remix(id, r.description, rate)));
           return result.map((p) => ({ id: p.generatedVoiceId, wav: p.wav, seconds: p.seconds }));
         });
       case "revoice":
         return this.progress("Re-voicing the line", async () => {
+          noGameAudio(r.line);
           const api = await this.client();
           let voice: { id: string; name?: string };
           if (r.generated) {

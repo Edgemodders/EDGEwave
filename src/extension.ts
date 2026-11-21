@@ -27,10 +27,10 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   const log = vscode.window.createOutputChannel("EDGEwave");
   const voices = new VoiceTools(context, log);
   const voiceLines = new VoiceLines(context, log, voices);
-  // speakLine for other tools (#13), and the character voices it shares with Voice Lines.
-  const speaker = new LineSpeaker(context, log, voices);
-  voiceLines.offer = (who, gender, id, name) => speaker.offerFromVoiceLines(who, gender, id, name);
   const events = new SoundEvents(context, (l) => log.appendLine(l));
+  // speakLine for other tools (#13), and the character voices it shares with Voice Lines.
+  const speaker = new LineSpeaker(context, log, voices, events);
+  voiceLines.offer = (who, gender, id, name) => speaker.offerFromVoiceLines(who, gender, id, name);
   const version = String((context.extension.packageJSON as { version?: string }).version ?? "0.0.0");
   const desk = new DeskView(context);
   // Mixes outside the open folder that may have put a sound in the project: the Desk's and Recent's.

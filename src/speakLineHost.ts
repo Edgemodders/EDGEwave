@@ -2,30 +2,29 @@
 // EDGEwave's own rules hold when another tool calls (agreed with the owner, 2026-11-20):
 //   - the key is the modder's, in EDGEwave's secret storage, asked for when there is none;
 //   - before a tool first spends credits, the modder is asked once whether it may (remembered per tool);
-//   - a character with no voice yet gets EDGEwave's voice picker: one of the account's voices, or a clone of the
-//     character's voice from their game lines, behind the one-time clone consent. The choice goes in the one list
+//   - a character with no voice yet gets EDGEwave's voice picker: one of the account's voices, or a voice designed
+//     from a description of the character (no game audio goes to ElevenLabs: the owner, 2026-11-21). The choice goes in the one list
 //     of character voices (characters.json), which Voice Lines offers to fill too.
 // Every answer is a take or a reason in plain words, never an exception.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { decodeWav, encodeWav } from "./audio/wav";
-import { oggToWav } from "./audio/ogg";
-import { to48k } from "./customSound";
 import { keyRefused } from "./elevenlabs";
 import { redcode } from "./redcode";
-import { createHash } from "node:crypto";
-import { characterKey, characterVoice, cloneCandidates, CloneSample, readCharacters, setCharacter, speakLine, tagOf, type CharacterVoice, type LineRequest, type SpokenLine } from "./speakLine";
+import { characterKey, characterVoice, linesDir, readCharacters, setCharacter, speakLine, tagOf, type CharacterVoice, type LineRequest, type SpokenLine } from "./speakLine";
+import type { SoundEvents } from "./soundEvents";
 import { loadRecord } from "./voiceBatch";
 import { VoiceTools } from "./voiceTools";
 
 const AllowedState = "edgewave.speakLine.allowed";
+/** What a designed voice's previews say: ElevenLabs asks for 100 to 1,000 characters. */
+const SampleText = "Listen, I don't have all night. You want my help, you tell me the truth, all of it. Then we'll see what we can do about it.";
 
 export type SpeakLineRequest = LineRequest & { project?: string; by?: string };
 
 export class LineSpeaker {
-  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly tools: VoiceTools) {}
+  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly tools: VoiceTools, private readonly events: SoundEvents) {}
 
   async speak(o: SpeakLineRequest): Promise<SpokenLine | { reason: string }> {
     try {
@@ -99,13 +98,16 @@ export class LineSpeaker {
     return undefined;
   }
 
-  /** EDGEwave's voice picker for a character: a clone from their game lines, or one of the account's voices. */
+  /**
+   * EDGEwave's voice picker for a character: a voice designed from a description, or one of the account's voices.
+   * No game audio is sent to ElevenLabs (the owner, 2026-11-21): there is no clone from game lines.
+   */
   async pick(character: string, gender?: "female" | "male"): Promise<CharacterVoice | undefined> {
-    type It = vscode.QuickPickItem & { clone?: boolean; v?: { id: string; name: string } };
+    type It = vscode.QuickPickItem & { design?: boolean; v?: { id: string; name: string } };
     const who = gender ? `${character} (${gender})` : character;
     const items = (async (): Promise<It[]> => {
       const head: It[] = [
-        { label: `$(person-add) Clone ${who}'s voice from their game lines`, detail: "An instant clone in your ElevenLabs account, from about two minutes of their clean voice lines across quests. You confirm you have the right to clone it.", clone: true, alwaysShow: true },
+        { label: `$(sparkle) Design a voice for ${who} from a description…`, detail: "Describe them (age, accent, how they sound); ElevenLabs makes new voices to hear, and you keep one. Nothing of the game's is sent.", design: true, alwaysShow: true },
         { label: "Your ElevenLabs voices", kind: vscode.QuickPickItemKind.Separator },
       ];
       try {
@@ -117,58 +119,80 @@ export class LineSpeaker {
     })();
     const p = await vscode.window.showQuickPick(items, { title: `EDGEwave: a voice for ${who}, kept for every tool that speaks ${character}'s lines`, matchOnDescription: true, ignoreFocusOut: true });
     if (!p) return undefined;
-    let v: CharacterVoice | undefined;
-    if (p.v) v = { id: p.v.id, name: p.v.name, how: "picked" };
-    else if (p.clone) {
-      const id = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `EDGEwave: cloning ${who}'s voice from their game lines` }, () => this.cloneCharacter(character));
-      v = { id, name: `EDGEwave ${character}`, how: "cloned" };
-    }
+    const v: CharacterVoice | undefined = p.v ? { id: p.v.id, name: p.v.name, how: "picked" } : p.design ? await this.design(character, gender) : undefined;
     if (v) setCharacter(characterKey(character, gender), v);
     return v;
   }
 
   /**
-   * A clone of a character's voice from their game lines (the owner's choice, 2026-11-21, with their license to the
-   * game's voice data; the one-time clone consent still asks): up to about two minutes of clean lines of 3 to 9
-   * seconds, one copy of each, taken in turn from each quest or scene (cloneCandidates), joined with short gaps.
-   * The lines used go to EDGEwave's output. A clone is reused only for the same lines.
+   * Design a voice from a description (ElevenLabs' voice design): the modder describes the character, ElevenLabs
+   * makes previews speaking a sample text, the modder hears them (▶ on each) and keeps one, saved in the account
+   * as "EDGEwave <character>". Describe Again asks again. Undefined when the modder stops.
    */
-  private async cloneCharacter(character: string): Promise<string> {
-    const api = await redcode();
-    const bridge = api.bridge();
-    if (!bridge) throw new Refused("REDcode's REDbridge is not running, so EDGEwave cannot read the character's game lines. Open a REDcode project, or pick one of your voices.");
-    const tag = tagOf(character);
-    const sep = String.fromCharCode(92);
-    const found = (await bridge.search(`${sep}vo${sep}${tag}_`, 5000)).items;
-    const candidates = cloneCandidates(found, tag);
-    if (!candidates.length) throw new Refused(`The game has no voice lines named ${tag}_… of a usable length; pick one of your voices instead.`);
-    const parts: Float32Array[] = [];
-    const used: string[] = [];
-    let total = 0;
-    for (const file of candidates.slice(0, 60)) {
-      if (total >= CloneSample.totalSeconds * 48000 || used.length >= CloneSample.maxLines) break;
-      try {
-        const a = await api.sound({ path: file });
-        const wav = a.mime === "audio/ogg" ? await oggToWav(a.data) : a.data;
-        const pcm = decodeWav(to48k(wav)).channels[0];
-        const seconds = pcm.length / 48000;
-        if (seconds < CloneSample.minSeconds || seconds > CloneSample.maxSeconds) continue;
-        parts.push(pcm, new Float32Array(48000 * 0.4));
-        total += pcm.length;
-        used.push(`${file.split(sep).pop()} (${seconds.toFixed(1)} s)`);
-      } catch (e) {
-        this.log.appendLine(`speakLine: ${file}: ${(e as Error).message}`);
-      }
+  private async design(character: string, gender?: "female" | "male"): Promise<CharacterVoice | undefined> {
+    const who = gender ? `${character} (${gender})` : character;
+    let description = "";
+    for (;;) {
+      description =
+        (
+          await vscode.window.showInputBox({
+            title: `Design a voice for ${who}: describe them`,
+            prompt: "Age, gender, accent and how they sound, in a sentence or two. Each try spends ElevenLabs credits for the previews' text",
+            placeHolder: "A woman in her thirties, a Nomad from the Badlands: low, dry, a little raspy, confident and wry",
+            value: description,
+            ignoreFocusOut: true,
+            validateInput: (s) => (s.trim().length >= 20 ? undefined : "A little more, please: at least a sentence"),
+          })
+        )?.trim() ?? "";
+      if (!description) return undefined;
+      const api = await this.tools.client();
+      const rate = this.tools.rate();
+      const previews = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `EDGEwave: designing voices for ${who} with ElevenLabs` }, () => api.design(description, SampleText, rate));
+      if (!previews.length) throw new Refused("ElevenLabs made no voices from that description; try other words.");
+      const dir = path.join(linesDir(), tagOf(character) || "voice", "designs");
+      fs.mkdirSync(dir, { recursive: true });
+      const files = previews.map((pv, i) => {
+        const f = path.join(dir, `${Date.now()}-${i + 1}.wav`);
+        fs.writeFileSync(f, pv.wav);
+        return f;
+      });
+      type It = vscode.QuickPickItem & { i?: number; again?: boolean };
+      const kept = await new Promise<number | "again" | undefined>((resolve) => {
+        const qp = vscode.window.createQuickPick<It>();
+        qp.title = `${who}: hear each voice (▶), then pick the one to keep`;
+        qp.placeholder = description;
+        qp.ignoreFocusOut = true;
+        const play = { iconPath: new vscode.ThemeIcon("play"), tooltip: "Play" };
+        qp.items = [
+          ...previews.map((pv, i): It => ({ label: `$(person) Voice ${i + 1}`, description: pv.seconds ? `${pv.seconds.toFixed(1)} s` : undefined, detail: "Enter keeps it; ▶ plays it", buttons: [play], i })),
+          { label: "$(edit) Describe again…", again: true },
+        ];
+        let done = false;
+        qp.onDidTriggerItemButton((e) => e.item.i !== undefined && void this.events.playFile(files[e.item.i]));
+        qp.onDidAccept(() => {
+          const s = qp.selectedItems[0];
+          if (!s) return;
+          done = true;
+          resolve(s.again ? "again" : s.i);
+          qp.hide();
+        });
+        qp.onDidHide(() => {
+          if (!done) resolve(undefined);
+          qp.dispose();
+        });
+        qp.show();
+        void this.events.playFile(files[0]);
+      });
+      void this.events.stop();
+      if (kept === "again") continue;
+      for (const f of files) fs.rmSync(f, { force: true });
+      if (kept === undefined) return undefined;
+      const name = `EDGEwave ${character}`.slice(0, 100);
+      const id = await api.saveRemix(previews[kept].generatedVoiceId, name, description);
+      await this.tools.rememberDesigned(id, name);
+      this.log.appendLine(`speakLine: designed ${who}'s voice (${id}) from "${description}"`);
+      return { id, name, how: "designed", description };
     }
-    if (!parts.length) throw new Refused(`REDcode could not read ${tag}'s lines (EDGEwave's output has why).`);
-    const joined = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
-    let at = 0;
-    for (const p of parts) joined.set(p, (at += p.length) - p.length);
-    this.log.appendLine(`speakLine: cloning ${tag}'s voice from ${used.length} lines, ${(total / 48000).toFixed(1)} s:\n  ${used.join("\n  ")}`);
-    const key = `character:${tag}:${createHash("sha1").update(used.join("|")).digest("hex").slice(0, 12)}`;
-    const id = await this.tools.cloneWav({ key, name: tag, wav: encodeWav({ sampleRate: 48000, channels: [joined] }) });
-    void vscode.window.showInformationMessage(`EDGEwave: ${tag}'s voice is cloned from ${used.length} of their lines, ${Math.round(total / 48000)} seconds. EDGEwave's output lists them.`);
-    return id;
   }
 
   /** EDGEwave: Character Voices…: see, change or forget the voice of each character. */
@@ -177,7 +201,7 @@ export class LineSpeaker {
     type It = vscode.QuickPickItem & { key?: string; add?: boolean };
     const items: It[] = [
       { label: "$(add) A voice for another character…", add: true },
-      ...Object.entries(all).map(([key, v]) => ({ label: key.replace(":", " · "), description: v.name ?? v.id, detail: `${v.how === "cloned" ? "Cloned from the character's game lines" : v.how === "voiceLines" ? "From Voice Lines" : "Picked"}${v.set ? `, ${v.set.slice(0, 10)}` : ""} · ${v.id}`, key })),
+      ...Object.entries(all).map(([key, v]) => ({ label: key.replace(":", " · "), description: v.name ?? v.id, detail: `${v.how === "designed" ? `Designed: ${v.description ?? ""}` : v.how === "cloned" ? "Cloned from the character's game lines" : v.how === "voiceLines" ? "From Voice Lines" : "Picked"}${v.set ? `, ${v.set.slice(0, 10)}` : ""} · ${v.id}`, key })),
     ];
     const p = await vscode.window.showQuickPick(items, { title: "EDGEwave: Character Voices, used by every tool that speaks a character's lines (EDGEfab's Lip Sync)" });
     if (!p) return;

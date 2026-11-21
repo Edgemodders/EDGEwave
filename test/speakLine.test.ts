@@ -7,7 +7,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ElevenLabsError, type ElevenLabs } from "../src/elevenlabs";
-import { characterKey, characterVoice, cloneCandidates, readCharacters, setCharacter, speakLine, spokenMask, textToSend, timingsOf } from "../src/speakLine";
+import { characterKey, characterVoice, readCharacters, setCharacter, speakLine, spokenMask, textToSend, timingsOf } from "../src/speakLine";
 
 test("textToSend: a delivery is a tag in front on v3; other models drop tags and the delivery, and say so", () => {
   assert.deepEqual(textToSend("Home.", "tired, quiet", "eleven_v3"), { sent: "[tired, quiet] Home.", notes: [] });
@@ -89,21 +89,30 @@ test("Character voices: one list by game voice tag; V's two by gender, the femal
   }
 });
 
-test("cloneCandidates: one language, no barks, one copy of a female and male V line, a line's size, quests in turn", () => {
-  const s = String.fromCharCode(92);
-  const f = (lang: string, name: string, size: number, folder = "vo") => ({ name: ["base", "localization", lang, folder, name].join(s), size });
-  const files = [
-    f("en-us", "rosa_q1_f_00000000000000a1.wem", 60_000),
-    f("en-us", "rosa_q1_m_00000000000000a1.wem", 60_000), // the male-V copy of the same line
-    f("en-us", "rosa_q1_f_00000000000000a2.wem", 100_000),
-    f("en-us", "rosa_q1_f_00000000000000a3.wem", 10_000), // too short: a bark
-    f("en-us", "rosa_q2_f_00000000000000b1.wem", 70_000),
-    f("en-us", "rosa_vs_vset_rosa_f_00000000000000c1.wem", 60_000), // a combat or vehicle bark
-    f("en-us", "rosa_q3_f_00000000000000d1.wem", 50_000, "vo_holocall"), // a phone's sound
-    f("de-de", "rosa_q4_f_00000000000000e1.wem", 60_000),
-    f("en-us", "rosalind_q1_f_00000000000000f1.wem", 60_000), // another character
-  ];
-  const names = cloneCandidates(files, "Rosa").map((n) => n.split(s).pop());
-  assert.deepEqual(names, ["rosa_q1_f_00000000000000a1.wem", "rosa_q2_f_00000000000000b1.wem", "rosa_q1_f_00000000000000a2.wem"]);
-  assert.deepEqual(cloneCandidates(files.filter((x) => x.name.includes("de-de")), "rosa").map((n) => n.split(s).pop()), ["rosa_q4_f_00000000000000e1.wem"]);
+test("ElevenLabs.design: a description and a sample text in, previews as WAVs out; no recording is sent", async () => {
+  const http = await import("node:http");
+  const seen: { path: string; format: string | null; body: Record<string, unknown>; type?: string }[] = [];
+  const s = http.createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      const url = new URL(req.url!, "http://x");
+      seen.push({ path: url.pathname, format: url.searchParams.get("output_format"), body: JSON.parse(Buffer.concat(chunks).toString()), type: req.headers["content-type"] });
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ previews: [1, 2, 3].map((i) => ({ generated_voice_id: `g${i}`, audio_base_64: Buffer.alloc(4800).toString("base64"), duration_secs: 0.1 })), text: "…" }));
+    });
+  });
+  await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
+  try {
+    const { ElevenLabs } = await import("../src/elevenlabs");
+    const api = new ElevenLabs("k", `http://127.0.0.1:${(s.address() as import("node:net").AddressInfo).port}`);
+    const previews = await api.design("A woman in her thirties, low and dry.", "Listen, I don't have all night.", 24000);
+    assert.deepEqual(previews.map((p) => p.generatedVoiceId), ["g1", "g2", "g3"]);
+    assert.equal(Buffer.from(previews[0].wav).toString("ascii", 0, 4), "RIFF");
+    assert.deepEqual(seen[0], { path: "/v1/text-to-voice/design", format: "pcm_24000", body: { voice_description: "A woman in her thirties, low and dry.", text: "Listen, I don't have all night." }, type: "application/json" });
+    await api.design("A man in his fifties.", undefined, 24000);
+    assert.deepEqual(seen[1].body, { voice_description: "A man in his fifties.", auto_generate_text: true });
+  } finally {
+    s.close();
+  }
 });

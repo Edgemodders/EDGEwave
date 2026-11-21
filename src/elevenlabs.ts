@@ -207,7 +207,21 @@ export class ElevenLabs {
     return j.previews.map((p) => ({ generatedVoiceId: p.generated_voice_id, wav: pcmToWav(new Uint8Array(Buffer.from(p.audio_base_64, "base64")), rate), seconds: p.duration_secs }));
   }
 
-  /** A remix preview saved as a voice; its voice id. */
+  /**
+   * New voices designed from a description, as previews (ElevenLabs' voice design): no recording is sent. The
+   * previews speak `text` (100 to 1,000 characters), or a text ElevenLabs writes when there is none. Save one with
+   * saveRemix.
+   */
+  async design(description: string, text: string | undefined, rate: number): Promise<RemixPreview[]> {
+    const json: Record<string, unknown> = { voice_description: description };
+    if (text) json.text = text;
+    else json.auto_generate_text = true;
+    const r = await this.call("POST", "v1/text-to-voice/design", { json, query: { output_format: pcmFormat(rate) } });
+    const j = (await r.json()) as { previews: { generated_voice_id: string; audio_base_64: string; duration_secs?: number }[] };
+    return j.previews.map((p) => ({ generatedVoiceId: p.generated_voice_id, wav: pcmToWav(new Uint8Array(Buffer.from(p.audio_base_64, "base64")), rate), seconds: p.duration_secs }));
+  }
+
+  /** A remix or design preview saved as a voice; its voice id. */
   async saveRemix(generatedVoiceId: string, name: string, description: string): Promise<string> {
     const j = (await (await this.call("POST", "v1/text-to-voice", { json: { voice_name: name, voice_description: description, generated_voice_id: generatedVoiceId } })).json()) as { voice_id: string };
     return j.voice_id;
