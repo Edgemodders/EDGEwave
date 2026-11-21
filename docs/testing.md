@@ -8,8 +8,8 @@ Last updated 2026-10-24.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2 | 2026-11-06 | Pass, 67 tests |
-| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 | 2026-11-06 | Pass, with the PC left alone (it failed at moving steps while the PC was in use) |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2, Desk and Library, #13 | 2026-11-20 | Pass, 78 tests |
+| [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 (Desk and Library, #13 to run) | 2026-11-06 | Pass, with the PC left alone; not run yet with the Desk and Library and #13 steps (added 2026-11-16 and 20) (it failed at moving steps while the PC was in use) |
 | [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-11-06 | Pass |
 | [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-11-06 | Pass: `edgewave-0.2.0.vsix` with REDcode 0.10.7, built with every fix of the 2026-11-06 hand tests. The downloaded VS Code's own CLI worked this time; an earlier run the same day needed the machine's (`EACCES`, cause unverified) |
@@ -24,6 +24,7 @@ Last updated 2026-10-24.
 | [EDGEwave Voice: REDnode's describer and the package's wiring](#edgewave-voice-for-rednode) | By script, no game | Voice for REDnode | 2026-10-27 | Pass |
 | [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | 2026-11-06 | Pass, steps 1 to 13 |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap, fixed in the Project view (2026-11-16) |
+| [Speaking a line with timings hand test](#speaking-a-line-with-timings) | By hand, F5, with an ElevenLabs key (spends credits) | #13 | | Not run. The real check of ElevenLabs' timings passed 2026-11-20 by script ([API](api.html#speaking-a-line-with-timings)) |
 | [Desk, Project and Library hand test](#desk-project-and-library) | By hand, F5 | Desk and Library | 2026-11-16 | Pass, first round, steps 1 to 15, with four findings fixed during it |
 
 ## Automated
@@ -90,6 +91,7 @@ On a busy machine (other VS Code windows running), `SMOKE_SLOW=2` doubles every 
 | V1 | Speak Line with no key (the password box closed with Escape), then **Set ElevenLabs API Key…** on the dialog's status line with `bad-key` (the stand-in answers 401 `invalid_api_key`), then with the right key | The status line says "No ElevenLabs API key is set yet." with the buttons (enabled), the voice list only that it needs a key (no second set of buttons); then "ElevenLabs refused the API key: Invalid API key…"; then the voices load, no buttons |
 | A1 | The Project and Desk views (the Sounds view until 2026-11-16) | Project: **Mixes** first, with 42, then **Project sounds**; Desk: **On the Desk**, then **Recent** with 42 |
 | Desk and Library | The Library view on the smoke's own Library (`EDGE_LIBRARY_CONFIG`): Doors > Door's **Add to Project**; then **Create a Sound on the Desk…** | The Library shows Doors, and in it Door v3 but not another tool's `chair.prop.asset`; the project gets `source/raw/edgewave/sounds/Door/` with `Door.sounds/knock.wav`, and `source/library.json` an entry `by` edgewave, its id, version 3 and path; Mixes says **Door · from the Library, v3**; the Desk lists New sound, its `asset.json` kind `sound` and main `source/raw/New sound.edgewave` |
+| #13 | Voice Lines' takes, then **Smoke: Speak Line** (the stub calls `speakLine` four times as tool Smoke), clicking **Allow Smoke** in the one-time question | Judy's take has `<take>.timings.json` beside it, its first eight characters (`[softly]`) not spoken; the first line is sent as `[softly] You came back.`, take 1, not cached, its characters counted, its WAV under EDGEwave's `lines` folder with its timings file; the same line again is cached, free, the same WAV; `take: "new"` is take 2; a call with no speaker gives a reason |
 | V2 | `playEvent({ name: "smoke_second", show: false })` twice, then `stopSound` ([#8](https://github.com/Edgemodders/EDGEwave/issues/8)) | Each answers `ok`, `where: "archive"`, 2 variations, `played` 43 or 44; no **Hear: smoke_second** tab opens. The stub's tone really plays through the speakers (the hidden player); nothing checks that it is heard |
 | V2 | The API, from the stub: `soundEvents`, `playEvent`, `customSound` | The events from the bridge's file, `smoke_event` with its sound 42 and the quest tag, the music cue as music and looping; `smoke_event` plays in the Hear panel; the music cue plays in the game through a stand-in REDnode editor channel (its `editor.json` through `EDGEWAVE_REDNODE_EDITOR`): `sound.play` with the run's token, no Origin, `mus_smoke_01_START` on the player, `where: "game"`, and `stopSound` sends `sound.stop`; `edgewave_smoke_knock.wav` at 48 kHz and its `info.json` entry as `mod_sfx_low_occlusion`; the index in the smoke's own EDGEwave folder |
 | V2 | Voice Lines, from the stub's `voiceLines` (V and Judy, Judy with `say` and `direction`) | The panel with 2 lines; three voices picked (V's two, Judy's); Generate All voices both: three requests at 24 kHz with `eleven_v3`, Judy's text `[softly] You... came back.`; `voice.json` with V's `_f_` and `_m_` takes named by the id in hex, Judy's one take, the voices and `archiveDir`; closing the panel resolves `voiceLines` with the record |
@@ -402,3 +404,18 @@ Built 2026-11-16 at the owner's go ([Desk, Project and Library](desk-library.htm
 14. **Take Off the Desk.** Right-click a Desk mix > **Take Off the Desk…**. Expect: a question; its folder in the Recycle Bin; if it was in the Library, the Library's copy stays.
 15. **Plain files.** Put a `.wav` in a Library folder. Expect: it shows there (a `.prop.asset` or other tool's item beside it does not); a click opens the Hear tab; ▶ plays; **Open on the Desk** makes a Desk mix with it as track 1.
 16. **Reveal in File Explorer** (added after round 1, the owner's note). EDGEwave's Library view: hover its title bar. Expect: the folder button's tooltip is **Reveal in File Explorer**, and it shows the Library's folder in File Explorer. Hover a folder such as Sounds > Doors. Expect: the same button, which shows that folder.
+
+### Speaking a line with timings
+
+Built 2026-11-20 for EDGEfab's Lip Sync tab ([#13](https://github.com/Edgemodders/EDGEwave/issues/13), [how](api.html#speaking-a-line-with-timings)). The real check of ElevenLabs' timings ran by script the same day with the owner's key (124 characters): every model and a cloned voice gave timings, counted from the WAV's first sample; the table is on the API page. Steps 2 and 3 need EDGEfab's Lip Sync tab with its speakLine call (EDGEfab builds it against this); until then, any tool calling `speakLine` does the same.
+
+| Round | Date | Result |
+|---|---|---|
+| 1 | | To run |
+
+1. **A character's voice.** **EDGEwave: Character Voices…** > **A voice for another character…** > `judy` > **Clone judy's voice from their game lines**, with a REDcode project open (it reads the archives). Expect: the clone consent, if never given; a notification while it clones; then "judy speaks as EDGEwave judy". Character Voices lists `judy`, cloned. Open it again: **Change the voice** and **Forget it**.
+2. **A line from another tool.** In EDGEfab's Lip Sync tab, type a line for Judy. Expect: the first time, EDGEwave asks once whether EDGEfab may spend your credits, with the line's cost; **Allow EDGEfab**; the line plays on the head. The same line again: at once, no question, no cost. Another take: a new one.
+3. **A character with no voice.** A line for a character not in the list (Panam, say). Expect: EDGEwave's voice picker, titled with the character; a pick is kept, and the next line for them asks nothing.
+4. **From Voice Lines.** In a quest's Voice Lines, pick a voice for a speaker not in the list. Expect: "Use … as <speaker>'s voice in other tools too?"; **Use It Everywhere** adds it to Character Voices. It does not ask again for the same voice.
+5. **Timings beside Voice Lines' takes.** Generate a line in Voice Lines. Expect: `<take>.timings.json` beside its WAV, under `source\raw\edgewave\voice\<quest>\`. Regenerate it: the old one becomes `<take>.previous.timings.json`; **Previous** swaps them back with the WAVs.
+6. **For an assistant.** With the MCP server connected (EDGEwave: Connect an Assistant), ask for `voice_speak_line` with `character: "judy"`. Expect: a take with timings, its path under `%LOCALAPPDATA%\EDGEwave\lines\judy\`. With a character not in the list: it says to set one in Character Voices.

@@ -55,6 +55,8 @@ EDGEquest's Storyboard opens it with a scene's lines (Generate) or one line (Reg
 
 Each line is saved as soon as it is voiced, so a stopped run keeps what it made. A take replaced while it has a studio document takes the document with it (`<name>.previous.edgewave`, rendering to `<name>.previous.wav`), so a render never writes over the new take.
 
+**Timings for lip sync** (added 2026-11-20, [#13](https://github.com/Edgemodders/EDGEwave/issues/13)): each take is spoken through ElevenLabs' with-timestamps endpoint (the same price) and keeps `<take>.timings.json` beside its WAV: when each character is spoken, and which are audio tags. A take replaced moves its timings to `.previous` with its WAV, and Previous swaps them back. A recording swapped in has none. The format is on the [API page](api.html#speaking-a-line-with-timings).
+
 ## What a voiced line needs in the game
 
 From EDGEquest's [formats page](https://edgemodders.github.io/EDGEquest/design/formats.html) and the modding wiki's [custom voice line guide](https://github.com/CDPR-Modding-Documentation/Cyberpunk-Modding-Docs/blob/main/modding-guides/quest/adding-a-custom-voiceline-to-a-scene.md):
