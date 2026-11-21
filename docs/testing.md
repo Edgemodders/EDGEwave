@@ -8,7 +8,8 @@ Last updated 2026-10-24.
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2, Desk and Library, #13 | 2026-11-20 | Pass, 78 tests |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2, Desk and Library, #13, #12 | 2026-11-21 | Pass, 83 tests |
+| [Key store against REDbridge 0.18.0](#key-store-against-redbridge-0180) | By script, no VS Code, a temporary store | #12 | 2026-11-21 | Pass |
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2 (Desk and Library, #13 to run) | 2026-11-06 | Pass, with the PC left alone; not run yet with the Desk and Library and #13 steps (added 2026-11-16 and 20) (it failed at moving steps while the PC was in use) |
 | [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-11-06 | Pass |
 | [MCP server over stdio](#mcp-server-over-stdio) | By script, no VS Code | V2 | 2026-10-24 | Pass |
@@ -26,6 +27,7 @@ Last updated 2026-10-24.
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap, fixed in the Project view (2026-11-16) |
 | [Speaking a line with timings hand test](#speaking-a-line-with-timings) | By hand, F5, with an ElevenLabs key (spends credits) | #13 | 2026-11-21 | Partly run: steps 2 and 3 pass after a better clone; 1, 4, 5 and 6 to run. The real check of ElevenLabs' timings passed 2026-11-20 by script ([API](api.html#speaking-a-line-with-timings)) |
 | [Desk, Project and Library hand test](#desk-project-and-library) | By hand, F5 | Desk and Library | 2026-11-16 | Pass, first round, steps 1 to 15, with four findings fixed during it |
+| [Shared keys hand test](#shared-keys) | By hand, F5 with REDcode main and REDbridge 0.18.0, an ElevenLabs key | #12 | | Not run |
 
 ## Automated
 
@@ -154,6 +156,22 @@ Run 2026-10-24. A script starts `dist/mcp/edgewave-mcp.cjs` with Node, with `LOC
 | `voice_lines` with no key | "No ElevenLabs API key..." and how to give one | Pass |
 | `voice_status` with one line | `none` | Pass |
 | `sound_custom` on a 48 kHz WAV | `edgewave_test_knock`, `mod_sfx_low_occlusion`, the WAV and the `info.json` entry | Pass |
+
+### Key store against REDbridge 0.18.0
+
+Run 2026-11-21 for [#12](https://github.com/Edgemodders/EDGEwave/issues/12). Two scripts (not kept in the repo) with `EDGEMODDERS_KEYS_DIR` set to a temporary folder, so the owner's store was not touched, and made-up keys: one runs `src/keyStore.ts`'s client against REDbridge 0.18.0 (from `redcode.bridgePath`); the other starts the built `dist/mcp/edgewave-mcp.cjs` with no `ELEVENLABS_API_KEY` and a stand-in ElevenLabs on localhost that notes the key each request carries, and calls `voice_voices` over MCP.
+
+| Check | Expected | Result |
+|---|---|---|
+| The client: `keys.get` on an empty store | `key: null`; REDbridge started with `--keys` and no game | Pass, 0.3 s |
+| `keys.set`, then `keys.get` | The key, from `file`; `elevenlabs.txt` and `used-by.json` in the folder | Pass |
+| The key set by another REDbridge | The same client reads the new key | Pass |
+| The key's file removed | `key: null` | Pass |
+| A key with a space | REDbridge's reason | Pass |
+| The server, no key | "No ElevenLabs API key is set" and where to set it | Pass |
+| The server after the key is set, then changed | Each call carries the store's key of the moment | Pass |
+| The server after the key is removed | No key, as before | Pass |
+| `used-by.json` | "EDGEwave MCP" | Pass |
 
 ## Hand tests
 
@@ -404,6 +422,23 @@ Built 2026-11-16 at the owner's go ([Desk, Project and Library](desk-library.htm
 14. **Take Off the Desk.** Right-click a Desk mix > **Take Off the Desk…**. Expect: a question; its folder in the Recycle Bin; if it was in the Library, the Library's copy stays.
 15. **Plain files.** Put a `.wav` in a Library folder. Expect: it shows there (a `.prop.asset` or other tool's item beside it does not); a click opens the Hear tab; ▶ plays; **Open on the Desk** makes a Desk mix with it as track 1.
 16. **Reveal in File Explorer** (added after round 1, the owner's note). EDGEwave's Library view: hover its title bar. Expect: the folder button's tooltip is **Reveal in File Explorer**, and it shows the Library's folder in File Explorer. Hover a folder such as Sounds > Doors. Expect: the same button, which shows that folder.
+
+### Shared keys
+
+Built 2026-11-21 for [#12](https://github.com/Edgemodders/EDGEwave/issues/12), the pilot of REDcode's key store ([Voice tools, The API key](voice-tools.html#the-api-key), [the MCP server](api.html#the-mcp-server)). REDcode releases the store only after this passes. Needs REDcode main with Keys (pull and `npm run build` in `REDcode/extensions/redcode`), REDbridge 0.18.0 (**REDcode: Update REDbridge**), and F5 > **Run EDGEwave with REDcode main**. Every step uses the real store, `%APPDATA%\Edgemodders\keys`.
+
+Your everyday VS Code, with the released EDGEwave 0.2.0 and a REDcode without Keys, keeps using EDGEwave's own copy of the key. Step 1 moves that copy, so the everyday window asks for the key once more; the F5 window then finds the store has one and removes EDGEwave's copy again, saying so. That lasts only until both releases have the store.
+
+| Round | Date | Result |
+|---|---|---|
+
+1. **Moved.** With the key EDGEwave saved before, and no ElevenLabs key in REDcode's Keys view: start the F5 window. Expect: once, "your ElevenLabs key is now in REDcode's Keys…", with "Claude Code's entry for EDGEwave still holds the key" and **Connect an Assistant…** when it does; the Keys view shows ElevenLabs set. Reload the window: no message.
+2. **Asked.** Open a sound and **Speak Line…**. Expect: REDcode asks "EDGEwave wants your ElevenLabs key." **Allow**: the voices load. Close and open the dialog: no question. The Keys view lists EDGEwave as a reader.
+3. **Read by the MCP server.** **EDGEwave: Connect an Assistant (MCP)** > **Connect Claude Code**. Expect: the row says it replaces the entry that holds your key; no question about the key; "connected…, reading your ElevenLabs key from REDcode's Keys". `~/.claude.json`'s `edgewave` entry has no `ELEVENLABS_API_KEY`. In a new Claude Code session, ask for `voice_voices`. Expect: the account's voices; the Keys view lists EDGEwave MCP.
+4. **Changed.** In REDcode's Keys view, **Set Key** on ElevenLabs with a wrong key (one letter changed). Expect, with no reload: Speak Line's voices say ElevenLabs refused the key; `voice_voices` says so too. Set the right key again with the dialog still open on the error: it loads the voices by itself.
+5. **Cleared.** **EDGEwave: Clear ElevenLabs API Key**. Expect: it says the key is shared in REDcode's Keys, with **Open REDcode's Keys**. There, **Remove Key** on ElevenLabs. Expect: Speak Line opens REDcode's password box; cancel it: the dialog shows **Set ElevenLabs API Key…**; `voice_voices` says no key is set and where to set it. **Set ElevenLabs API Key…**, paste the key: the voices load, and the Keys view shows it set.
+
+The smoke test covers a REDcode with no Keys (its stand-in has none): EDGEwave's own key, as in 0.2.0.
 
 ### Speaking a line with timings
 
