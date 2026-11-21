@@ -31,6 +31,18 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
    - With **Update Nexus Mods** ticked too, it first checks the Nexus page (`nexus.mjs check`), before anything is published, and stops if the description changed on Nexus since the last pull. After the GitHub release it uploads the Nexus zip as the main file's new version (the old one archived), EDGEwave Voice's zip when its version is new (its own version, in `rednode/edgewave-voice/rednode-app.json`), adds the version's changelog (`release:notes --nexus`), and pushes `nexus/description.bbcode` when it differs.
 6. **Nexus, before the run:** `npm run nexus:status` on the dev PC (the key in `%APPDATA%\Edgemodders\nexus-key.txt`, see EDGErepo's `tools/nexus/api.mjs`; the Nexus commands need [EDGErepo](https://github.com/Edgemodders/EDGErepo) checked out beside this repo). If the description changed on Nexus, `npm run nexus:pull`, merge the repo's changes back in (`git diff nexus/`), and commit. `node ../EDGErepo/tools/nexus/nexus.mjs check --version <v> --file voice=<voice version>` says what the release will do. If the Nexus step fails after the other stores, run `node ../EDGErepo/tools/nexus/nexus.mjs release` on the dev PC with the workflow's arguments.
 7. **After:** the README's and the Nexus page's status, and `docs/` where a page says what is released.
+8. **The wiki, in EDGEweb** (added 2026-11-21: no release step did it, and EDGEweb's session did 0.2.0's on 2026-11-13). In the sibling checkout `../EDGEweb`, bring every page that tells a modder about EDGEwave up to the version, from its changelog section: `docs/wiki/edgewave/*.md`, EDGEwave's rows in `docs/wiki/library.md` and the glossary, and the EDGEwave card on `docs/index.html` and section on `docs/platform.html`. Set each changed page's `reviewed` date, and EDGEwave's dashboard entry (`docs/assets/dashboard/status.js`, see `CLAUDE.md`, Dashboard). The wiki describes what is released, not `main`: change it with the release, never before. Commit and push to EDGEweb's `main`.
+
+### For the next release's wiki
+
+What 0.3.0's step 8 needs, kept here as it is built, so none of it is forgotten:
+
+| Change on `main` | Wiki pages |
+|---|---|
+| The Sounds view is the **Desk**; a new **Project** view (Mixes, Project sounds read from the project's files, ▶ on every row); the **Library** view ([Desk, Project and Library](desk-library.html)) | `finding.md` (The Sounds view), `install.md` (the views), `settings.md` (the Sounds view's commands), `troubleshooting.md` (Project empty), `tutorial.md` and screenshots that show the Sounds view; `wiki/library.md` (EDGEwave's Desk and sound items, no longer planned) |
+| No game audio goes to ElevenLabs: Speak Line in a line's voice, Re-Voice and its remix take only your own recordings and files | `voices.md` (Voice clones), `voice-lines.md` (a cloned game voice), `troubleshooting.md` (clones), the glossary's Voice clone |
+| **EDGEwave: Character Voices…**, a voice designed from a description, and speaking a line with timings for other tools (EDGEfab's Lip Sync) | `voices.md`, `assistants.md` (`voice_speak_line`), `settings.md` (the command) |
+| Voice Lines keeps `<take>.timings.json` beside each take | `voice-lines.md` |
 
 ## The packaged test
 
