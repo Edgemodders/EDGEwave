@@ -15,12 +15,12 @@ import { oggToWav } from "./audio/ogg";
 import { to48k } from "./customSound";
 import { keyRefused } from "./elevenlabs";
 import { redcode } from "./redcode";
-import { characterKey, characterVoice, readCharacters, setCharacter, speakLine, tagOf, type CharacterVoice, type LineRequest, type SpokenLine } from "./speakLine";
+import { createHash } from "node:crypto";
+import { characterKey, characterVoice, cloneCandidates, CloneSample, readCharacters, setCharacter, speakLine, tagOf, type CharacterVoice, type LineRequest, type SpokenLine } from "./speakLine";
 import { loadRecord } from "./voiceBatch";
 import { VoiceTools } from "./voiceTools";
 
 const AllowedState = "edgewave.speakLine.allowed";
-const Seconds = 60;
 
 export type SpeakLineRequest = LineRequest & { project?: string; by?: string };
 
@@ -105,7 +105,7 @@ export class LineSpeaker {
     const who = gender ? `${character} (${gender})` : character;
     const items = (async (): Promise<It[]> => {
       const head: It[] = [
-        { label: `$(person-add) Clone ${who}'s voice from their game lines`, detail: "An instant clone in your ElevenLabs account, from up to a minute of their voice lines. You confirm you have the right to clone it.", clone: true, alwaysShow: true },
+        { label: `$(person-add) Clone ${who}'s voice from their game lines`, detail: "An instant clone in your ElevenLabs account, from about two minutes of their clean voice lines across quests. You confirm you have the right to clone it.", clone: true, alwaysShow: true },
         { label: "Your ElevenLabs voices", kind: vscode.QuickPickItemKind.Separator },
       ];
       try {
@@ -127,25 +127,35 @@ export class LineSpeaker {
     return v;
   }
 
-  /** Up to a minute of a character's English voice lines, joined, cloned once. */
+  /**
+   * A clone of a character's voice from their game lines (the owner's choice, 2026-11-21, with their license to the
+   * game's voice data; the one-time clone consent still asks): up to about two minutes of clean lines of 3 to 9
+   * seconds, one copy of each, taken in turn from each quest or scene (cloneCandidates), joined with short gaps.
+   * The lines used go to EDGEwave's output. A clone is reused only for the same lines.
+   */
   private async cloneCharacter(character: string): Promise<string> {
     const api = await redcode();
     const bridge = api.bridge();
     if (!bridge) throw new Refused("REDcode's REDbridge is not running, so EDGEwave cannot read the character's game lines. Open a REDcode project, or pick one of your voices.");
     const tag = tagOf(character);
-    const found = (await bridge.search(`\\vo\\${tag}_`, 400)).items.map((f) => f.name).filter((n) => new RegExp(`\\\\vo\\\\${tag}_[^\\\\]*\\.wem$`, "i").test(n));
-    const lines = [...found.filter((n) => /\\en-us\\/i.test(n)), ...found.filter((n) => !/\\en-us\\/i.test(n))];
-    if (!lines.length) throw new Refused(`The game has no voice lines named ${tag}_…; pick one of your voices instead.`);
+    const sep = String.fromCharCode(92);
+    const found = (await bridge.search(`${sep}vo${sep}${tag}_`, 5000)).items;
+    const candidates = cloneCandidates(found, tag);
+    if (!candidates.length) throw new Refused(`The game has no voice lines named ${tag}_… of a usable length; pick one of your voices instead.`);
     const parts: Float32Array[] = [];
+    const used: string[] = [];
     let total = 0;
-    for (const file of lines.slice(0, 40)) {
-      if (total >= Seconds * 48000) break;
+    for (const file of candidates.slice(0, 60)) {
+      if (total >= CloneSample.totalSeconds * 48000 || used.length >= CloneSample.maxLines) break;
       try {
         const a = await api.sound({ path: file });
         const wav = a.mime === "audio/ogg" ? await oggToWav(a.data) : a.data;
         const pcm = decodeWav(to48k(wav)).channels[0];
-        parts.push(pcm, new Float32Array(48000 * 0.3));
+        const seconds = pcm.length / 48000;
+        if (seconds < CloneSample.minSeconds || seconds > CloneSample.maxSeconds) continue;
+        parts.push(pcm, new Float32Array(48000 * 0.4));
         total += pcm.length;
+        used.push(`${file.split(sep).pop()} (${seconds.toFixed(1)} s)`);
       } catch (e) {
         this.log.appendLine(`speakLine: ${file}: ${(e as Error).message}`);
       }
@@ -154,7 +164,11 @@ export class LineSpeaker {
     const joined = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
     let at = 0;
     for (const p of parts) joined.set(p, (at += p.length) - p.length);
-    return this.tools.cloneWav({ key: `character:${tag}`, name: tag, wav: encodeWav({ sampleRate: 48000, channels: [joined] }) });
+    this.log.appendLine(`speakLine: cloning ${tag}'s voice from ${used.length} lines, ${(total / 48000).toFixed(1)} s:\n  ${used.join("\n  ")}`);
+    const key = `character:${tag}:${createHash("sha1").update(used.join("|")).digest("hex").slice(0, 12)}`;
+    const id = await this.tools.cloneWav({ key, name: tag, wav: encodeWav({ sampleRate: 48000, channels: [joined] }) });
+    void vscode.window.showInformationMessage(`EDGEwave: ${tag}'s voice is cloned from ${used.length} of their lines, ${Math.round(total / 48000)} seconds. EDGEwave's output lists them.`);
+    return id;
   }
 
   /** EDGEwave: Character Voices…: see, change or forget the voice of each character. */

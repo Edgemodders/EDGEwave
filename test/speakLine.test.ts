@@ -7,7 +7,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ElevenLabsError, type ElevenLabs } from "../src/elevenlabs";
-import { characterKey, characterVoice, readCharacters, setCharacter, speakLine, spokenMask, textToSend, timingsOf } from "../src/speakLine";
+import { characterKey, characterVoice, cloneCandidates, readCharacters, setCharacter, speakLine, spokenMask, textToSend, timingsOf } from "../src/speakLine";
 
 test("textToSend: a delivery is a tag in front on v3; other models drop tags and the delivery, and say so", () => {
   assert.deepEqual(textToSend("Home.", "tired, quiet", "eleven_v3"), { sent: "[tired, quiet] Home.", notes: [] });
@@ -87,4 +87,23 @@ test("Character voices: one list by game voice tag; V's two by gender, the femal
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("cloneCandidates: one language, no barks, one copy of a female and male V line, a line's size, quests in turn", () => {
+  const s = String.fromCharCode(92);
+  const f = (lang: string, name: string, size: number, folder = "vo") => ({ name: ["base", "localization", lang, folder, name].join(s), size });
+  const files = [
+    f("en-us", "rosa_q1_f_00000000000000a1.wem", 60_000),
+    f("en-us", "rosa_q1_m_00000000000000a1.wem", 60_000), // the male-V copy of the same line
+    f("en-us", "rosa_q1_f_00000000000000a2.wem", 100_000),
+    f("en-us", "rosa_q1_f_00000000000000a3.wem", 10_000), // too short: a bark
+    f("en-us", "rosa_q2_f_00000000000000b1.wem", 70_000),
+    f("en-us", "rosa_vs_vset_rosa_f_00000000000000c1.wem", 60_000), // a combat or vehicle bark
+    f("en-us", "rosa_q3_f_00000000000000d1.wem", 50_000, "vo_holocall"), // a phone's sound
+    f("de-de", "rosa_q4_f_00000000000000e1.wem", 60_000),
+    f("en-us", "rosalind_q1_f_00000000000000f1.wem", 60_000), // another character
+  ];
+  const names = cloneCandidates(files, "Rosa").map((n) => n.split(s).pop());
+  assert.deepEqual(names, ["rosa_q1_f_00000000000000a1.wem", "rosa_q2_f_00000000000000b1.wem", "rosa_q1_f_00000000000000a2.wem"]);
+  assert.deepEqual(cloneCandidates(files.filter((x) => x.name.includes("de-de")), "rosa").map((n) => n.split(s).pop()), ["rosa_q4_f_00000000000000e1.wem"]);
 });
