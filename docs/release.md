@@ -15,6 +15,8 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 
 ## Steps
 
+**0.3.0 is released with the other key tools** (the owner's rule, 2026-11-19, in REDcode's `docs/design/keys.md`, Releases): EDGEwave reads the ElevenLabs key from REDcode's key store (#12). Its pilot passed on 2026-11-21. Next, K4d moves EDGEhack, EDGEmat and EDGEfab to the key API, and then every key-using tool is released at once, REDcode included, unless the owner decides otherwise.
+
 1. **Tests.** Every phase in the release has passed its hand test ([Tests](testing.html)); `npm run typecheck`, `npm test` and `npm run smoke` pass.
 2. **Version.** Set `version` in `package.json` (and `npm install`, so `package-lock.json` follows). In `CHANGELOG.md`, rename **Unreleased** to `## <version> (<date>)` and start a new empty **Unreleased** above it: the workflow fails without the version's section, and puts it in the GitHub release (`npm run release:notes` prints what it will say).
 3. **Package and test the package.**
