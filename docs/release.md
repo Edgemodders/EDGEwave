@@ -37,7 +37,7 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 
 ### For the next release's wiki
 
-What the next release's step 8 needs, kept here as it is built, so none of it is forgotten (0.3.0's rows went into the wiki on 2026-11-22, EDGEweb c009add; the wiki's screenshots of the old Sounds view wait for new ones from the owner):
+What the next release's step 8 needs, kept here as it is built, so none of it is forgotten (0.3.0's rows went into the wiki on 2026-11-22, EDGEweb c009add; its screenshots of the Desk, Project and Library views the same day, EDGEweb ab18252, taken in a scripted VS Code with its own profile, REDcode from the Marketplace and the owner's game, maximized):
 
 | Change on `main` | Wiki pages |
 |---|---|
