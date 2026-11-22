@@ -91,6 +91,8 @@ export interface CharacterVoice {
   how?: "picked" | "designed" | "cloned" | "voiceLines";
   /** For a designed voice: the description it was made from. */
   description?: string;
+  /** A WAV of the voice, for Hear It: a designed voice's kept preview, or the sample sentence spoken once. */
+  sample?: string;
   set?: string;
 }
 
