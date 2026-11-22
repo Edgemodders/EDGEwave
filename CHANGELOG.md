@@ -7,11 +7,25 @@ How to keep it:
 - With each change a modder would notice, add a line under **Unreleased**, in its group: **New**, **Changed**, **Fixed** or **Other**, in the commit that makes the change. One change per line. Leave out what only the tests see.
 - Before a release, rename **Unreleased** to `## <version> (<date>)` and start a new empty **Unreleased** above it. The Publish workflow stops if the version has no section.
 - Links are full URLs, since the same text goes to GitHub, the stores and Nexus.
-- `npm run release:notes` prints the GitHub notes; `npm run release:notes -- --nexus` prints plain lines for Nexus's changelog field, one per change.
+- Under each version's heading, a short summary for Nexus in an HTML comment that GitHub and the stores hide: `<!-- nexus`, one plain line per change (`New: ...`, at most 120 characters, at most 13 lines, no markdown), `Full changelog: <link>` last, then `-->` (EDGErepo's README, Nexus changelogs). Nexus cannot edit a changelog once posted.
+- `npm run release:notes` prints the GitHub notes; `npm run release:notes -- --nexus` prints the Nexus summary.
 
 ## Unreleased
 
 ## 0.3.0 (2026-11-22)
+
+<!-- nexus
+New: The Desk, a scratch space for sounds in progress, and the Library view, shared by every EDGE tool
+New: A Project view with the project's mixes and sounds, and a play button on every mix
+New: Character Voices: one voice per game character, designed from a description of them
+New: Other tools can have EDGEwave speak a line with its timings, for lip sync
+New: Voice Lines keeps each take's timings beside its WAV
+Changed: Your ElevenLabs key is kept in REDcode's Keys, shared by every EDGE tool, and moves there by itself
+Changed: The game's own audio is never sent to ElevenLabs
+Changed: The Sounds view is now the Desk; a copied mix takes its sound files with it
+Needs: REDcode 0.10.3 or later; 0.10.16 or later, with REDbridge 0.18.0, for the shared keys
+Full changelog: https://github.com/Edgemodders/EDGEwave/blob/main/CHANGELOG.md
+-->
 
 **New**
 

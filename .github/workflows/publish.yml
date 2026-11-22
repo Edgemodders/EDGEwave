@@ -68,7 +68,9 @@ jobs:
         run: |
           version=$(node -p "require('./package.json').version")
           node tools/release-notes.mjs "${version}" --out "${RUNNER_TEMP}/notes.md" || { echo "::error::CHANGELOG.md has no section for ${version}: rename Unreleased first"; exit 1; }
-          node tools/release-notes.mjs "${version}" --nexus --out "${RUNNER_TEMP}/nexus-notes.txt"
+          if [ "${{ inputs.nexus }}" = "true" ]; then
+            node tools/release-notes.mjs "${version}" --nexus --out "${RUNNER_TEMP}/nexus-notes.txt" || { echo "::error::CHANGELOG.md's ${version} section has no Nexus summary (<!-- nexus ... -->, see its top)"; exit 1; }
+          fi
           if [ "${{ inputs.nexus }}" = "true" ] && [ "${{ inputs.release }}" != "true" ]; then
             echo "::error::Update Nexus Mods needs Make a release ticked too"
             exit 1
@@ -95,12 +97,13 @@ jobs:
         if: ${{ inputs.release && inputs.nexus }}
         run: git -c advice.detachedHead=false clone --quiet --depth 1 --branch v1 https://github.com/Edgemodders/EDGErepo "$RUNNER_TEMP/EDGErepo"
 
-      # Before anything is published: Nexus takes this release, and its description has no edit the repo lacks.
+      # Before anything is published: Nexus takes this release, its description has no edit the repo lacks,
+      # and the changelog summary is short enough (0.3.0's run published everywhere else, then stopped here).
       - name: Nexus Mods can take this release
         if: ${{ inputs.release && inputs.nexus }}
         env:
           NEXUS_KEY: ${{ secrets.NEXUS_KEY }}
-        run: node "$RUNNER_TEMP/EDGErepo/tools/nexus/nexus.mjs" check --version "${VERSION}" --file "voice=${VOICE_VERSION}"
+        run: node "$RUNNER_TEMP/EDGErepo/tools/nexus/nexus.mjs" check --version "${VERSION}" --file "voice=${VOICE_VERSION}" --notes "${RUNNER_TEMP}/nexus-notes.txt"
 
       - run: npm ci
       - run: npm run typecheck
