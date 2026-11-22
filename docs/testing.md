@@ -27,7 +27,7 @@ Last updated 2026-10-24.
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap, fixed in the Project view (2026-11-16) |
 | [Speaking a line with timings hand test](#speaking-a-line-with-timings) | By hand, F5, with an ElevenLabs key (spends credits) | #13 | 2026-11-21 | Partly run: steps 2 and 3 pass after a better clone; 1, 4, 5 and 6 to run. The real check of ElevenLabs' timings passed 2026-11-20 by script ([API](api.html#speaking-a-line-with-timings)) |
 | [Desk, Project and Library hand test](#desk-project-and-library) | By hand, F5 | Desk and Library | 2026-11-16 | Pass, first round, steps 1 to 15, with four findings fixed during it |
-| [Shared keys hand test](#shared-keys) | By hand, F5 with REDcode main and REDbridge 0.18.0, an ElevenLabs key | #12 | 2026-11-21 | Pass, first round, steps 1 to 5 |
+| [Shared keys hand test](#shared-keys) | By hand, F5 with REDcode main and REDbridge 0.18.0, an ElevenLabs key | #12, #14 | 2026-11-21 | Partly run: steps 1 to 5 pass (round 1); step 6 (Don't Allow, #14, added 2026-11-22) to run |
 
 ## Automated
 
@@ -438,6 +438,7 @@ Your everyday VS Code, with the released EDGEwave 0.2.0 and a REDcode without Ke
 3. **Read by the MCP server.** **EDGEwave: Connect an Assistant (MCP)** > **Connect Claude Code**. Expect: the row says it replaces the entry that holds your key; no question about the key; "connected…, reading your ElevenLabs key from REDcode's Keys". `~/.claude.json`'s `edgewave` entry has no `ELEVENLABS_API_KEY`. In a new Claude Code session, ask for `voice_voices`. Expect: the account's voices; the Keys view lists EDGEwave MCP.
 4. **Changed.** In REDcode's Keys view, **Set Key** on ElevenLabs with a wrong key (one letter changed). Expect, with no reload: Speak Line's voices say ElevenLabs refused the key; `voice_voices` says so too. Set the right key again with the dialog still open on the error: it loads the voices by itself.
 5. **Cleared.** **EDGEwave: Clear ElevenLabs API Key**. Expect: it says the key is shared in REDcode's Keys, with **Open REDcode's Keys**. There, **Remove Key** on ElevenLabs. Expect: Speak Line opens REDcode's password box; cancel it: the dialog shows **Set ElevenLabs API Key…**; `voice_voices` says no key is set and where to set it. **Set ElevenLabs API Key…**, paste the key: the voices load, and the Keys view shows it set.
+6. **Don't Allow** (added 2026-11-22, [#14](https://github.com/Edgemodders/EDGEwave/issues/14); needs REDcode main `f6c7cbf` or later, built). With an ElevenLabs key set: in REDcode's Keys view, **Forget Tool Permissions for Keys**. Then **Generate Sound…** (or Speak Line…) and press **Don't Allow** on REDcode's question. Expect: "You chose Don't Allow when REDcode asked whether EDGEwave may read your ElevenLabs key. To change that, run Forget Tool Permissions for Keys…" in the dialog, with no **Set ElevenLabs API Key…** button and no password box. Press it again: the same message, no question. Forget the permissions again, try again and press **Allow**: it works.
 
 The smoke test covers a REDcode with no Keys (its stand-in has none): EDGEwave's own key, as in 0.2.0.
 
