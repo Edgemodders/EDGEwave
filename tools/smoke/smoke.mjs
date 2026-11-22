@@ -21,7 +21,7 @@ const T = path.join(os.tmpdir(), "ewsmoke");
 fs.rmSync(path.join(T, "ud"), { recursive: true, force: true });
 fs.rmSync(path.join(T, "proj"), { recursive: true, force: true });
 fs.rmSync(path.join(T, "imported.json"), { force: true });
-for (const f of ["api.json", "voiceLines.json", "home"]) fs.rmSync(path.join(T, f), { recursive: true, force: true });
+for (const f of ["api.json", "voiceLines.json", "speakLine.json", "home"]) fs.rmSync(path.join(T, f), { recursive: true, force: true });
 fs.mkdirSync(path.join(T, "game"), { recursive: true });
 fs.mkdirSync(path.join(T, "proj", "source", "raw"), { recursive: true });
 fs.cpSync(path.join(here, "stub"), path.join(T, "stub"), { recursive: true });
@@ -94,8 +94,14 @@ const rednodeServer = http.createServer((req, res) => {
 await new Promise((r) => rednodeServer.listen(0, "127.0.0.1", r));
 fs.writeFileSync(path.join(T, "rednode-editor.json"), JSON.stringify({ port: rednodeServer.address().port, token: "smoke-run", pid: process.pid, version: "0.43.0" }));
 fs.mkdirSync(path.join(T, "ud", "User"), { recursive: true });
-// Custom dialogs, so the clone consent's modal is in the page and can be clicked.
-fs.writeFileSync(path.join(T, "ud", "User", "settings.json"), JSON.stringify({ "edgewave.elevenlabs.baseUrl": `http://127.0.0.1:${elevenServer.address().port}`, "window.dialogStyle": "custom" }));
+// Custom dialogs, so the clone consent's modal is in the page and can be clicked. No chat panel or AI
+// features: newer VS Code opens Copilot Chat beside the editor, and its input took the keys meant for quick picks.
+fs.writeFileSync(path.join(T, "ud", "User", "settings.json"), JSON.stringify({
+  "edgewave.elevenlabs.baseUrl": `http://127.0.0.1:${elevenServer.address().port}`,
+  "window.dialogStyle": "custom",
+  "chat.disableAIFeatures": true,
+  "workbench.secondarySideBar.defaultVisibility": "hidden",
+}));
 
 // An EDGE Library of the smoke's own (through EDGE_LIBRARY_CONFIG, never the modder's), holding one sound,
 // Doors/Door.sound.asset, as Add to Library writes it, beside another tool's item EDGEwave does not show.
@@ -358,7 +364,7 @@ if (!silenceOk) finish(false, "Silence the event did not write a silent WAV");
 
 // Voice tools, against the stand-in ElevenLabs: Speak Line with no key, then a wrong one, set from the
 // dialog's own button; Generate Sound; Speak Line in a
-// picked voice (with its preview), Speak Line in track 1's voice (the clone consent), Re-Voice by
+// picked voice (with its preview), Speak Line and Re-Voice refused on track 1 (game audio), then Speak Line in track 4's voice (the clone consent), Re-Voice by
 // description (remix previews, reusing the clone). Each adds a track.
 const tracksNow = () => run("return document.getElementById('trackName').textContent");
 const waitTrack = async (n) => { for (let i = 0; i < 40; i++) { if ((await tracksNow()).startsWith(`${n} `)) return true; await sleep(500); } return false; };
@@ -436,15 +442,38 @@ log("voice preview", JSON.stringify(preview));
 await run("document.querySelector('#dialog .actions .primary').click()");
 const spoken = await waitTrack(4);
 log("speak line", spoken, await dialogStatus());
+// No game audio goes to ElevenLabs (the owner, 2026-11-21): track 1 plays a game sound effect, so Speak Line in
+// its voice and Re-Voice by description refuse it, sending nothing. Then both run on track 4, the speech
+// ElevenLabs made (the modder's own audio): a clone, then a remix.
+const gameRefused = /is the game's own audio, and EDGEwave does not send the game's audio to ElevenLabs/;
+const waitStatus = async (re) => { for (let i = 0; i < 40; i++) { const s = await dialogStatus(); if (re.test(s)) return s; await sleep(250); } return await dialogStatus(); };
 await selectLane(0);
 await sleep(500);
+const requestsBefore = eleven.length;
+await run(`document.getElementById('speakLine').click(); await new Promise((r) => setTimeout(r, 300));
+  document.querySelector('#dialog textarea').value = 'In my own voice.';
+  document.querySelector('#dialog .actions .primary').click();`);
+const speakRefused = gameRefused.test(await waitStatus(gameRefused)) && (await tracksNow()).startsWith("1 ");
+await run("document.querySelector('#dialog .x').click()");
+await selectLane(0);
+await sleep(500);
+await run(`document.getElementById('revoice').click(); await new Promise((r) => setTimeout(r, 300));
+  document.querySelector('#dialog .describe textarea').value = 'female, calm';
+  document.querySelector('#dialog .describe button').click();`);
+const revoiceRefused = gameRefused.test(await waitStatus(gameRefused));
+const refusedSentNothing = eleven.slice(requestsBefore).every((r) => r.method === "GET");
+log("game audio refused", JSON.stringify({ speakRefused, revoiceRefused, refusedSentNothing }));
+await run("document.querySelector('#dialog .x').click()");
+await selectLane(3);
+await sleep(500);
+const onTrack4 = (await tracksNow()).startsWith("4 ");
 await run(`document.getElementById('speakLine').click(); await new Promise((r) => setTimeout(r, 300));
   document.querySelector('#dialog textarea').value = 'In my own voice.';
   document.querySelector('#dialog .actions .primary').click();`);
 const consented = await clickDialogButton("I have the right");
 const cloned = await waitTrack(5);
-log("speak in the line's voice", { consented, cloned }, await dialogStatus());
-await selectLane(0);
+log("speak in the line's voice", { onTrack4, consented, cloned }, await dialogStatus());
+await selectLane(3);
 await sleep(500);
 await run(`document.getElementById('revoice').click(); await new Promise((r) => setTimeout(r, 300));
   document.querySelector('#dialog .describe textarea').value = 'female, calm';
@@ -468,18 +497,19 @@ const genFormats = made.map((t) => (t.file && fs.existsSync(path.join(path.dirna
 const posts = eleven.filter((r) => r.method === "POST");
 const voiceOk =
   generated && spoken && cloned && revoiced && consented && !preview.status && preview.models >= 2 &&
+  speakRefused && revoiceRefused && refusedSentNothing && onTrack4 &&
   made.length === 4 && genFormats.every((r) => r === 24000) &&
   made[0].made?.tool === "sound" && made[0].made.prompt === "a metal door slams, long echo" &&!made[0].voice &&
   made[1].made?.tool === "speak" && made[1].made.voiceId === "v_smoke" && made[1].voice &&
-  made[2].made?.tool === "speak" && made[2].made.voiceId === "clone_smoke" && made[2].made.from === "t1" &&
-  made[3].made?.tool === "revoice" && made[3].made.voiceId === "remix_saved" && made[3].made.description === "female, calm" && made[3].offset === vdoc.tracks[0].offset &&
-  vdoc.tracks[0].mute === true &&
+  made[2].made?.tool === "speak" && made[2].made.voiceId === "clone_smoke" && made[2].made.from === "t4" &&
+  made[3].made?.tool === "revoice" && made[3].made.voiceId === "remix_saved" && made[3].made.description === "female, calm" && made[3].offset === vdoc.tracks[3].offset &&
+  vdoc.tracks[3].mute === true &&
   eleven.every((r) => r.path.startsWith("/preview/") ? !r.key : r.key === "smoke-key" || (r.key === "bad-key" && ["/v2/voices", "/v1/models"].includes(r.path))) &&
   posts[0].path === "/v1/sound-generation" && posts[0].fmt === "pcm_48000" && posts[1].fmt === "pcm_24000" &&
   eleven.filter((r) => r.path === "/v1/voices/add").length === 1 && eleven.filter((r) => r.fmt === "pcm_48000").length === 1;
 if (!voiceOk) finish(false, "the voice tools did not do what they should");
 
-// The lanes' checkboxes: track 1 (left out by Re-Voice) is unchecked; check it. Then right-click the
+// The lanes' checkboxes: track 4 (left out by Re-Voice) is unchecked; uncheck track 1. Then right-click the
 // generated sound's lane > Only This Track: a file alone in the mix, so Add to Project offers the named
 // event first, saying why.
 const checks = () => run("return [...document.querySelectorAll('#laneChecks input')].map((b) => b.checked)");
@@ -508,8 +538,8 @@ const lastMarked = allRows.some((r) => /^Silence the event smoke_event, every va
 await key("Escape", "Escape", 27);
 log("checkboxes", JSON.stringify({ checksBefore, checksAfter, checksOnly, mutes, fileRows, lastMarked }));
 const checksOk =
-  JSON.stringify(checksBefore) === JSON.stringify([false, true, true, true, true, true]) &&
-  JSON.stringify(checksAfter) === JSON.stringify([true, true, true, true, true, true]) &&
+  JSON.stringify(checksBefore) === JSON.stringify([true, true, true, false, true, true]) &&
+  JSON.stringify(checksAfter) === JSON.stringify([false, true, true, false, true, true]) &&
   JSON.stringify(checksOnly) === JSON.stringify([false, false, true, false, false, false]) &&
   JSON.stringify(mutes) === JSON.stringify([true, true, false, true, true, true]) && lastMarked &&
   /^A new sound for this project/.test(fileRows[0] ?? "") && /^Replace a game event by name/.test(fileRows[1] ?? "") && /No track in the mix is a game sound effect \(track 3\)/.test(fileRows[1] ?? "");
@@ -615,10 +645,38 @@ if (!moveOk) finish(false, "moving lanes did not reorder the tracks");
 // EDGEwave's API, called by the stand-in REDcode as EDGEquest does (#7): the game's sound events from the
 // bridge's eventsmetadata.json, hearing one (the preview), a music cue (a reason), a custom sound.
 const command = async (title) => {
-  await key("F1", "F1", 112);
-  await sleep(600);
-  await cdp("Input.insertText", { text: title });
-  await sleep(800);
+  // The title bar's search box, clicked, opens Quick Open with the window focused: F1 is lost when a webview
+  // (the Hear tab the step before opened) holds the keyboard. ">" makes it the command palette.
+  const box = await evalIn(bench, `(() => { const e = document.querySelector('.command-center-center') ?? document.querySelector('.command-center'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  if (box) {
+    await cdp("Input.dispatchMouseEvent", { type: "mousePressed", x: box.x, y: box.y, button: "left", clickCount: 1 });
+    await cdp("Input.dispatchMouseEvent", { type: "mouseReleased", x: box.x, y: box.y, button: "left", clickCount: 1 });
+    await sleep(600);
+    await cdp("Input.insertText", { text: `>${title}` });
+  } else {
+    await key("F1", "F1", 112);
+    await sleep(600);
+    await cdp("Input.insertText", { text: title });
+  }
+  // Enter only once the palette's first row is this command; else say what it shows.
+  // Typed text can be lost while the palette opens (the first row was then the last command run): type it again.
+  let rows = [];
+  let typed = "";
+  for (let i = 0; i < 20; i++) {
+    await sleep(300);
+    typed = await evalIn(bench, `document.querySelector('.quick-input-box input')?.value ?? ''`);
+    rows = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].filter((r) => r.offsetParent).slice(0, 4).map((r) => r.textContent.trim())`);
+    if (rows[0]?.includes(title)) break;
+    if (i % 5 === 4) {
+      await cdp("Input.dispatchKeyEvent", { type: "keyDown", key: "a", code: "KeyA", windowsVirtualKeyCode: 65, modifiers: 2 });
+      await cdp("Input.dispatchKeyEvent", { type: "keyUp", key: "a", code: "KeyA", windowsVirtualKeyCode: 65, modifiers: 2 });
+      await cdp("Input.insertText", { text: `>${title}` });
+    }
+  }
+  // The row whose label is exactly the title ("View: Close Editor", not "View: Close All Editors"), by arrow keys.
+  const exact = await evalIn(bench, `[...document.querySelectorAll('.quick-input-list .monaco-list-row')].filter((r) => r.offsetParent).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).findIndex((r) => (r.querySelector('.label-name')?.textContent ?? '').trim() === ${JSON.stringify(title)})`);
+  if (exact > 0) for (let i = 0; i < exact; i++) await key("ArrowDown", "ArrowDown", 40);
+  if (exact < 0 && !rows[0]?.includes(title)) log("command palette", title, JSON.stringify({ typed, rows }));
   await key("Enter", "Enter", 13);
 };
 const waitFile = async (f, n = 40) => { for (let i = 0; i < n && !fs.existsSync(f); i++) await sleep(500); return fs.existsSync(f); };
@@ -652,7 +710,15 @@ for (let i = 0; i < 40 && !vl; i++) {
   }
   if (!vl) await sleep(500);
 }
-if (!vl) finish(false, "the Voice Lines panel never appeared");
+if (!vl) {
+  // What is open instead: each webview's first words, and the window.
+  for (const c of contexts.filter((c) => c.origin.startsWith("vscode-webview"))) {
+    try { log("webview", c.origin.slice(0, 60), JSON.stringify(await evalIn(c, "(document.body?.innerText ?? '').slice(0, 300)"))); } catch {}
+  }
+  try { log("window", JSON.stringify(await evalIn(bench, "(document.querySelector('.notifications-toasts')?.innerText ?? '') + ' | ' + (document.querySelector('.quick-input-widget')?.innerText ?? '').slice(0, 300)"))); } catch {}
+  fs.writeFileSync(path.join(T, "voicelines.png"), Buffer.from((await cdp("Page.captureScreenshot", { format: "png" })).data, "base64"));
+  finish(false, "the Voice Lines panel never appeared");
+}
 const vrun = (js) => evalIn(vl, `(async () => { ${js} })()`);
 await vrun("document.querySelector('#voices select').dispatchEvent(new FocusEvent('focus'))");
 for (let i = 0; i < 20; i++) { if (await vrun("return document.querySelector('#voices select').options.length > 1")) break; await sleep(300); }
@@ -804,8 +870,20 @@ const nativeDrop = async (files, el, modifiers) => {
 await nativeDrop(drops.slice(0, 2), ".lanes", 8);
 const afterLanes = await nrun("return document.getElementById('laneChecks').children.length");
 await nativeDrop([drops[2]], "#wave", 8);
-await saveDoc();
-const filled = JSON.parse(fs.readFileSync(newFile, "utf8"));
+// Ctrl+S saves the focused tab, and a drop does not focus it: click the new sound's tab first, then wait for the file.
+const focusNewTab = async () => {
+  const tab = await evalIn(bench, `(() => { const t = [...document.querySelectorAll('.tab')].find((t) => t.querySelector('.label-name')?.textContent === 'Smoke New.edgewave'); if (!t) return null; const r = t.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  if (!tab) return;
+  await cdp("Input.dispatchMouseEvent", { type: "mousePressed", x: tab.x, y: tab.y, button: "left", clickCount: 1 });
+  await cdp("Input.dispatchMouseEvent", { type: "mouseReleased", x: tab.x, y: tab.y, button: "left", clickCount: 1 });
+  await sleep(400);
+};
+let filled = JSON.parse(fs.readFileSync(newFile, "utf8"));
+for (let i = 0; i < 3 && filled.tracks.length < 2; i++) {
+  await focusNewTab();
+  await saveDoc();
+  filled = JSON.parse(fs.readFileSync(newFile, "utf8"));
+}
 const copies = fs.existsSync(path.join(path.dirname(newFile), "Smoke New.sounds")) ? fs.readdirSync(path.join(path.dirname(newFile), "Smoke New.sounds")).sort() : [];
 const nshot = await cdp("Page.captureScreenshot", { format: "png" });
 fs.writeFileSync(path.join(T, "created.png"), Buffer.from(nshot.data, "base64"));
