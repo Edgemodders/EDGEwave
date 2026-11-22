@@ -337,13 +337,23 @@ function generateSound() {
   });
 }
 
+/**
+ * No game audio goes to ElevenLabs (the owner, 2026-11-21): a track that plays a game file or a sound effect is not
+ * offered to the voice tools that send its audio. The host refuses it too (noGameAudio in src/voiceTools.ts).
+ */
+const isGameAudio = (t: Track | undefined) => !!t && (t.source.kind === "game" || t.source.kind === "sfx");
+const GameAudioNote = "This line is the game's own audio, and EDGEwave does not send the game's audio to ElevenLabs. Re-Voice and Speak Line in a line's voice take your own recordings and sound files.";
+
 function speakLine() {
   const t = host.track();
   const fromLine = !!t?.voice && !!host.clip();
+  // A game line's voice is not offered: the game's audio is not sent (2026-11-22, the owner's hand test, #13 step 7).
+  const gameLine = fromLine && isGameAudio(t);
+  const ownLine = fromLine && !gameLine;
   open("Speak Line", "Text spoken in a voice, through ElevenLabs, added as a new voice-line track at the mix cursor. Spends ElevenLabs credits.", (status, busy) => {
     const text = el("textarea", { rows: 3, placeholder: "What the line says" });
-    const own = el("input", { type: "radio", name: "speakVoice", checked: fromLine, disabled: !fromLine });
-    const pick = el("input", { type: "radio", name: "speakVoice", checked: !fromLine });
+    const own = el("input", { type: "radio", name: "speakVoice", checked: ownLine, disabled: !ownLine });
+    const pick = el("input", { type: "radio", name: "speakVoice", checked: !ownLine });
     const picker = voiceList(status);
     const model = modelMenu("speech");
     const go = el("button", { type: "button", class: "primary", textContent: "Speak" });
@@ -372,7 +382,12 @@ function speakLine() {
       el(
         "div",
         { class: "choice" },
-        el("label", { class: "check" }, own, `In the selected line's voice${fromLine ? ` (${sourceLabel(t!.source)})` : ": select a voice line first"}`),
+        el(
+          "label",
+          { class: "check", title: gameLine ? GameAudioNote : "" },
+          own,
+          `In the selected line's voice${gameLine ? ": the game's own audio is not sent to ElevenLabs" : fromLine ? ` (${sourceLabel(t!.source)})` : ": select a voice line first"}`,
+        ),
         el("label", { class: "check" }, pick, "In one of your ElevenLabs voices"),
       ),
       picker.element,
@@ -386,6 +401,8 @@ function speakLine() {
 function reVoice() {
   const t = host.track();
   if (!t || !host.clip()) return;
+  // Re-Voice sends the line's audio in every way it works: on a game line it says why at once, its buttons off.
+  const game = isGameAudio(t);
   open(`Re-Voice · ${sourceLabel(t.source)}`, "The selected line's words, timing and delivery in another voice, through ElevenLabs, as a new track at the same place. Spends ElevenLabs credits.", (status, busy) => {
     const describe = el("input", { type: "radio", name: "revoiceHow", checked: true });
     const pick = el("input", { type: "radio", name: "revoiceHow" });
@@ -405,6 +422,10 @@ function reVoice() {
     describe.addEventListener("change", sync);
     pick.addEventListener("change", sync);
     sync();
+    if (game) {
+      make.disabled = true;
+      go.disabled = true;
+    }
     make.addEventListener("click", () => {
       const d = change.value.trim();
       if (!d) return status("Describe the change first.", true);
@@ -448,6 +469,7 @@ function reVoice() {
       void run(go, status, busy, "Re-voicing…", () => ask(req));
     });
     return [
+      ...(game ? [el("p", { class: "gameAudio", textContent: GameAudioNote })] : []),
       el("div", { class: "choice" }, el("label", { class: "check" }, describe, "Describe the change (clones the line's voice, then remixes it)"), el("label", { class: "check" }, pick, "Into one of your ElevenLabs voices")),
       describing,
       picker.element,

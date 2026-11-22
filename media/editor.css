@@ -49,6 +49,7 @@ header .ai #translate { border-color: var(--line); color: var(--dim); }
 /* The voice tools' dialog: a form over the editor. */
 .dialog { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 12px; background: rgba(0,0,0,.45); overflow: auto; }
 .dialog[hidden] { display: none; }
+.dialog .gameAudio { margin: 0; color: var(--vscode-editorWarning-foreground, #cca700); }
 .dialog .box { width: min(620px, 100%); background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); border: 1px solid var(--accent); box-shadow: 0 4px 18px rgba(0,0,0,.5); padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
 .dialog .box.busy { cursor: progress; }
 .dialog .head { display: flex; align-items: center; justify-content: space-between; }

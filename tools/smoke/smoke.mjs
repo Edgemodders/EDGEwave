@@ -443,24 +443,22 @@ await run("document.querySelector('#dialog .actions .primary').click()");
 const spoken = await waitTrack(4);
 log("speak line", spoken, await dialogStatus());
 // No game audio goes to ElevenLabs (the owner, 2026-11-21): track 1 plays a game sound effect, so Speak Line in
-// its voice and Re-Voice by description refuse it, sending nothing. Then both run on track 4, the speech
-// ElevenLabs made (the modder's own audio): a clone, then a remix.
-const gameRefused = /is the game's own audio, and EDGEwave does not send the game's audio to ElevenLabs/;
-const waitStatus = async (re) => { for (let i = 0; i < 40; i++) { const s = await dialogStatus(); if (re.test(s)) return s; await sleep(250); } return await dialogStatus(); };
+// its voice and Re-Voice do not offer it, sending nothing. Then both run on track 4, the speech ElevenLabs made
+// (the modder's own audio): a clone, then a remix.
 await selectLane(0);
 await sleep(500);
 const requestsBefore = eleven.length;
-await run(`document.getElementById('speakLine').click(); await new Promise((r) => setTimeout(r, 300));
-  document.querySelector('#dialog textarea').value = 'In my own voice.';
-  document.querySelector('#dialog .actions .primary').click();`);
-const speakRefused = gameRefused.test(await waitStatus(gameRefused)) && (await tracksNow()).startsWith("1 ");
+// The dialogs say so at once (2026-11-22): Speak Line's own-voice choice is off, with the reason; Re-Voice shows
+// the reason with its buttons off.
+await run(`document.getElementById('speakLine').click(); await new Promise((r) => setTimeout(r, 300));`);
+const speakRefused = await run(`const own = document.querySelector('#dialog input[name=speakVoice]');
+  return !!own && own.disabled && !own.checked && /the game's own audio is not sent to ElevenLabs/.test(own.parentElement.textContent)`) && (await tracksNow()).startsWith("1 ");
 await run("document.querySelector('#dialog .x').click()");
 await selectLane(0);
 await sleep(500);
-await run(`document.getElementById('revoice').click(); await new Promise((r) => setTimeout(r, 300));
-  document.querySelector('#dialog .describe textarea').value = 'female, calm';
-  document.querySelector('#dialog .describe button').click();`);
-const revoiceRefused = gameRefused.test(await waitStatus(gameRefused));
+await run(`document.getElementById('revoice').click(); await new Promise((r) => setTimeout(r, 300));`);
+const revoiceRefused = await run(`return /is the game's own audio, and EDGEwave does not send the game's audio to ElevenLabs/.test(document.querySelector('#dialog .gameAudio')?.textContent ?? '')
+  && document.querySelector('#dialog .describe button').disabled && document.querySelector('#dialog .actions .primary').disabled`);
 const refusedSentNothing = eleven.slice(requestsBefore).every((r) => r.method === "GET");
 log("game audio refused", JSON.stringify({ speakRefused, revoiceRefused, refusedSentNothing }));
 await run("document.querySelector('#dialog .x').click()");
