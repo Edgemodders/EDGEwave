@@ -36,6 +36,25 @@ export const Service = "elevenlabs";
 export const Caller = "EDGEwave";
 export const McpCaller = "EDGEwave MCP";
 
+/** REDcode's keys.status answer, as far as noKeyReason reads it. */
+export interface AccessStatus {
+  set: boolean;
+  unreadable: boolean;
+  access: "allowed" | "denied" | "unasked";
+}
+
+/**
+ * Why EDGEwave stops, with no password box, after REDcode's keys.get answered no key (EDGEwave #14, as EDGEhack
+ * and EDGEmat do it): the modder said Don't Allow, or a key is there and REDcode's question was closed with no
+ * answer (a password box would replace that key). Undefined: offer the password box, as before.
+ */
+export function noKeyReason(s: AccessStatus | undefined): string | undefined {
+  if (!s) return undefined;
+  if (s.access === "denied") return "You chose Don't Allow when REDcode asked whether EDGEwave may read your ElevenLabs key. To change that, run Forget Tool Permissions for Keys in REDcode's Keys view, then try again.";
+  if (s.set && !s.unreadable && s.access === "unasked") return "REDcode's question about your ElevenLabs key was closed without an answer. Try again and choose Allow.";
+  return undefined;
+}
+
 /** A REDbridge that answers JSON-RPC methods by name has no keys.* when it is older than 0.18.0. */
 const MethodNotFound = -32601;
 export const TooOld = "The key store needs REDbridge 0.18.0 or later. In VS Code: REDcode: Install REDbridge (or Update REDbridge).";

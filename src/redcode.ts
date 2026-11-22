@@ -55,6 +55,15 @@ export interface GameFileInfo {
   archive: string;
 }
 
+/** keys.status's answer: access is allowed, denied (the modder said Don't Allow) or not asked yet. */
+export interface KeyStatus {
+  service: string;
+  set: boolean;
+  source: "env" | "file" | null;
+  unreadable: boolean;
+  access: "allowed" | "denied" | "unasked";
+}
+
 /**
  * The AI service keys every EDGE tool shares (REDcode issue #33, its `docs/api.md`, Keys). Since REDcode 0.10.16
  * (on its main until EDGEwave's pilot, EDGEwave #12, has run); an older REDcode has no keys. Needs REDbridge 0.18.0.
@@ -64,6 +73,11 @@ export interface KeysApi {
   get(service: string, caller: string): Promise<string | undefined>;
   /** Asks for the key in a password box and saves it for every tool; undefined when the modder cancels. */
   ask(service: string, caller: string): Promise<string | undefined>;
+  /**
+   * Whether a key is set and whether caller may read it, asking nothing and never answering the key (REDcode
+   * main f6c7cbf, unreleased: check typeof status === "function"). Tells "no key" from "the modder said no".
+   */
+  status?(service: string, caller: string): Promise<KeyStatus>;
   /** A service's key was set, replaced or removed, here or by another tool. */
   readonly onDidChange: vscode.Event<string>;
 }

@@ -6,7 +6,7 @@ import * as assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { claudeHoldsKey, findBridge, installedRedcodeDirs, KeysBridge, TooOld } from "../src/keyStore";
+import { claudeHoldsKey, findBridge, installedRedcodeDirs, KeysBridge, noKeyReason, TooOld } from "../src/keyStore";
 
 /** The stand-in: keys in memory, seeded from argv; "old" answers every keys.* as an unknown method. */
 const stub = `
@@ -128,4 +128,15 @@ test("claudeHoldsKey: true only when Claude Code's EDGEwave entry passes ELEVENL
   fs.writeFileSync(f, JSON.stringify({ mcpServers: { edgewave: { command: "node", env: {} } } }));
   assert.equal(claudeHoldsKey(f), false);
   assert.equal(claudeHoldsKey(path.join(dir, "none.json")), false);
+});
+
+test("noKeyReason: Don't Allow and a question closed unanswered stop with a reason; no key set, or no status, opens the password box", () => {
+  assert.match(noKeyReason({ set: true, unreadable: false, access: "denied" }) ?? "", /Don't Allow.*Forget Tool Permissions for Keys/);
+  assert.match(noKeyReason({ set: false, unreadable: false, access: "denied" }) ?? "", /Don't Allow/);
+  assert.match(noKeyReason({ set: true, unreadable: false, access: "unasked" }) ?? "", /choose Allow/);
+  assert.equal(noKeyReason({ set: false, unreadable: false, access: "unasked" }), undefined);
+  // A key this Windows user cannot read: a new one in the box is the way out.
+  assert.equal(noKeyReason({ set: true, unreadable: true, access: "unasked" }), undefined);
+  assert.equal(noKeyReason({ set: false, unreadable: false, access: "allowed" }), undefined);
+  assert.equal(noKeyReason(undefined), undefined);
 });

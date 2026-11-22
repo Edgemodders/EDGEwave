@@ -12,7 +12,7 @@ import * as vscode from "vscode";
 import { formatDoc, newTrack, nextTrackId, parseDoc, type Made } from "./doc";
 import { DefaultBaseUrl, ElevenLabs, ElevenLabsError, formatRefused, keyRefused, pcmToWav, slug, type Voice } from "./elevenlabs";
 import { bridgeExe, keyStore } from "./keysHost";
-import { Caller, claudeHoldsKey, KeysBridge, Service } from "./keyStore";
+import { Caller, claudeHoldsKey, KeysBridge, noKeyReason, Service } from "./keyStore";
 
 const KeySecret = "edgewave.elevenlabs.apiKey";
 const ConsentState = "edgewave.elevenlabs.cloneConsent";
@@ -145,6 +145,16 @@ export class VoiceTools {
       const own = await this.context.secrets.get(KeySecret);
       if (own) return own;
       throw new Error(`EDGEwave reads the ElevenLabs key from REDcode's Keys, which cannot be reached: ${(e as Error).message}`);
+    }
+    // No key from get: the modder's Don't Allow, or a question closed unanswered, is not met with a password
+    // box (#14). A REDcode without status, or a status call that fails, keeps the password box.
+    if (typeof keys.status === "function") {
+      const status = await keys.status(Service, Caller).catch((e: Error) => {
+        this.log.appendLine(`ElevenLabs: REDcode's keys.status failed: ${e.message}`);
+        return undefined;
+      });
+      const reason = noKeyReason(status);
+      if (reason) throw new Error(reason);
     }
     this.asking ??= keys.ask(Service, Caller).finally(() => (this.asking = undefined));
     return this.asking;
