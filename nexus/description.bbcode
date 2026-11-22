@@ -10,7 +10,7 @@
 [line]
 
 [quote][size=4][b][color=#fcee0a]STATUS: PREVIEW[/color][/b][/size]
-Tested by hand: editing, mixing and the Sounds view; putting sounds into the game, in the game (an override, a REDmod replacement and a silence); and the AI voice tools against ElevenLabs. New in 0.2, also tested by hand: Game Assets, Create a Sound, a new sound for your project, voicing a quest with EDGEquest, and EDGEwave Voice for REDnode. New features land in small updates.
+Tested by hand: editing and mixing; putting sounds into the game, in the game (an override, a REDmod replacement and a silence); and the AI voice tools against ElevenLabs. New in 0.2, also tested by hand: Game Assets, Create a Sound, a new sound for your project, voicing a quest with EDGEquest, and EDGEwave Voice for REDnode. New in 0.3, also tested by hand: the Desk, the Project view and the EDGE Library, Character Voices, lines spoken with timings for lip sync, and your ElevenLabs key shared through REDcode's Keys. New features land in small updates.
 [b]This is not a game mod.[/b] It is an extension for VS Code, so install it there (steps below), not with Vortex. It needs [url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url]. The quickest way is straight from the [url=https://marketplace.visualstudio.com/items?itemName=Edgemodders.edgewave]VS Code Marketplace[/url] or [url=https://open-vsx.org/extension/edgemodders/edgewave]Open VSX[/url], which install REDcode with it; the file here is the same extension.[/quote]
 
 [img]https://staticdelivery.nexusmods.com/mods/3333/images/35493/35493-1792553706-2093095536.png[/img]
@@ -30,7 +30,7 @@ In REDcode's [b]Browse Game Sounds[/b], pick a sound effect and click [b]Open in
 [b]Game Assets[/b], in EDGEwave's side bar, shows the game's sounds and nothing else: sound effects by event, voice lines by language, music and streamed sounds. Click one to hear it, or its [b]▶[/b] to play it at once; with the game running and [url=https://www.nexusmods.com/cyberpunk2077/mods/35419]REDnode[/url] 0.43 or later, right-click an event to play it in the game, with the game's own mix (music cues too). Add a sound to the one you have open, or copy its name for a quest or a script. [b]Filter[/b] finds a sound by words or [i]*[/i] patterns.
 
 [size=4][b][color=#19f3ff]Start from nothing, or from your own files[/color][/b][/size]
-[b]Create a Sound[/b] (the + in the Sounds view) makes a new, empty sound. Fill it from the game, with AI, or by dropping sound files on it from your desktop or VS Code's Explorer, holding Shift: on the lanes each file becomes a track, on the clip it replaces the selected track's sound.
+[b]Create a Sound[/b] (the + in the Desk or the Project view) makes a new, empty sound. Fill it from the game, with AI, or by dropping sound files on it from your desktop or VS Code's Explorer, holding Shift: on the lanes each file becomes a track, on the clip it replaces the selected track's sound.
 
 [size=4][b][color=#19f3ff]Edit with a waveform[/color][/b][/size]
 Trim, cut, copy and paste, silence, fade in and out with a choice of curves, apply gain, normalize, make it stereo, set a loop. Select by dragging, zoom in, play the selection. Undo and redo work as in any file.
@@ -46,7 +46,7 @@ Trim, cut, copy and paste, silence, fade in and out with a choice of curves, app
 [size=4][b][color=#19f3ff]Into the game[/color][/b][/size]
 [b]Add to Project…[/b] puts your mix into the mod, the way the game needs it:
 [list]
-[*][b]A new sound for this project[/b]: your mix gets a name of its own (such as [i]edgewave_door_knock[/i]), and quests, scenes and scripts play it by that name. It replaces nothing in the game. The project's sounds are listed in the Sounds view and offered first to other tools, such as EDGEquest's sound picker.[/*]
+[*][b]A new sound for this project[/b]: your mix gets a name of its own (such as [i]edgewave_door_knock[/i]), and quests, scenes and scripts play it by that name. It replaces nothing in the game. The project's sounds are listed in the Project view and offered first to other tools, such as EDGEquest's sound picker.[/*]
 [*][b]Replace an event with REDmod[/b]: your sound plays wherever the game plays that event. REDcode packs it as a REDmod custom sound, and several mods can do this side by side.[/*]
 [*][b]Silence an event[/b] with REDmod.[/*]
 [*][b]Override one variation[/b] of a sound effect, imported into the game's sound files through REDcode. Only one mod can do this at a time.[/*]
@@ -58,10 +58,12 @@ Voice lines cannot go back in as voice lines yet: that needs Wwise.
 With your own [url=https://elevenlabs.io/]ElevenLabs[/url] account:
 [list]
 [*][b]Generate Sound[/b]: describe a sound, play the takes, change the description and try again, then add the one you like as a track.[/*]
-[*][b]Speak Line[/b]: type a line and hear it in one of your ElevenLabs voices, with previews, or in the voice of the line you have selected.[/*]
+[*][b]Speak Line[/b]: type a line and hear it in one of your ElevenLabs voices, with previews, or in the voice of your own recording on the selected track.[/*]
 [*][b]Re-Voice[/b]: the same words, timing and delivery in another voice. Describe the change ([i]female[/i], [i]older and raspy[/i], [i]shouting, angry[/i]), play the previews and pick one, or choose one of your voices.[/*]
+[*][b]Character Voices[/b]: one voice per game character for every tool that speaks their lines. Pick one of your voices, or describe the character and ElevenLabs designs a few voices for you to hear and keep.[/*]
+[*]Other tools can have EDGEwave speak a line with the time of each letter, for lip sync (EDGEfab's Lip Sync).[/*]
 [/list]
-Your key stays in VS Code's secret storage. Each use spends your ElevenLabs credits. Cloning a voice asks first: a game line's voice belongs to a real voice actor, so only clone a voice you have the right to.
+Your key is kept in [b]REDcode's Keys[/b] (REDcode 0.10.16 or later), shared by every EDGE tool: set it once, and each tool asks you once whether it may read it. Each use spends your ElevenLabs credits. EDGEwave never sends the game's own audio to ElevenLabs: clones and re-voicing take only your own recordings, since a game line's voice belongs to a real voice actor.
 
 [img]https://staticdelivery.nexusmods.com/mods/3333/images/35493/35493-1792553995-1822266874.png[/img]
 [img]https://staticdelivery.nexusmods.com/mods/3333/images/35493/35493-1792554022-49562882.png[/img]
@@ -69,8 +71,8 @@ Your key stays in VS Code's secret storage. Each use spends your ElevenLabs cred
 [size=4][b][color=#19f3ff]Voices on demand in the game: EDGEwave Voice for REDnode[/color][/b][/size]
 An optional file here, and a game mod: a [url=https://www.nexusmods.com/cyberpunk2077/mods/35419]REDnode[/url] package that other REDnode mods call to speak lines of text as they need them, such as an AI companion's replies, in the voices you set up with EDGEwave. Through ElevenLabs with your own key; a line spoken before plays again at once, without spending credits. [b]EDGEwave: Voices for REDnode…[/b] in VS Code installs it and names your voices. Needs REDnode 0.36 or later.
 
-[size=4][b][color=#19f3ff]Your sounds, in a project or not[/color][/b][/size]
-The [b]Sounds[/b] view lists the sound documents in your project, the project's named sounds, and the ones you opened lately from any folder, so you can try things out without making a project. Unsaved changes survive a reload of the VS Code window.
+[size=4][b][color=#19f3ff]Your sounds: the Desk, the Project and the Library[/color][/b][/size]
+The [b]Desk[/b] is EDGEwave's own scratch space: sounds you are working on, kept across restarts, with no project needed. The [b]Project[/b] view lists the project's mixes and the sounds it puts into the game, each with a [b]▶[/b]. The [b]Library[/b] view shows the [url=https://edgemodders.ai/wiki/library.html]EDGE Library[/url], shared by every EDGE tool: add a sound from the Desk once, and copy it into any project. Unsaved changes survive a reload of the VS Code window.
 
 [size=4][b][color=#19f3ff]Coming next[/color][/b][/size]
 Planned: voice lines back into the game as voice lines (a [i].wem[/i] made with your own Wwise); a searchable index of every sound in the game, built from your own copy, with the events and banks that play it; [b]Translate[/b], the same line spoken in another language; and more of your sounds playing in the running game through REDnode.
@@ -80,7 +82,7 @@ Planned: voice lines back into the game as voice lines (a [i].wem[/i] made with 
 [list]
 [*]Windows 10 or 11, 64-bit.[/*]
 [*][url=https://code.visualstudio.com/]VS Code[/url] 1.90 or later, [url=https://vscodium.com/]VSCodium[/url], or EDGEkit.[/*]
-[*][url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url] 0.10 or later, which reads the game's sounds for EDGEwave. The stores install it with EDGEwave.[/*]
+[*][url=https://www.nexusmods.com/cyberpunk2077/mods/35356]REDcode[/url] 0.10.3 or later, which reads the game's sounds for EDGEwave; 0.10.16 or later to share your ElevenLabs key through its Keys. The stores install it with EDGEwave.[/*]
 [*]Cyberpunk 2077 on PC: the Steam, GOG or Epic install.[/*]
 [*]Optional: an [url=https://elevenlabs.io/]ElevenLabs[/url] account and API key, for Generate Sound, Speak Line, Re-Voice and EDGEwave Voice. ElevenLabs charges for its credits.[/*]
 [*]For EDGEwave Voice only: [url=https://www.nexusmods.com/cyberpunk2077/mods/35419]REDnode[/url] 0.36 or later in the game.[/*]
