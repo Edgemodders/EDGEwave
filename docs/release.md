@@ -37,15 +37,10 @@ The `.vsix` is one file for every platform: EDGEwave has no native parts and no 
 
 ### For the next release's wiki
 
-What 0.3.0's step 8 needs, kept here as it is built, so none of it is forgotten:
+What the next release's step 8 needs, kept here as it is built, so none of it is forgotten (0.3.0's rows went into the wiki on 2026-11-22, EDGEweb c009add; the wiki's screenshots of the old Sounds view wait for new ones from the owner):
 
 | Change on `main` | Wiki pages |
 |---|---|
-| The Sounds view is the **Desk**; a new **Project** view (Mixes, Project sounds read from the project's files, ▶ on every row); the **Library** view ([Desk, Project and Library](desk-library.html)) | `finding.md` (The Sounds view), `install.md` (the views), `settings.md` (the Sounds view's commands), `troubleshooting.md` (Project empty), `tutorial.md` and screenshots that show the Sounds view; `wiki/library.md` (EDGEwave's Desk and sound items, no longer planned) |
-| No game audio goes to ElevenLabs: Speak Line in a line's voice, Re-Voice and its remix take only your own recordings and files | `voices.md` (Voice clones), `voice-lines.md` (a cloned game voice), `troubleshooting.md` (clones), the glossary's Voice clone |
-| **EDGEwave: Character Voices…**, a voice designed from a description, and speaking a line with timings for other tools (EDGEfab's Lip Sync) | `voices.md`, `assistants.md` (`voice_speak_line`), `settings.md` (the command) |
-| Voice Lines keeps `<take>.timings.json` beside each take | `voice-lines.md` |
-| The ElevenLabs key lives in REDcode's Keys, shared by every EDGE tool; a one-time move; Connect an Assistant no longer gives the client the key (#12). Only once REDcode's release with Keys is out | `voices.md` and `install.md` (the key), `assistants.md` (Connect, no key in the client), `settings.md` (Set and Clear ElevenLabs API Key), `troubleshooting.md` (a refused or missing key, Don't Allow); `wiki/glossary.md` if it has the key store |
 
 ## The packaged test
 
