@@ -11,6 +11,8 @@ How to keep it:
 
 ## Unreleased
 
+## 0.3.0 (2026-11-22)
+
 **New**
 
 - The **Desk**: EDGEwave's own scratch space for the sounds you are working on, kept across restarts until you move them to a project or add them to the Library. Its **+** makes a sound there; with no project open, Create a Sound and Open in EDGEwave on a game sound land there too, with no question about a folder. Each mix's right-click has **Move to Project…**, **Add to Library…**, **Rename…** and **Take Off the Desk…** ([how](https://edgemodders.github.io/EDGEwave/desk-library.html#the-desk)).
@@ -23,7 +25,7 @@ How to keep it:
 
 **Changed**
 
-- Your ElevenLabs key is now kept in **REDcode's Keys**, shared by every EDGE tool: set it once there or in EDGEwave, and EDGEwave asks you once whether it may read it. A key EDGEwave kept before moves there by itself, once. Assistants connected with **Connect an Assistant** read it from there too, so their settings no longer hold it: connect again to take it out of an older entry. If you choose Don't Allow, EDGEwave says how to change that and does not ask you to type the key. Needs a REDcode with Keys and REDbridge 0.18.0; with an older REDcode, EDGEwave keeps its own key as before ([#12](https://github.com/Edgemodders/EDGEwave/issues/12), [#14](https://github.com/Edgemodders/EDGEwave/issues/14)).
+- Your ElevenLabs key is now kept in **REDcode's Keys**, shared by every EDGE tool: set it once there or in EDGEwave, and EDGEwave asks you once whether it may read it. A key EDGEwave kept before moves there by itself, once. Assistants connected with **Connect an Assistant** read it from there too, so their settings no longer hold it: connect again to take it out of an older entry. If you choose Don't Allow, EDGEwave says how to change that and does not ask you to type the key. Needs REDcode 0.10.16 or later, with REDbridge 0.18.0; with an older REDcode, EDGEwave keeps its own key as before ([#12](https://github.com/Edgemodders/EDGEwave/issues/12), [#14](https://github.com/Edgemodders/EDGEwave/issues/14)).
 - EDGEwave no longer sends the game's audio to ElevenLabs: on a track that plays a game voice line or sound effect, Speak Line does not offer the line's voice and Re-Voice says why at once, its buttons off. Your own recordings and files work as before.
 - The Sounds view is now the **Desk**, with Recent below the Desk's mixes. The project's mixes and **Project sounds** moved to a new **Project** view, whose **+** is Create a Sound in the Project.
 - **Project sounds** reads the project's own files, so it lists an override of a game sound and a REDnode package's sounds wherever the mix that made them is kept. A click on any of them opens the Hear tab; the hover has ▶ and a button that opens the mix that made it.
