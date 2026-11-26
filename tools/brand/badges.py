@@ -48,5 +48,5 @@ def badge(label, value, color):
 out = pathlib.Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 for name, label, value, color in BADGES:
-    (out / f"{name}.svg").write_text(badge(label, value, color), encoding="utf-8")
+    (out / f"{name}.svg").write_text(badge(label, value, color), encoding="utf-8", newline="\n")
     print(f"Wrote {out / (name + '.svg')}")
