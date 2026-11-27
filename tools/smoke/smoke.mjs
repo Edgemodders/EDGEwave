@@ -729,9 +729,24 @@ await vrun("document.getElementById('generate').click()");
 let vmeta = "";
 for (let i = 0; i < 40; i++) { vmeta = await vrun("return document.getElementById('meta').textContent"); if (vmeta.includes("2 voiced")) break; await sleep(500); }
 const vmadeWith = await vrun("return [...document.querySelectorAll('.line .made-with')].map((e) => e.textContent)");
+// The .wem step (V2 step 5) runs after the takes: with Wwise 2023.1.14 on this PC, the 3 takes become .wem
+// files under the archive folder; without it, the panel says Wwise was not found.
+const wwiseHere = (() => { try { return fs.readdirSync("C:\\Audiokinetic").some((d) => /^wwise[_ ]?2023\.1\.14/i.test(d)); } catch { return false; } })();
+let vwem = "";
+for (let i = 0; i < 60; i++) { vwem = await vrun("return document.getElementById('wem').textContent"); if (wwiseHere ? /3 of 3 takes/.test(vwem) : /was not found/.test(vwem)) break; await sleep(500); }
 const vshot = await cdp("Page.captureScreenshot", { format: "png" });
 fs.writeFileSync(path.join(T, "voiceLines.png"), Buffer.from(vshot.data, "base64"));
 const record = JSON.parse(fs.readFileSync(path.join(T, "proj", "source", "raw", "edgewave", "voice", "smoke_quest", "voice.json"), "utf8"));
+const wemOk = (gamePath) => {
+  try {
+    const b = fs.readFileSync(path.join(T, "proj", "source", "archive", ...gamePath.split("\\")));
+    return b.readUInt16LE(20) === 0xffff && b.readUInt16LE(22) === 1 && b.readUInt32LE(24) === 48000;
+  } catch { return false; }
+};
+log("voice lines .wem", JSON.stringify({ wwiseHere, vwem, wem: Object.fromEntries(Object.entries(record.lines).map(([k, l]) => [k, l.wem])) }));
+if (wwiseHere
+  ? !(/3 of 3 takes/.test(vwem) && record.lines["42"]?.wem?.female === "mod\\smoke\\smoke_quest\\vo\\judy_smoke_quest_f_000000000000002a.wem" && [record.lines["42"].wem.female, record.lines["1234567890123456789"]?.wem?.female, record.lines["1234567890123456789"]?.wem?.male].every((p) => p && wemOk(p)))
+  : !/was not found/.test(vwem)) finish(false, "Voice Lines' .wem step did not make the takes' .wem files (or say why not) as expected");
 const tts = eleven.slice(elevenBefore).filter((r) => r.path.startsWith("/v1/text-to-speech/") && r.fmt === "pcm_24000").map((r) => JSON.parse(r.body));
 log("voice lines", JSON.stringify({ picked, vmeta, tts, record }));
 const vLine = record.lines["1234567890123456789"], jLine = record.lines["42"];
