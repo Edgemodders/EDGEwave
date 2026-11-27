@@ -41,6 +41,8 @@ What the next release's step 8 needs, kept here as it is built, so none of it is
 
 | Change on `main` | Wiki pages |
 |---|---|
+| Voice Lines makes `.wem` files through the modder's Wwise 2023.1.14 (V2 step 5, 2026-11-27): the line under the panel's header, the `.wem` marks, Where to get Wwise, the `edgewave.wwise.path` setting; `voice_lines` and `voice_status` report it. Say whether the game was heard playing one | `voice-lines.md` (the "subtitles only" box and the into-the-game part), `into-the-game.md` (its voice lines section), `voices.md` (Into the game), `settings.md` (the setting), `install.md` (Wwise as an optional install), `assistants.md` (the two tools), `troubleshooting.md` (no Wwise), `index.md` (Coming next) |
+| Pack and Play's name in Add to Project's message (#10) | `into-the-game.md`, if it names Pack and Try |
 
 ## The packaged test
 

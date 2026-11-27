@@ -1,6 +1,6 @@
 # V2 Voice a quest
 
-Status: **steps 1 to 4 built 2026-10-24**, for [EDGEwave #5](https://github.com/Edgemodders/EDGEwave/issues/5) (EDGEquest's Q4 and Q6); hand test pending ([Tests](testing.html#v2-voice-a-quest)). The plan is agreed with the owner (2026-10-23 and 24). EDGEquest [confirmed the contract](https://github.com/Edgemodders/EDGEwave/issues/5#issuecomment-6376619865) on 2026-10-23, adding `say`, `direction` and one line at a time. Step 5, the `.wem` route, is next; its spike is done: [below](#the-wem-spike) and in [Tests](testing.html#spike-wav-to-wem-with-wwise).
+Status: **steps 1 to 4 built 2026-10-24**, for [EDGEwave #5](https://github.com/Edgemodders/EDGEwave/issues/5) (EDGEquest's Q4 and Q6); hand test passed 2026-11-06 ([Tests](testing.html#v2-voice-a-quest)); released in 0.2.0. The plan is agreed with the owner (2026-10-23 and 24). EDGEquest [confirmed the contract](https://github.com/Edgemodders/EDGEwave/issues/5#issuecomment-6376619865) on 2026-10-23, adding `say`, `direction` and one line at a time. **Step 5, the `.wem` step, built 2026-11-27** at the owner's go ([below](#the-wem-step)): checked with the real Wwise 2023.1.14 by script, not yet heard in the game, which needs EDGEquest's voice-over map.
 
 EDGEquest writes a quest's dialogue: each new line has an id, a speaker and text. EDGEwave gives those lines a voice, and the game plays it as a real voice line. The modder asks EDGEquest for a quest, or EDGEquest's assistant works through the quest's checklist, and the checklist's `voice/<scene>` item ticks itself once every line in the scene has its voice.
 
@@ -12,7 +12,7 @@ EDGEquest writes a quest's dialogue: each new line has an id, a speaker and text
 | 2. **Voice Lines…** | One panel per quest, lines by scene. [Below](#the-voice-lines-panel) | Built 2026-10-24 |
 | 3. The exported API | `voiceLines` and `voiceStatus` from `activate()`, `apiVersion: 1`. [API and MCP](api.html) | Built 2026-10-24 |
 | 4. `edgewave-mcp` | `voice_lines`, `voice_status`, `voice_voices`. [API and MCP](api.html#the-mcp-server). `voice_lines` has no ask-first flag: the owner decided an assistant may voice lines, since the person who asked EDGEquest for the quest is the one in the loop | Built 2026-10-24 |
-| 5. The `.wem` route | Each take to a `.wem` through the modder's own Wwise 2023.1.14, under the mod's archive folder, ready for the voice-over map EDGEquest writes | Next; spike done |
+| 5. The `.wem` step | Each take to a `.wem` through the modder's own Wwise 2023.1.14, under the mod's archive folder, ready for the voice-over map EDGEquest writes. [Below](#the-wem-step) | Built 2026-11-27; in the game not yet |
 
 The WAVs and `voice.json` go under `source/raw/edgewave/voice/<quest>/` (agreed with the owner 2026-10-23; WolvenKit does not pack `source/raw`, unverified for REDcode's Pack). Only the `.wem` files go under `source/archive/`.
 
@@ -36,7 +36,7 @@ What EDGEwave writes, in `source/raw/edgewave/voice/<quest>/`:
 |---|---|
 | `<speaker>_<quest>_f_<id in 16 hex digits>.wav` | A take, mono, as ElevenLabs gives it (48 kHz, or 24 kHz on a plan without 48 kHz). `_m_` for male V. `<speaker>` and `<quest>` lower case, other characters `_` |
 | `<name>.previous.wav` | The take before the last, kept when a line is redone |
-| `voice.json` | The record: `quest`, `voices` (per speaker, V's as `{ female, male }`), `archiveDir` when given, and `lines` by id: `scene`, `speaker`, what the take was made from (`text`, `say`, `direction`, `model`, `made`), its files (`female`, `male`, relative to the project) and `previous` |
+| `voice.json` | The record: `quest`, `voices` (per speaker, V's as `{ female, male }`), `archiveDir` when given, and `lines` by id: `scene`, `speaker`, what the take was made from (`text`, `say`, `direction`, `model`, `made`), its files (`female`, `male`, relative to the project), `wem` (the game paths of its `.wem` files, by gender, once made; [the .wem step](#the-wem-step)), `wemFrom` (the SHA-1 of the WAV each `.wem` was made from) and `previous` |
 | `<name>.edgewave`, `<name>.take.wav` | Only after **Studio**: the take as a studio document. Its source is a copy of the take, its render the take itself |
 
 **A line is voiced** while its takes exist and its `text`, `say` and `direction` match what they were made from. Otherwise it is stale, and voicing again redoes only the stale and missing lines. EDGEquest reads `voice.json` for its checklist and writes the voice-over map.
@@ -69,6 +69,23 @@ From EDGEquest's [formats page](https://edgemodders.github.io/EDGEquest/design/f
 | Lip sync | Optional. New lip sync cannot be made from new audio; a game line's can be reused. V has none |
 
 Wwise is not part of EDGEwave and is never shipped with it (its license). The modder installs it from Audiokinetic's Launcher, which keeps versions side by side. Only the `.wem` step needs it; without Wwise a quest's new lines have their WAVs but play as subtitles only.
+
+## The .wem step
+
+Built 2026-11-27 (step 5). After the takes, each one becomes a `.wem` for the game through the modder's own Wwise, with no question: it is free and runs on the PC.
+
+| | |
+|---|---|
+| Which Wwise | **2023.1.14**, found in the Audiokinetic Launcher's folders (`C:\Audiokinetic`, `Program Files\Audiokinetic`, beside `WWISEROOT`), the latest build when there are several. Another version only through the setting **`edgewave.wwise.path`** (`WwiseConsole.exe` or the install folder); `off` turns the step off |
+| Where | `source/archive/<archiveDir>/<take's name>.wem`, the folder EDGEquest names (`mod\<author>\<quest>\vo`), so Pack puts it in the mod's archive. Its game path, `<archiveDir>\<name>.wem`, goes in the line's `wem.female` / `wem.male` in `voice.json` |
+| The audio | Each WAV is made mono 48 kHz 16-bit first (a windowed sinc resampler, `src/audio/resample.ts`), since Wwise keeps a source's own rate: a 24 kHz take would stay 24 kHz (checked 2026-11-27). Then Wwise's factory **Vorbis Quality High** conversion |
+| When | After Generate, Regenerate, Use a file and Previous in the panel, when the panel opens, after a studio render of a take, and in the MCP tool `voice_lines`. Only takes whose `.wem` is missing, made from another WAV (`wemFrom`), or at another path are made, in one Wwise run (0.7 s for three takes, the project included) |
+| A new take | Drops the line's `wem` (the previous take keeps none): only the current take has a `.wem`, one per name |
+| Wwise's project | A blank one, made the first time in `%LOCALAPPDATA%\EDGEwave\wwise\<version>\EDGEwave\EDGEwave.wproj` (Wwise refuses a project not named after its folder) |
+| No Wwise, or no archive folder | The takes keep their WAVs and the lines play as subtitles only. The panel says why under its header, with **Where to get Wwise** (Audiokinetic's download page) and **Look Again** |
+| The panel | A line under the header, `.wem for the game: 3 of 3 takes, Wwise 2023.1.14.8770`, and a `.wem` mark beside each take that has one (its game path on hover). A take Wwise refuses is named there, with **Try Again** |
+
+Checked 2026-11-27 with the real Wwise 2023.1.14.8770, by script ([Tests](testing.html#the-wem-step-with-the-real-wwise)): a 48 kHz and a 24 kHz take become Wwise Vorbis, mono, 48 kHz, in the archive folder with their game paths in `voice.json`; `voice_lines` over stdio does the same with nothing sent to ElevenLabs. **Not yet checked: that the game plays one**, which needs EDGEquest's voice-over map pointing at the paths in `wem`.
 
 ## The `.wem` spike
 

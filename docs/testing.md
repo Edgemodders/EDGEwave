@@ -2,13 +2,13 @@
 
 Every test run on EDGEwave so far: how to run it again, what to expect, and what it showed. Each phase ends with a hand test by the owner ([design, "Phases"](design.html#phases)); new tests are added here when they are first run.
 
-Last updated 2026-11-26.
+Last updated 2026-11-27.
 
 ## At a glance
 
 | Test | Kind | Phase | Last run | Result |
 |---|---|---|---|---|
-| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2, Desk and Library, #13, #12 | 2026-11-26 | Pass, 84 tests |
+| [Type check, build and unit tests](#type-check-build-and-unit-tests) | Automated, also on GitHub (Check) | A1 to V2, Desk and Library, #13, #12 | 2026-11-27 | Pass, 91 tests (the real Wwise's skipped unless asked) |
 | [Key store against REDbridge 0.18.0](#key-store-against-redbridge-0180) | By script, no VS Code, a temporary store | #12 | 2026-11-21 | Pass |
 | [Smoke test](#smoke-test-vs-code-with-a-stand-in-redcode) | Automated, no game or ElevenLabs needed | A1 to V2, Desk and Library, #13, #12's fallback | 2026-11-22 | Pass, twice in a row, after fixes to the test itself (below); again after the game-line dialogs changed |
 | [Reload test](#reload-test-unsaved-edits-survive-a-window-reload) | Automated, no game needed | A1 | 2026-11-06 | Pass |
@@ -16,6 +16,7 @@ Last updated 2026-11-26.
 | [Packaged test](release.html#the-packaged-test) | Automated, needs the network (the Marketplace) | Release | 2026-11-22 | Pass: `edgewave-0.3.0.vsix` with REDcode 0.10.16 (2026-11-22, for the joint key release). Before: `edgewave-0.2.0.vsix` with REDcode 0.10.7, built with every fix of the 2026-11-06 hand tests. The downloaded VS Code's own CLI worked this time; an earlier run the same day needed the machine's (`EACCES`, cause unverified) |
 | [Spike: decoding and encoding in the webview](#spike-decoding-and-encoding-in-vs-codes-webview) | By script, with game sounds | A1 | 2026-10-15 | Done |
 | [Spike: WAV to `.wem` with Wwise](#spike-wav-to-wem-with-wwise) | By script, with Wwise 2023.1.14 | V2 | 2026-10-23 | Done; in the game not yet |
+| [The .wem step with the real Wwise](#the-wem-step-with-the-real-wwise) | Automated (`EDGEWAVE_REAL_WWISE=1`) and by script over MCP, with Wwise 2023.1.14 | V2 step 5 | 2026-11-27 | Pass; in the game not yet |
 | [A1 Edit hand test](#a1-edit) | By hand, F5 | A1 | 2026-10-16 | Pass, after four rounds |
 | [A2 Mix hand test](#a2-mix) | By hand, F5 | A2 | 2026-11-06 | Pass, after six rounds, with steps 14 and 15 |
 | [A3 Into the game hand test](#a3-into-the-game) | By hand, F5 and in the game | A3 | 2026-11-06 | Pass, after five rounds, with steps 9 to 12 |
@@ -23,7 +24,7 @@ Last updated 2026-11-26.
 | [Game Assets hand test](#game-assets) | By hand, F5, with the game | Game Assets | 2026-11-06 | Pass, first round |
 | [EDGEwave Voice for REDnode hand test](#edgewave-voice-for-rednode) | By hand, in the game with REDnode, an ElevenLabs key (spends credits) | Voice for REDnode | 2026-11-06 | Pass, steps 1 to 7 |
 | [EDGEwave Voice: REDnode's describer and the package's wiring](#edgewave-voice-for-rednode) | By script, no game | Voice for REDnode | 2026-10-27 | Pass |
-| [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | 2026-11-06 | Pass, steps 1 to 13 |
+| [V2 Voice a quest hand test](#v2-voice-a-quest) | By hand, with EDGEquest and an ElevenLabs key (spends credits) | V2 | 2026-11-06 | Pass, steps 1 to 13; steps 14 to 17, the .wem step (added 2026-11-27), not run: 14 to 16 in the editor, 17 in the game with EDGEquest's voice-over map |
 | [Sounds view: Project and Recent hand test](#sounds-view-project-and-recent) | By hand, F5 | A1 | 2026-11-06 | Pass, with step 8; the outside mix is a known gap, fixed in the Project view (2026-11-16) |
 | [Speaking a line with timings hand test](#speaking-a-line-with-timings) | By hand, F5, with an ElevenLabs key (spends credits) | #13 | 2026-11-22 | Partly run: steps 1, 1b, 2, 4, 5, 6 and 7 pass (2 with a clone, before 2026-11-21's no-game-audio rule; 7 retested after the dialogs say it up front); only step 3 is left, runnable since REDcode 0.10.17 (2026-11-25) brought the Lip Sync tab. The real check of ElevenLabs' timings passed 2026-11-20 by script ([API](api.html#speaking-a-line-with-timings)) |
 | [Desk, Project and Library hand test](#desk-project-and-library) | By hand, F5 | Desk and Library | 2026-11-16 | Pass: round 1, steps 1 to 15, with four findings fixed during it; round 2 (2026-11-22), step 16 |
@@ -145,6 +146,20 @@ Run 2026-10-23 for [V2 Voice a quest](voice-lines.html#the-wem-spike), which has
 Expect: codec `0xFFFF`, 1 channel, 48,000 Hz, `fmt ` 66 bytes, then `hash` and `data`, as the game's line; the Ogg as long as the WAV.
 
 Last result (2026-10-23): all as expected, 0.5 s per conversion. 2025.1.7 makes the same audio (only the `hash` chunk differs). Not yet heard in the game.
+
+### The .wem step with the real Wwise
+
+Added 2026-11-27 with [V2 step 5](voice-lines.html#the-wem-step). Needs Wwise 2023.1.14 from Audiokinetic's Launcher, so it is skipped on GitHub's runners.
+
+```powershell
+$env:EDGEWAVE_REAL_WWISE = "1"; npm test
+```
+
+Expect: the test "the real Wwise 2023.1.14" passes: a quest's three takes (V's 48 kHz female and 24 kHz male, Judy's 48 kHz) become `.wem` files under a temporary project's `source/archive/mod/me/eq_test/vo/`, each RIFF `WAVE`, codec `0xFFFF` (Wwise Vorbis), 1 channel, 48,000 Hz, with their game paths in `voice.json`.
+
+Then the MCP server over stdio (a script kept outside the repo, as for the MCP test below): `dist/mcp/edgewave-mcp.cjs` with `EDGEWAVE_HOME` and a project in a temporary folder, a line already voiced (a 24 kHz WAV) and `ELEVENLABS_BASE_URL` pointing at nothing. Expect: `voice_status` before gives the reason (no archive folder); `voice_lines` with `archiveDir` voices nothing (0 characters) and gives `wem: { made: 1, takes: 1, madeNow: 1, wwise: "2023.1.14.8770" }` and the line's `wem.female`; `voice_status` after gives `toMake: 0` and the path; the `.wem` is Wwise Vorbis, mono, 48 kHz.
+
+Last result (2026-11-27): **pass**, both, with Wwise 2023.1.14.8770: three `.wem` in 0.73 s, the Wwise project made in the same run. Found on the way and fixed: Wwise makes no project whose `.wproj` is not named after its folder (exit 1, no output). Not yet heard in the game.
 
 ### MCP server over stdio
 
@@ -371,6 +386,10 @@ What is built: [V2 Voice a quest](voice-lines.html) and [API and MCP](api.html).
 11. **An assistant.** **EDGEwave: Connect an Assistant (MCP)…** > Connect Claude Code, with the key. In a new Claude Code session, ask it to voice a quest's lines with EDGEwave. Expect: it calls `voice_lines` without asking first, and the takes appear as in step 3. With the Voice Lines panel open while it works: each row flashes as its take changes, and its time updates, with no need to close the tab.
 12. **Play with no tab** ([#8](https://github.com/Edgemodders/EDGEwave/issues/8), added 2026-10-26). Once EDGEquest's picker passes `show: false` on its ▶: click ▶ on a sound effect, then at once on another. Expect: the first plays within about a second (the player starts when the picker searches), no Hear tab opens, and the second stops the first. Click ▶ on a long one, then close the picker (Escape, or by opening the Command Palette, which closes it): the sound stops, as EDGEquest's picker stops it on closing. **EDGEwave: Stop Sound** needs a sound with no picker open: in Game Assets, ▶ on a long sound, then run it from the Command Palette: it stops. A project sound plays its WAV the same way. A music cue still gives a reason.
 13. **In the running game** ([REDnode #17](https://github.com/Edgemodders/REDnode/issues/17), REDnode 0.43.0; added 2026-10-27). Start the game with REDnode 0.43 or later and load a save. In EDGEquest's Music picker, ▶ on a `mus_` cue: it plays in the game, with the game's mix. ▶ on another stops the first; closing the picker stops it. In EDGEwave's Game Assets, right-click an event > **Play in the Game**: heard on V in the game; on a long one, **EDGEwave: Stop Sound** stops it. After Pack and Install and a game restart, step 10's `edgewave_<name>` through the API's `playEvent({ name, inGame: true })` (or EDGEquest's picker, if it offers in-game play): heard or not; tell me which. Quit the game and play a music cue again: the reason, not an error.
+14. **The .wem files** (step 5, added 2026-11-27; editor only, no game, no credits when the lines are voiced already). With Wwise 2023.1.14 installed, open a quest voiced before from EDGEquest's Storyboard (it passes the archive folder). Expect: under the header, `Making .wem files for the game with Wwise…`, then `.wem for the game: N of N takes, Wwise 2023.1.14.<build>`; a `.wem` mark beside each take, its game path on hover; the files in `source\archive\mod\<author>\<quest>\vo\`, named as the WAVs; each line in `voice.json` with `wem.female` (and `wem.male` for V). Close and open the panel: nothing is made again (the Output's EDGEwave channel says no new run).
+15. **A take changes.** Regenerate a line (spends its credits), or **Use a file…** on one take, then **Previous**. Expect: after each, that line's `.wem` is made again (the mark goes and comes back); the other lines' are not. Open a take in **Studio**, change it and **Render WAV**: that take's `.wem` is made again within a few seconds, with the panel closed too (`voice.json`'s `wemFrom` changes).
+16. **No Wwise.** Set `edgewave.wwise.path` to `off` and open the panel. Expect: in the warning colour, "Wwise 2023.1.14 was not found, so the lines have WAVs and play as subtitles only…", with **Where to get Wwise** (opens Audiokinetic's download page) and **Look Again**. Clear the setting, then **Look Again**: the count comes back. With a quest opened from **EDGEwave: Voice Lines…** that EDGEquest never opened (no archive folder): the line says EDGEquest names the folder.
+17. **In the game** (needs EDGEquest's voice-over map from `voice.json`'s `wem` paths, and the game). Pack and install EDGEquest's test quest with a voiced line, and play to it. Expect: the line is heard in its voice, with its subtitle; V's line in V's voice for the save's V. Heard or not; tell me which.
 
 | Round | Date | What | Result |
 |---|---|---|---|
