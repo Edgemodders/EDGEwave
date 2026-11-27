@@ -116,6 +116,8 @@ async function pickSource(docDir: string): Promise<Source | undefined> {
 export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
   /** The sound document whose editor was active last: where Game Assets' Add to the Open Sound puts a track. */
   private active?: vscode.TextDocument;
+  /** Called with each file a render writes: a quest's take makes its .wem again (VoiceLines.rendered). */
+  rendered?: (file: string) => void;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -371,6 +373,7 @@ export class SoundEditorProvider implements vscode.CustomTextEditorProvider {
       fs.mkdirSync(path.dirname(out), { recursive: true });
       fs.writeFileSync(out, wav);
       this.log.appendLine(`Rendered ${out} (${wav.length} bytes)`);
+      this.rendered?.(out);
       const open = await vscode.window.showInformationMessage(`Rendered ${path.basename(out)}.`, "Show in Explorer");
       if (open) await vscode.commands.executeCommand("revealInExplorer", vscode.Uri.file(out));
     } catch (e) {

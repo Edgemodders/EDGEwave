@@ -18,7 +18,8 @@
 //   sounds map, played where the package's code calls audio.play, beside the game's sound. Replaces
 //   nothing, and takes voice lines too (src/rednode.ts).
 //
-// Voice lines (.wem) have no route in place of a game line yet: nothing here makes a .wem.
+// Voice lines (.wem) have no route in place of a game line yet. A quest's new lines get theirs in Voice
+// Lines, through the modder's Wwise (src/voiceWem.ts), for the voice-over map EDGEquest writes.
 
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -141,7 +142,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   // A voice line in the mix, and no sound effect to put the mix in place of.
   if (!inMix.some((t) => t.source.kind === "sfx") && inMix.some((t) => t.voice || (t.source.kind === "game" && looksLikeVoice(t.source.path)))) {
     void vscode.window.showInformationMessage(
-      "Voice lines cannot replace a game line yet: a .wem needs Wwise to make, which EDGEwave does not have. A REDnode package can play this mix from its code, and a REDmod custom sound for an audio event.",
+      "Voice lines cannot replace a game line yet. A quest's new lines become .wem files in Voice Lines, with Wwise 2023.1.14 (EDGEquest's Storyboard opens it). A REDnode package can play this mix from its code, and a REDmod custom sound for an audio event.",
     );
   }
 

@@ -20,6 +20,8 @@ interface Line {
   genders: Gender[];
   status: "none" | "made" | "stale";
   takes: Partial<Record<Gender, string>>;
+  /** Each take's .wem game path, while it is made from the take as it is. */
+  wem: Partial<Record<Gender, string>>;
   madeFrom?: { text: string; say?: string; direction?: string; model?: string; made?: string };
   previous: boolean;
 }
@@ -28,6 +30,8 @@ interface State {
   model: string;
   focus: string[];
   busy?: { done: number; total: number; id: string };
+  /** The .wem files for the game (src/voiceWem.ts). */
+  wem: { made: number; takes: number; reason?: string; wwise?: string; busy?: boolean; failed?: string; noWwise?: boolean };
   names: Record<string, string>;
   voices: Record<string, string | Partial<Record<Gender, string>>>;
   speakers: { speaker: string; both: boolean; isV: boolean }[];
@@ -100,9 +104,39 @@ function render() {
   $("meta").textContent = `${s.lines.length} line${s.lines.length === 1 ? "" : "s"} · ${made} voiced · ${s.lines.length - made} to voice${s.busy ? ` · voicing ${s.busy.done + 1} of ${s.busy.total}…` : ""}`;
   ($("generate") as HTMLButtonElement).disabled = !!s.busy || made === s.lines.length;
   $("cancel").hidden = !s.busy;
+  renderWem();
   renderModel();
   renderVoices();
   renderLines();
+}
+
+/** One line under the header: how the takes stand as .wem files for the game, or why there are none. */
+function renderWem() {
+  if (!state) return;
+  const w = state.wem;
+  const box = $("wem");
+  const parts: (Node | string)[] = [];
+  if (w.busy) parts.push("Making .wem files for the game with Wwise…");
+  else if (w.reason) {
+    parts.push(w.reason);
+    if (w.noWwise) {
+      const get = el("button", { textContent: "Where to get Wwise", title: "Audiokinetic's download page: the Launcher installs Wwise 2023.1.14" });
+      get.onclick = () => send({ type: "wemHelp" });
+      const again = el("button", { textContent: "Look Again", title: "Look for Wwise again, after installing it or setting edgewave.wwise.path" });
+      again.onclick = () => send({ type: "wem" });
+      parts.push(" ", get, " ", again);
+    }
+  } else if (w.takes) {
+    parts.push(`.wem for the game: ${w.made} of ${w.takes} take${w.takes === 1 ? "" : "s"}${w.wwise ? `, Wwise ${w.wwise}` : ""}`);
+    if (w.failed) {
+      const again = el("button", { textContent: "Try Again" });
+      again.onclick = () => send({ type: "wem" });
+      parts.push(". ", w.failed, " ", again);
+    }
+  }
+  box.className = `wem${w.failed || w.reason ? " warn" : ""}`;
+  box.replaceChildren(...parts);
+  box.hidden = !parts.length;
 }
 
 function renderModel() {
@@ -203,7 +237,8 @@ function lineRow(l: Line, s: State): HTMLElement {
     rec.onclick = () => pickRecording(l.id, g);
     const studio = el("button", { textContent: "Studio", title: "Edit this take in EDGEwave's studio; its Render writes the take", disabled: !src || busy });
     studio.onclick = () => send({ type: "studio", id: l.id, gender: g });
-    takes.append(el("span", { className: "take" }, label ? el("span", { className: "dim", textContent: label }) : "", playB, rec, studio));
+    const wem = l.wem[g] ? el("span", { className: "dim mono wem-mark", textContent: ".wem", title: `For the game: ${l.wem[g]}` }) : "";
+    takes.append(el("span", { className: "take" }, label ? el("span", { className: "dim", textContent: label }) : "", playB, rec, studio, wem));
   }
   const gen = el("button", { className: l.status === "made" ? "" : "primary", textContent: l.status === "none" ? "Generate" : "Regenerate", disabled: busy });
   gen.onclick = () => {

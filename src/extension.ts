@@ -41,6 +41,7 @@ export function activate(context: vscode.ExtensionContext): EDGEwaveApi {
   // A tree view, not just a provider: Reveal in Library selects a sound in it.
   const libraryTree = vscode.window.createTreeView("edgewave.library", { treeDataProvider: library });
   const editor = new SoundEditorProvider(context, log, voices, (uri) => void desk.remember(uri));
+  editor.rendered = (file) => voiceLines.rendered(file);
   const assets = new GameAssets(events, editor);
   context.subscriptions.push(
     log,

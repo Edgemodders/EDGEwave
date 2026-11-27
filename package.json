@@ -345,6 +345,11 @@
           "default": "eleven_v3",
           "markdownDescription": "The ElevenLabs model Voice Lines speaks a quest's lines with. `eleven_v3` reads the delivery tags (`[softly]`, `[sighs]`) in a line's `say`; other models get them removed. The MCP tool `voice_lines` uses it too."
         },
+        "edgewave.wwise.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Where Audiokinetic's Wwise is, to make a quest's voice lines `.wem` files for the game: its `WwiseConsole.exe`, or its install folder. Empty: Wwise 2023.1.14, the version the game uses, in the Audiokinetic Launcher's folders (such as `C:\\Audiokinetic\\Wwise_2023.1.14.8770`). `off`: no `.wem` files. The MCP tool `voice_lines` uses it too."
+        },
         "edgewave.elevenlabs.baseUrl": {
           "type": "string",
           "default": "https://api.elevenlabs.io",

@@ -12,6 +12,11 @@ How to keep it:
 
 ## Unreleased
 
+**New**
+
+- Voice Lines makes each take a `.wem` for the game through your own Wwise 2023.1.14 (free, on your PC), in the mod's archive folder that EDGEquest names, with its game path in `voice.json` for EDGEquest's voice-over map. Made again when a take changes, a studio render included; without Wwise the panel says so and where to get it. The setting `edgewave.wwise.path` points at another Wwise, or `off`. Not yet heard in the game (https://github.com/Edgemodders/EDGEwave/issues/5)
+- The MCP tool `voice_lines` makes the `.wem` files too, and `voice_status` says how many takes have one
+
 **Changed**
 
 - Add to Project's message after an override names REDcode's Pack and Play, the new name of Pack and Try (https://github.com/Edgemodders/EDGEwave/issues/10)

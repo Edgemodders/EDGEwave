@@ -24,6 +24,8 @@ import { DefaultBaseUrl, ElevenLabs } from "../elevenlabs";
 import { indexFile, searchEvents, type EventIndex } from "../events";
 import { checkLines, lineStatus, type Voices } from "../voice";
 import { DefaultModel, loadRecord, saveRecord, voiceBatch } from "../voiceBatch";
+import { makeWems, staleWems, wemState } from "../voiceWem";
+import { findWwise } from "../wwise";
 import { characterVoice, speakLine } from "../speakLine";
 import { findBridge, installedRedcodeDirs, KeysBridge, McpCaller, Service } from "../keyStore";
 
@@ -45,6 +47,22 @@ function vscodeSetting(key: string): string | number | boolean | undefined {
   if (!m) return undefined;
   const v = JSON.parse(m[1]) as string | number | boolean;
   return typeof v === "string" ? set(v) : v;
+}
+
+/** The edgewave.wwise.path setting: where Wwise is, or "off". */
+const wwisePath = () => String(vscodeSetting("edgewave.wwise.path") ?? "");
+
+/** The .wem step's result for an assistant: how many, which Wwise, and why none when none. */
+function wemSummary(w: { made: number; takes: number; reason?: string; wwise?: string; converted?: number; failed?: { id: string; gender: string; message: string }[]; stale?: number }) {
+  return {
+    made: w.made,
+    takes: w.takes,
+    ...(w.converted !== undefined ? { madeNow: w.converted } : {}),
+    ...(w.stale !== undefined ? { toMake: w.stale } : {}),
+    ...(w.wwise ? { wwise: w.wwise } : {}),
+    ...(w.reason ? { reason: w.reason } : {}),
+    ...(w.failed?.length ? { failed: w.failed } : {}),
+  };
 }
 
 /** REDbridge for the key store, started on the first call that needs the key and kept while the server runs. */
@@ -108,7 +126,9 @@ server.registerTool(
       "Voices a quest's dialogue lines through ElevenLabs, with the modder's key, and records the takes in <project>/source/raw/edgewave/voice/<quest>/voice.json, which EDGEquest reads. " +
       "Only lines with no take, or whose text, say or direction changed, are voiced, unless redo is true (one line with redo regenerates just that line; its last take is kept as previous). " +
       "V gets two takes (female and male V), anyone else one. Every speaker needs a voice: pass voices, or call voice_status to see those already chosen and voice_voices to pick. " +
-      "Spends ElevenLabs credits: the result says how many characters were sent. Default model eleven_v3, which reads [tags] in say.",
+      "Spends ElevenLabs credits: the result says how many characters were sent. Default model eleven_v3, which reads [tags] in say. " +
+      "Then each take becomes a .wem for the game through the modder's own Wwise 2023.1.14 (free, local), under source/archive/<archiveDir>, with its game path in voice.json's wem: the result's wem says how many, or why none (no Wwise, no archiveDir). " +
+      "Calling it again on voiced lines voices nothing and makes the .wem files still missing.",
     inputSchema: {
       project: z.string().describe("The WolvenKit project's folder"),
       quest: z.string().describe("The quest's id"),
@@ -116,13 +136,15 @@ server.registerTool(
       voices: voicesSchema.optional(),
       redo: z.boolean().default(false),
       model: z.string().optional().describe("An ElevenLabs text-to-speech model id; default the edgewave.voiceLines.model setting, else eleven_v3"),
-      archiveDir: z.string().optional().describe("Where the .wem files will go under source/archive, such as mod\\author\\quest\\vo (kept for the .wem step)"),
+      archiveDir: z.string().optional().describe("Where the .wem files go under source/archive, such as mod\\author\\quest\\vo; kept in voice.json"),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   },
   async ({ project, quest, lines, voices, redo, model, archiveDir }) => {
     try {
       const checked = checkLines(lines);
+      // Kept first, so the .wem step after the batch knows where the files go.
+      if (archiveDir && loadRecord(project, quest).archiveDir !== archiveDir) saveRecord(project, { ...loadRecord(project, quest), archiveDir });
       const r = await voiceBatch({
         projectDir: project,
         quest,
@@ -134,7 +156,8 @@ server.registerTool(
         api: await elevenLabs(),
         log,
       });
-      if (archiveDir && r.record.archiveDir !== archiveDir) saveRecord(project, { ...loadRecord(project, quest), archiveDir });
+      const w = await makeWems({ projectDir: project, quest, configured: wwisePath(), log });
+      const record = w.record;
       return text({
         voiced: r.voiced.length,
         failed: r.failed.map(({ id, message }) => ({ id, message })),
@@ -142,7 +165,8 @@ server.registerTool(
         model: r.model,
         sampleRate: r.rate,
         record: path.join(project, "source", "raw", "edgewave", "voice", quest, "voice.json"),
-        lines: checked.map((l) => ({ id: l.id, status: lineStatus(l, r.record), female: r.record.lines[l.id]?.female, male: r.record.lines[l.id]?.male })),
+        wem: wemSummary(w),
+        lines: checked.map((l) => ({ id: l.id, status: lineStatus(l, record), female: record.lines[l.id]?.female, male: record.lines[l.id]?.male, wem: record.lines[l.id]?.wem })),
       });
     } catch (e) {
       return failure(e);
@@ -155,17 +179,27 @@ server.registerTool(
   {
     description:
       "Which of a quest's lines are voiced (made), changed since their take (stale) or have none (none), from voice.json; and the voices chosen per speaker. " +
-      "Without lines, every line voice.json has, with what each take was made from.",
+      "Without lines, every line voice.json has, with what each take was made from. " +
+      "wem: how many takes have a .wem for the game (each line's wem gives its game paths, for the voice-over map), or why none can be made.",
     inputSchema: { project: z.string(), quest: z.string(), lines: z.array(lineSchema).optional() },
     annotations: { readOnlyHint: true },
   },
   async ({ project, quest, lines }) => {
     try {
       const record = loadRecord(project, quest);
-      if (!lines) return text(record);
+      const stale = new Set(staleWems(project, record).map((t) => `${t.id}:${t.gender}`));
+      const wem = wemSummary({ ...wemState(project, record, findWwise({ configured: wwisePath() })), stale: stale.size });
+      if (!lines) return text({ ...record, wemStatus: wem });
       const checked = checkLines(lines);
-      const status = checked.map((l) => ({ id: l.id, scene: l.scene, status: lineStatus(l, record), female: record.lines[l.id]?.female, male: record.lines[l.id]?.male }));
-      return text({ quest, voices: record.voices, made: status.filter((s) => s.status === "made").length, stale: status.filter((s) => s.status === "stale").length, none: status.filter((s) => s.status === "none").length, lines: status });
+      // A .wem path is given only while the .wem is made from the take as it is.
+      const current = (id: string) => {
+        const w = record.lines[id]?.wem;
+        if (!w) return undefined;
+        const out = { female: stale.has(`${id}:female`) ? undefined : w.female, male: stale.has(`${id}:male`) ? undefined : w.male };
+        return out.female || out.male ? out : undefined;
+      };
+      const status = checked.map((l) => ({ id: l.id, scene: l.scene, status: lineStatus(l, record), female: record.lines[l.id]?.female, male: record.lines[l.id]?.male, wem: current(l.id) }));
+      return text({ quest, voices: record.voices, made: status.filter((s) => s.status === "made").length, stale: status.filter((s) => s.status === "stale").length, none: status.filter((s) => s.status === "none").length, wem, lines: status });
     } catch (e) {
       return failure(e);
     }

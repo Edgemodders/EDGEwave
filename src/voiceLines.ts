@@ -12,6 +12,14 @@ import { ViewType } from "./openSound";
 import { gendersOf, isV, lineStatus, needsBoth, type Gender, type VoiceLine, type VoiceRecord, type Voices } from "./voice";
 import { DefaultModel, keepTake, loadRecord, recordPath, restorePrevious, saveRecord, studioDoc, voiceBatch } from "./voiceBatch";
 import { VoiceTools } from "./voiceTools";
+import { makeWems, staleWems, wemState, type WemResult } from "./voiceWem";
+import { findWwise, WwiseDownload, type Wwise } from "./wwise";
+
+/** The edgewave.wwise.path setting: WwiseConsole.exe or a Wwise folder, "off" for none. */
+export const wwiseSetting = () => vscode.workspace.getConfiguration("edgewave.wwise").get<string>("path") ?? "";
+
+/** The modder's Wwise, as the setting or the Launcher's folders give it. */
+export const theWwise = (): Wwise | undefined => findWwise({ configured: wwiseSetting() });
 
 /** An error for the page: its message, and key when a new ElevenLabs key may fix it. */
 const failure = (e: unknown): { message: string; key?: true } => {
@@ -39,6 +47,8 @@ interface Panel {
   busy?: { cancelled: boolean };
   /** voice.json's time when the page last heard of it. */
   seen?: number;
+  /** The .wem step: running, and what the last run could not make. */
+  wem: { busy?: boolean; failed?: string };
   send(m: unknown): void;
 }
 
@@ -55,7 +65,9 @@ type FromPage =
   | { type: "previous"; id: string }
   | { type: "studio"; id: string; gender: Gender }
   | { type: "setKey" }
-  | { type: "keyHelp" };
+  | { type: "keyHelp" }
+  | { type: "wem" }
+  | { type: "wemHelp" };
 
 const bytes = (x: unknown): Uint8Array => (x instanceof Uint8Array ? x : Uint8Array.from(Object.values(x as Record<string, number>)));
 
@@ -113,6 +125,7 @@ export class VoiceLines {
       o,
       model: vscode.workspace.getConfiguration("edgewave.voiceLines").get<string>("model") || DefaultModel,
       waiting: [],
+      wem: {},
       send: (m) => void panel.webview.postMessage(m),
     };
     this.panels.set(key, p);
@@ -160,12 +173,16 @@ export class VoiceLines {
     };
     const speakers = new Map<string, boolean>();
     for (const l of p.o.lines) speakers.set(l.speaker, (speakers.get(l.speaker) ?? false) || needsBoth(l));
+    const wwise = theWwise();
+    const stale = new Set(staleWems(p.o.projectDir, record).map((t) => `${t.id}:${t.gender}`));
+    const hasWem = (id: string, g: Gender) => !!record.archiveDir && !!record.lines[id]?.[g] && !stale.has(`${id}:${g}`);
     p.send({
       type: "state",
       quest: p.o.quest,
       model: p.model,
       focus: p.o.focus ?? [],
       busy,
+      wem: { ...wemState(p.o.projectDir, record, wwise), ...p.wem, noWwise: !!record.archiveDir && !wwise },
       names: this.names(),
       voices,
       speakers: [...speakers].map(([speaker, both]) => ({ speaker, both, isV: isV(speaker) })),
@@ -176,6 +193,7 @@ export class VoiceLines {
           genders: gendersOf(l),
           status: lineStatus(l, record),
           takes: { female: uri(r?.female), male: uri(r?.male) },
+          wem: { female: hasWem(l.id, "female") ? r?.wem?.female : undefined, male: hasWem(l.id, "male") ? r?.wem?.male : undefined },
           madeFrom: r ? { text: r.text, say: r.say, direction: r.direction, model: r.model, made: r.made } : undefined,
           previous: !!r?.previous,
         };
@@ -186,7 +204,12 @@ export class VoiceLines {
   private async handle(p: Panel, m: FromPage): Promise<void> {
     switch (m.type) {
       case "ready":
-        return this.push(p);
+        this.push(p);
+        return void this.wems(p);
+      case "wem":
+        return void this.wems(p);
+      case "wemHelp":
+        return void vscode.env.openExternal(vscode.Uri.parse(WwiseDownload));
       case "voices": {
         const list: Voice[] = await (await this.tools.client()).voices(m.search);
         await this.context.globalState.update(NamesState, { ...this.names(), ...Object.fromEntries(list.map((v) => [v.id, v.name])) });
@@ -232,11 +255,13 @@ export class VoiceLines {
         const line = this.line(p, m.id);
         const record = keepTake(p.o.projectDir, loadRecord(p.o.projectDir, p.o.quest), line, { [m.gender]: bytes(m.wav) }, { model: "recording" });
         saveRecord(p.o.projectDir, record);
-        return this.push(p);
+        this.push(p);
+        return void this.wems(p);
       }
       case "previous": {
         saveRecord(p.o.projectDir, restorePrevious(p.o.projectDir, loadRecord(p.o.projectDir, p.o.quest), this.line(p, m.id)));
-        return this.push(p);
+        this.push(p);
+        return void this.wems(p);
       }
       case "studio": {
         const file = studioDoc(p.o.projectDir, this.line(p, m.id), p.o.quest, m.gender);
@@ -280,7 +305,65 @@ export class VoiceLines {
     } finally {
       p.busy = undefined;
       this.push(p);
+      void this.wems(p);
     }
+  }
+
+  /** The .wem runs, one at a time per quest: a run asked for while one runs waits for it. */
+  private readonly wemRuns = new Map<string, Promise<WemResult | undefined>>();
+
+  /**
+   * Makes the quest's missing and stale .wem files through the modder's Wwise (src/voiceWem.ts), with no
+   * question: it is free and local. Nothing happens with no Wwise or no archive folder; the page says why.
+   */
+  makeWems(projectDir: string, quest: string): Promise<WemResult | undefined> {
+    const key = `${path.resolve(projectDir).toLowerCase()}|${quest}`;
+    const once = async (): Promise<WemResult | undefined> => {
+      const wwise = theWwise();
+      const record = loadRecord(projectDir, quest);
+      if (!wwise || !staleWems(projectDir, record).length) return undefined;
+      const p = this.panels.get(key);
+      if (p) {
+        p.wem = { busy: true };
+        if (!p.busy) this.push(p);
+      }
+      let r: WemResult | undefined;
+      try {
+        r = await makeWems({ projectDir, quest, wwise, log: (s) => this.log.appendLine(`Voice Lines: ${s}`) });
+        this.log.appendLine(`Voice Lines: ${quest}: ${r.converted} .wem made with Wwise ${wwise.version ?? ""}, ${r.failed.length} failed`);
+        if (p) p.wem = r.failed.length ? { failed: `${r.failed.length} take${r.failed.length === 1 ? "" : "s"} could not be made a .wem: ${r.failed[0].message}` } : {};
+      } catch (e) {
+        this.log.appendLine(`Voice Lines: ${quest}: the .wem step failed: ${(e as Error).message}`);
+        if (p) p.wem = { failed: `The .wem step failed: ${(e as Error).message}` };
+      }
+      const now = this.panels.get(key);
+      if (now && !now.busy) this.push(now);
+      return r;
+    };
+    // A queued run finds nothing stale when the one before it made everything, and returns at once.
+    const next = (this.wemRuns.get(key) ?? Promise.resolve(undefined)).then(once, once);
+    this.wemRuns.set(key, next);
+    void next.finally(() => {
+      if (this.wemRuns.get(key) === next) this.wemRuns.delete(key);
+    });
+    return next;
+  }
+
+  private wems(p: Panel): Promise<WemResult | undefined> {
+    return this.makeWems(p.o.projectDir, p.o.quest);
+  }
+
+  /**
+   * A studio render wrote a file: when it is a quest's take (source/raw/edgewave/voice/<quest>/<name>.wav
+   * beside voice.json), that quest's .wem is made again.
+   */
+  rendered(file: string): void {
+    const dir = path.dirname(file);
+    const parts = path.resolve(dir).split(path.sep);
+    const n = parts.length;
+    if (n < 6 || parts.slice(n - 5, n - 1).map((x) => x.toLowerCase()).join("/") !== "source/raw/edgewave/voice") return;
+    if (!/\.wav$/i.test(file) || !fs.existsSync(path.join(dir, "voice.json"))) return;
+    void this.makeWems(parts.slice(0, n - 5).join(path.sep), parts[n - 1]);
   }
 
   private html(webview: vscode.Webview, dist: vscode.Uri, media: vscode.Uri): string {
@@ -299,6 +382,7 @@ export class VoiceLines {
   <button id="generate" class="primary" title="Voice every line that has no take, or whose text, say or direction changed since">Generate All</button>
   <button id="cancel" hidden>Stop</button>
 </header>
+<div id="wem" class="wem" hidden></div>
 <section id="voices" class="voices"></section>
 <div id="error" class="error" hidden></div>
 <main id="lines"></main>
