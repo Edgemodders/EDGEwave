@@ -12,6 +12,10 @@ How to keep it:
 
 ## Unreleased
 
+**Changed**
+
+- Add to Project's message after an override names REDcode's Pack and Play, the new name of Pack and Try (https://github.com/Edgemodders/EDGEwave/issues/10)
+
 ## 0.3.0 (2026-11-22)
 
 <!-- nexus

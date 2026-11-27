@@ -206,7 +206,7 @@ export async function intoGame(document: vscode.TextDocument, renderFor: RenderF
   // The game reads its sound at start (EDGEwave #4): an override's sound paks crash a running game when
   // hot-deployed, and REDmod deploys custom sounds when the game starts. So install, then restart.
   const hear = game.route === "override"
-    ? " To hear it: Pack and Install, then restart the game. Don't hot-deploy it (Pack and Try): a sound archive in Red Hot Tools' hot folder crashes the running game."
+    ? " To hear it: Pack and Install, then restart the game. Not Pack and Play with REDcode 0.10.3: it puts a sound archive in Red Hot Tools' hot folder, which crashes the running game."
     : " To hear it: Pack and Install, then restart the game; REDmod deploys custom sounds when the game starts.";
   const actions = redmodOff ? ["Pack and Install", "Pack", "Open Setting"] : ["Pack and Install", "Pack"];
   const pick = await vscode.window.showInformationMessage(`${done}${note}${hear}`, ...actions);
