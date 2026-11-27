@@ -19,6 +19,7 @@ import {
   toVoice,
   voiceDir,
   voiceFor,
+  withoutWem,
   withTake,
   type Gender,
   type Take,
@@ -149,7 +150,8 @@ export function restorePrevious(projectDir: string, record: VoiceRecord, line: V
     back[g] = now[g];
     now[g] = prev[g];
   }
-  return { ...record, lines: { ...record.lines, [line.id]: { scene, speaker, ...back, previous: now } } };
+  // The .wem files hold the take that was current: both sides lose theirs, and the next .wem step makes them.
+  return { ...record, lines: { ...record.lines, [line.id]: { scene, speaker, ...withoutWem(back), previous: withoutWem(now) } } };
 }
 
 export interface BatchOptions {

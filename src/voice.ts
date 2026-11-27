@@ -35,8 +35,11 @@ export interface Take {
   direction?: string;
   female?: string;
   male?: string;
-  /** Game paths of the .wem files under the archive folder, for the voice-over map. */
+  /** Game paths of the .wem files under the archive folder, for the voice-over map. Only while each .wem
+   *  is made from its take as it is now; absent with no Wwise or no archive folder. */
   wem?: { female?: string; male?: string };
+  /** The SHA-1 of the WAV each .wem was made from: a take changed since (a studio render) is made again. */
+  wemFrom?: { female?: string; male?: string };
   /** The model and voices used. */
   model?: string;
   made?: string;
@@ -160,9 +163,15 @@ export function withTake(record: VoiceRecord, line: VoiceLine, take: Take): Voic
   const entry: LineRecord = { scene: line.scene, speaker: line.speaker, ...take };
   if (old && (old.female || old.male)) {
     const { scene: _s, speaker: _p, previous: _q, ...was } = old;
-    entry.previous = was;
+    entry.previous = withoutWem(was);
   }
   return { ...record, lines: { ...record.lines, [line.id]: entry } };
+}
+
+/** A take without its .wem fields: only the current take has .wem files (one per name, in the archive). */
+export function withoutWem<T extends Take>(take: T): T {
+  const { wem: _w, wemFrom: _f, ...rest } = take;
+  return rest as T;
 }
 
 /** The game path of a take's .wem under the archive folder EDGEquest names (mod\<author>\<quest>\vo). */
