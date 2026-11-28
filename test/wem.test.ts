@@ -172,6 +172,24 @@ test("makeWems: every take to a .wem under the archive folder, recorded; nothing
     saveRecord(project, r2);
     assert.equal((await makeWems({ projectDir: project, quest: "eq_test", wwise, exec: fakeWwise(calls), home })).converted, 1);
 
+    // One of V's two takes changes: only that one is made again; the other keeps its .wem (EDGEweb's run, 2026-11-27).
+    const vBefore = loadRecord(project, "eq_test").lines[lineV.id];
+    let r3 = keepTake(project, loadRecord(project, "eq_test"), lineV, { female: encodeWav(tone(48000, 0.12, 500)) }, { model: "recording" });
+    assert.equal(r3.lines[lineV.id].wem?.female, undefined);
+    assert.equal(r3.lines[lineV.id].wem?.male, vBefore.wem!.male);
+    assert.equal(r3.lines[lineV.id].wemFrom?.male, vBefore.wemFrom!.male);
+    saveRecord(project, r3);
+    const one = await makeWems({ projectDir: project, quest: "eq_test", wwise, exec: fakeWwise(calls), home });
+    assert.equal(one.converted, 1);
+    // Previous on it swaps only the female WAV: the male keeps its .wem again.
+    r3 = restorePrevious(project, loadRecord(project, "eq_test"), lineV);
+    assert.equal(r3.lines[lineV.id].wem?.female, undefined);
+    assert.equal(r3.lines[lineV.id].wem?.male, vBefore.wem!.male);
+    assert.equal(r3.lines[lineV.id].previous?.wem, undefined);
+    saveRecord(project, r3);
+    assert.deepEqual(staleWems(project, r3).map((t) => `${t.id}:${t.gender}`), [`${lineV.id}:female`]);
+    assert.equal((await makeWems({ projectDir: project, quest: "eq_test", wwise, exec: fakeWwise(calls), home })).converted, 1);
+
     // Previous swaps the WAVs: the .wem is made from the take now current.
     r2 = restorePrevious(project, loadRecord(project, "eq_test"), lineJ);
     assert.equal(r2.lines[lineJ.id].wem, undefined);

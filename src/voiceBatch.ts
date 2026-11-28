@@ -71,6 +71,8 @@ export function keepTake(projectDir: string, record: VoiceRecord, line: VoiceLin
     const wav = wavs[g];
     if (!wav) {
       if (old?.[g]) take[g] = old[g];
+      // Its WAV is the same, so its .wem stays (the .wem step checks it by its hash anyway).
+      keepWem(take, old, g);
       continue;
     }
     const name = takeName(line, record.quest, g);
@@ -90,6 +92,13 @@ export function keepTake(projectDir: string, record: VoiceRecord, line: VoiceLin
   const p = next.lines[line.id].previous;
   if (p) for (const g of Object.keys(moved) as Gender[]) p[g] = moved[g];
   return next;
+}
+
+/** Copies one gender's .wem fields from a take whose WAV for that gender is unchanged. */
+function keepWem(to: Take, from: Take | undefined, g: Gender): void {
+  if (!from?.wem?.[g]) return;
+  to.wem = { ...to.wem, [g]: from.wem[g] };
+  if (from.wemFrom?.[g]) to.wemFrom = { ...to.wemFrom, [g]: from.wemFrom[g] };
 }
 
 /** Moves a take's timings file from beside one WAV to beside another, or removes a stale one at the target. */
@@ -136,9 +145,13 @@ export function restorePrevious(projectDir: string, record: VoiceRecord, line: V
   const prev = cur?.previous;
   if (!cur || !prev) throw new Error("This line has no previous take.");
   const { previous: _p, scene, speaker, ...now } = cur;
-  const back: Take = { ...prev };
+  const back: Take = withoutWem(prev);
   for (const g of ["female", "male"] as Gender[]) {
-    if (!prev[g] || !now[g] || prev[g] === now[g]) continue;
+    if (!prev[g] || !now[g] || prev[g] === now[g]) {
+      // Not swapped: the current WAV for this gender stays, and its .wem with it.
+      if (now[g] && back[g] === now[g]) keepWem(back, cur, g);
+      continue;
+    }
     const a = path.join(projectDir, now[g]!), b = path.join(projectDir, prev[g]!);
     const t = `${a}.${process.pid}.swap`;
     fs.renameSync(a, t);
@@ -150,8 +163,9 @@ export function restorePrevious(projectDir: string, record: VoiceRecord, line: V
     back[g] = now[g];
     now[g] = prev[g];
   }
-  // The .wem files hold the take that was current: both sides lose theirs, and the next .wem step makes them.
-  return { ...record, lines: { ...record.lines, [line.id]: { scene, speaker, ...withoutWem(back), previous: withoutWem(now) } } };
+  // A swapped gender's .wem holds the take that was current: it goes, and the next .wem step makes it again.
+  // The previous take never has one.
+  return { ...record, lines: { ...record.lines, [line.id]: { scene, speaker, ...back, previous: withoutWem(now) } } };
 }
 
 export interface BatchOptions {

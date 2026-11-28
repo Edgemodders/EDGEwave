@@ -84,7 +84,14 @@ export class VoiceLines {
   /** A speaker's voice was picked: offered to the other tools' character voices (src/speakLineHost.ts). */
   offer?: (speaker: string, gender: Gender | undefined, id: string, name: string | undefined) => Promise<void>;
 
-  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly tools: VoiceTools) {}
+  constructor(private readonly context: vscode.ExtensionContext, private readonly log: vscode.OutputChannel, private readonly tools: VoiceTools) {
+    // Wwise set, cleared or turned off: every open panel looks again.
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("edgewave.wwise.path")) for (const p of this.panels.values()) void this.wems(p);
+      }),
+    );
+  }
 
   /** The quest's voice.json, or undefined when nothing was voiced yet. */
   status(projectDir: string, quest: string): VoiceRecord | undefined {
@@ -321,8 +328,15 @@ export class VoiceLines {
     const once = async (): Promise<WemResult | undefined> => {
       const wwise = theWwise();
       const record = loadRecord(projectDir, quest);
-      if (!wwise || !staleWems(projectDir, record).length) return undefined;
       const p = this.panels.get(key);
+      if (!wwise || !staleWems(projectDir, record).length) {
+        // Nothing to make, but the page may still show what was before (Look Again after the setting changed).
+        if (p) {
+          p.wem = {};
+          if (!p.busy) this.push(p);
+        }
+        return undefined;
+      }
       if (p) {
         p.wem = { busy: true };
         if (!p.busy) this.push(p);
